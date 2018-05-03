@@ -1,0 +1,16 @@
+
+cvibuild\.TRS/
+
+*.TRM
+
+*.TRS
+
+*.pos
+
+*.GEO
+
+*.obj
+
+*.BRE
+
+CVI_ADE_070100\.txt
