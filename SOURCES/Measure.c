@@ -1,6 +1,6 @@
 /* ######################################################################## */
 /* 									   														*/
-/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 16.0  January  2018   */
+/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 17.0  May  2018   */
 /* 									   														*/
 /* ######################################################################## */
 
@@ -25,6 +25,7 @@
 // GitHub
 // NIRS Box
 // New TRIM
+// LUCA Box
 
 /* ########################   HELP   ################################## */
 // Board = Physical TCSPC Board
@@ -79,6 +80,7 @@
 #include "spc_isa_def.h"
 #include "ximc2.h" // Standa2 driver re-saved as ximic2.h since the ximc.h had a truncated line
 #include "NIRS_DLL_v2_mod.h"
+#include "LUCA_TRS_mod.h"
 //#include "thlibc.h"
 //#include "thdefin.h"
 #include "W32nii3eMOD.h"
@@ -91,6 +93,13 @@
 
 
 /* ########################   MEASURE PROCEDURES   ########################### */
+
+/* INITIALIZE VARIABLES */
+void InitVariable(void){
+	// place here alla variables which need to be initialized at startup in TRS (before any oscill or meas is started
+	P.Spc.Luca[0].InitializedBox=FALSE;
+	P.Spc.Luca[0].InitializedLaser=FALSE;
+	}
 
 //TaskHandle	taskmodpower=0;
 /* DO MEASUREMENT */
@@ -883,6 +892,7 @@ void CompleteParmS(void){
 		case TEST:P.Spc.Calib=TEST_CALIB; break;
 		case DEMO:P.Spc.Calib=TEST_CALIB; break;
 		case SPC_NIRS:P.Spc.Calib=NIRS_DT; break;
+		case SPC_LUCA:P.Spc.Calib=LUCA_DT; break;
 		default: break;
 		}
 	/* READ INI FROM UIR WITH NO DIR
@@ -919,6 +929,12 @@ void CompleteParmS(void){
 		P.Chann.Last=NIRS_HISTLEN-1;
 		P.Chann.Num=NIRS_HISTLEN;
 		}
+		
+	if(P.Spc.Type==SPC_LUCA){
+		P.Chann.First=0;
+		P.Chann.Last=LUCA_HISTLEN-1;
+		P.Chann.Num=LUCA_HISTLEN;
+		}
 
 	P.Spc.Started=FALSE;
 	P.Spc.Trash=TRUE;
@@ -929,7 +945,7 @@ void CompleteParmS(void){
 	else
 		P.Spc.Format=SPC_LONG;
 	P.Spc.Subtract=(P.Meas.Stop?FALSE:TRUE);
-	if((P.Spc.Type==SPC_NIRS)){
+	if((P.Spc.Type==SPC_NIRS)||(P.Spc.Type==SPC_LUCA)){
 		P.Meas.Stop=FALSE;
 		P.Spc.Subtract=FALSE;
 		}
@@ -968,6 +984,7 @@ void CompleteParmS(void){
 	P.Num.Det = 1;
 	if(P.Spc.Type==SPC_NIRS)
 		if(P.Spc.Nirs[0].Lambda==NIRS_LAMBDA12) P.Spc.RoutingBits=1; else P.Spc.RoutingBits=0;
+	if(P.Spc.Type==SPC_LUCA) P.Spc.RoutingBits=1;
 	for(ir=0;ir<P.Spc.RoutingBits;ir++) P.Num.Det*=2;
 	
 	// Filter-Page-Acq
@@ -1988,6 +2005,7 @@ void SpcInit(void){
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++) InitSC1000(ib);break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) InitSpad(ib);break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) InitNirs(ib);break;
+		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) InitLuca(ib);break;
 		case TEST: break;
 		case DEMO: InitDemo(); break;
 		}
@@ -2010,6 +2028,7 @@ void SpcClose(void){
 		case SPC_SC1000: CloseSC1000(); break;
 		case SPC_SPADLAB: CloseSpad(); break;
 		case SPC_NIRS: CloseNirs(); break;
+		case SPC_LUCA: CloseLuca(); break;
 		case TEST: break;
 		case DEMO: CloseDemo(); break;
 		}
@@ -2086,6 +2105,7 @@ void SpcIn(){
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++){} break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
+		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StartLuca(ib); break;
 		case TEST: break;
 		case DEMO: break;
 		}
@@ -2110,6 +2130,7 @@ void SpcRestart(void){  //TODO: check
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++) P.Spc.AcqTimeSC1000=StartSC1000(P.Spc.ScBoard[ib],P.Mamm.Status?(abs(P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx-1]-P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx-1])+1+20)*P.Spc.TimeM:SC1000_TIME_INFINITY); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
+		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StartLuca(ib); break;
 		case TEST: break;
 		case DEMO: break;
 		}
@@ -2120,6 +2141,7 @@ void SpcRestart(void){  //TODO: check
 void SpcReset(char Status, char Clear, char Stop){
 	if(Clear) SpcClear(); 
 	if((P.Spc.Type==SPC_NIRS)&&P.Spc.Trash) TrashNirs(); // note Trash clear for SPC_NIRS is inserted here  
+	if((P.Spc.Type==SPC_LUCA)&&P.Spc.Trash) TrashLuca(); // note Trash clear for SPC_LUCA is inserted here  
 	if(P.Spc.Trash) SpcOut(FALSE);
 	if(Stop||(!P.Spc.Started)) SpcIn();
 	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, ON);
@@ -2144,6 +2166,7 @@ void SpcTime(float Time){
 		case SPC_SC1000: P.Spc.TimeSC1000 = (int) (Time*SEC_2_MILLISEC); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) TimeSpad(ib,Time); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) TimeNirs(ib,Time); break;
+		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) TimeLuca(ib,Time); break;
 		case TEST: break;
 		case DEMO: break;
 		}
@@ -2167,6 +2190,7 @@ void SpcStop(char Status){
 		case SPC_SC1000: break;//if(P.Contest.Function = CONTEST_MEAS); for(ib=0;ib<P.Num.Board;ib++) StopSC1000(ib); break;	 /*patch*/
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StopSpad(ib);break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StopNirs(ib);break;
+		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StopLuca(ib);break;
 		case TEST: break;
 		case DEMO: break;
 		default: break;
@@ -2208,6 +2232,7 @@ void SpcWait(void){
 						while(mod_state2==0);break; */
  		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) WaitSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) WaitNirs(ib); break;
+		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) WaitLuca(ib); break;
 		case DEMO:
 		case TEST: Delay((P.Contest.Function==CONTEST_OSC?P.Spc.TimeO:P.Spc.TimeM));break;
 		}
@@ -2229,6 +2254,7 @@ void SpcGet(void){
 		case SPC_SC1000: GetDataSC1000();break;
 		case SPC_SPADLAB: GetDataSpad();break;
 		case SPC_NIRS: GetDataNirs();break;
+		case SPC_LUCA: GetDataLuca();break;
 		case TEST:  GetDataTest();break;
 		case DEMO:  GetDataDemo();break;
 		}
@@ -2301,6 +2327,10 @@ void CalcTime(void){
 		case SPC_NIRS:
 			for(ib=0;ib<P.Num.Board;ib++)
 				P.Spc.EffTime[ib]=(double)(P.Spc.Nirs[ib].IntTime)/SEC_2_MILLISEC;
+			break;  
+		case SPC_LUCA:
+			for(ib=0;ib<P.Num.Board;ib++)
+				P.Spc.EffTime[ib]=(double)(P.Spc.Luca[ib].IntTime)/SEC_2_MILLISEC;
 			break;  
 		default:
 			now=TimerN();
@@ -3384,6 +3414,7 @@ int NirsBox(int Start){
 			// start operation
 			ret = NIRS_ON(&P.Spc.Nirs[0].Handle, P.Spc.Nirs[0].RegOut, P.Spc.Nirs[0].RegOut, NIRS_REGLEN, NIRS_REGLEN, TRUE);
 			if(ret!=1){ MessagePopup("ERROR WITH NIRS BOX", "Error in START NIRS Box"); return FALSE; }
+			P.Spc.Nirs[0].InitializedBox=TRUE;
 			// message
 			MessagePopup("STARTING NIRS BOX", "Action Completed Successfully!");
 			return TRUE;
@@ -3395,6 +3426,7 @@ int NirsBox(int Start){
 			// stop communication
 			ret = NIRS_CLOSE(&P.Spc.Nirs[0].Handle);
 			if(ret!=1){ MessagePopup("ERROR WITH NIRS BOX", "Error in Closing Communication"); return FALSE; }
+			P.Spc.Nirs[0].InitializedBox=FALSE;
 			// message
 			MessagePopup("STOPPING NIRS BOX", "Action Completed Successfully!");
 			return TRUE;
@@ -3426,6 +3458,7 @@ int NirsLasers(int Start){
 			// set specs
 			ret = NIRS_SET(&P.Spc.Nirs[0].Handle, P.Spc.Nirs[0].RegOut, P.Spc.Nirs[0].RegOut, NIRS_REGLEN, NIRS_REGLEN, freq, int_time, lambda);
 			if(ret!=1){ MessagePopup("ERROR WITH NIRS LASER", "Error in setting FREQ, TIME, LAMBDA"); return FALSE; }
+			P.Spc.Nirs[0].InitializedLaser=TRUE;
 			// message
 			MessagePopup("START NIRS LASER", "Action Completed Successfully!");
 			return TRUE;
@@ -3434,6 +3467,7 @@ int NirsLasers(int Start){
 			// stop laser
 			ret = NIRS_LASER(&P.Spc.Nirs[0].Handle, P.Spc.Nirs[0].RegOut, P.Spc.Nirs[0].RegOut, NIRS_REGLEN, NIRS_REGLEN, FALSE);
 			if(ret!=1){ MessagePopup("ERROR WITH NIRS LASER", "Error in STOP Laser"); return FALSE; }
+			P.Spc.Nirs[0].InitializedLaser=FALSE;
 			// message
 			MessagePopup("STOP NIRS LASER", "Action Completed Successfully!");
 			return TRUE;
@@ -3452,11 +3486,11 @@ void InitNirs(int Board){
 
 	sprintf (message, "Initializing NIRS, Module #%d, ...", Board);
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
-	
 	// initialize buffer
 	P.Spc.Nirs[Board].Hist = (uint32_t *) calloc(NIRS_HISTLEN, sizeof(uint32_t));
-	
 	P.Spc.TimeInit=TimerN();   // era Timer() 
+	// check initialization
+	if(P.Spc.Nirs[Board].InitializedBox!=TRUE) Failure("Error: NIRS Box is not Initialized, go to proper Panel"); else Passed();
 	}
 
 
@@ -3539,6 +3573,187 @@ void GetDataNirs(void){}
 void WaitNirs(int Board){}
 
 #endif
+
+
+/* ########################    LUCA TDC FUNCTIONS (LUCA)  ####################### */
+
+#ifdef _LUCA // conditional compilation to address the use of LUCABOX (need for LabView & load LUCA_DLL_v2.lib
+
+/* START/STOP LUCA BOX */
+int LucaBox(int Start){
+	int ret;
+	char message[STRLEN];
+	static const char sSTART[] = "START";
+	static const char sSTOP[] = "STOP";
+	
+	sprintf (message, "Do you want to %s LucaBox?",(Start==TRUE?sSTART:sSTOP));
+	int answer = ConfirmPopup ("LUCA BOX: ON/OFF",message);
+	
+	if(answer==TRUE){ 
+		if(Start==TRUE){ // START LUCA BOX 
+			// initialise communication & operation
+			ret = TRS_INIT(&P.Spc.Luca[0].Handle, P.Spc.Luca[0].RegOut, LUCA_REGLEN);
+			if(ret!=1){ MessagePopup("ERROR WITH LUCA BOX", "Error in Initializing Luca"); return FALSE; }
+			P.Spc.Luca[0].InitializedBox=TRUE;
+			// save Handle on a text file
+			FILE *pFile=fopen(LUCA_FILE_HANDLE,"r");
+			fprintf(pFile,"%d",P.Spc.Luca[0].Handle);
+			fclose(pFile);
+			// message
+			MessagePopup("STARTING LUCA BOX", "Action Completed Successfully!");
+			return TRUE;
+			}
+		else{			// STOP LUCA BOX 
+			// stop operation & communication
+			ret = TRS_CLOSE(&P.Spc.Luca[0].Handle, P.Spc.Luca[0].RegOut, LUCA_REGLEN);
+			if(ret!=1){ MessagePopup("ERROR WITH LUCA BOX", "Error in CLOSE LUCA Box"); return FALSE; }
+			P.Spc.Luca[0].InitializedBox=FALSE;
+			// message
+			MessagePopup("STOPPING LUCA BOX", "Action Completed Successfully!");
+			return TRUE;
+			}
+		}
+	else
+		return FALSE;	
+
+	}
+
+/* START/STOP LUCA LASER */	
+int LucaLasers(int Start){
+	int ret;
+	char message[STRLEN];
+	static const char sSTART[] = "START";
+	static const char sSTOP[] = "STOP";
+
+	sprintf (message, "Do you want to %s Laser?",(Start==TRUE?sSTART:sSTOP));
+	int answer = ConfirmPopup ("LUCA LASER: ON/OFF",message);
+	
+	if(answer==TRUE){ 
+		if(Start==TRUE){ // START LUCA LASER 
+			// start laser
+			ret = TRS_LASER(&P.Spc.Luca[0].Handle, P.Spc.Luca[0].RegOut, P.Spc.Luca[0].RegOut, LUCA_REGLEN, LUCA_REGLEN, TRUE);
+			if(ret!=1){ MessagePopup("ERROR WITH LUCA LASER", "Error in START Laser"); return FALSE; }
+			P.Spc.Luca[0].InitializedLaser=TRUE;
+			// message
+			MessagePopup("START LUCA LASER", "Action Completed Successfully!");
+			return TRUE;
+			}
+		else{			// STOP LUCA BOX 
+			// stop laser
+			ret = TRS_LASER(&P.Spc.Luca[0].Handle, P.Spc.Luca[0].RegOut, P.Spc.Luca[0].RegOut, LUCA_REGLEN, LUCA_REGLEN, FALSE);
+			if(ret!=1){ MessagePopup("ERROR WITH LUCA LASER", "Error in STOP Laser"); return FALSE; }
+			P.Spc.Luca[0].InitializedLaser=FALSE;
+			// message
+			MessagePopup("STOP LUCA LASER", "Action Completed Successfully!");
+			return TRUE;
+			}
+		}
+	else
+		return FALSE;	
+
+	}
+
+
+/* INIT LUCA */	
+void InitLuca(int Board){
+	char message[STRLEN];
+
+	sprintf (message, "Initializing LUCA, Module #%d, ...", Board);
+	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
+
+	// initialize buffer
+	P.Spc.Luca[Board].Hist = (uint32_t *) calloc(P.Num.Det*LUCA_HISTLEN, sizeof(uint32_t)); // allocate size for 2 detectors
+	P.Spc.TimeInit=TimerN();   // era Timer() 
+	
+	// check initialization
+	if(P.Spc.Luca[Board].InitializedBox!=TRUE) Failure("Error: Luca Box is not Initialized, go to proper Panel"); else Passed();
+
+	}
+
+
+/* SET TIME LUCA */	
+void TimeLuca(int Board, double Time){
+	int ret;
+	
+	P.Spc.Luca[Board].IntTime = (uint32_t) (Time*SEC_2_MILLISEC);
+	uint32_t freq = (uint32_t) (P.Spc.Luca[0].Freq);
+	uint32_t lambda = (uint32_t) (P.Spc.Luca[0].Lambda);
+	uint32_t ctrtime = (uint32_t) (P.Spc.Luca[0].CtrTime);
+	uint32_t inttime = (uint32_t) (P.Spc.Luca[0].IntTime);
+	ret = TRS_SET(&P.Spc.Luca[Board].Handle, P.Spc.Luca[Board].RegOut, P.Spc.Luca[Board].RegOut, LUCA_REGLEN, LUCA_REGLEN, ctrtime, lambda, inttime, freq);
+	}
+
+
+/* CLOSE LUCA */	
+void CloseLuca(void){
+	int ib, ret;
+	for(ib=0;ib<P.Num.Board;ib++){
+		free(P.Spc.Luca[ib].Hist);
+		}
+	} 
+
+
+/* CLEAR LUCA */	
+void TrashLuca(void){
+	if(P.Spc.Trash){
+		StopLuca(0);
+		StartLuca(0);
+		P.Spc.Trash=FALSE;
+		}
+	}
+
+
+/* START LUCA */	
+void StartLuca(int Board){
+	int ret;
+	ret = TRS_MEAS(&P.Spc.Luca[Board].Handle, P.Spc.Luca[Board].RegOut, P.Spc.Luca[Board].RegOut, LUCA_REGLEN, LUCA_REGLEN, LUCA_SHOT);
+	P.Spc.Started=TRUE;
+	}
+
+
+/* STOP LUCA */	
+void StopLuca(int Board){
+	int ret;
+	ret = TRS_MEAS(&P.Spc.Luca[Board].Handle, P.Spc.Luca[Board].RegOut, P.Spc.Luca[Board].RegOut, LUCA_REGLEN, LUCA_REGLEN, LUCA_STOP);
+	P.Spc.Started=FALSE;
+	}
+
+
+/* TRANSFER DATA FROM LUCA */	
+void GetDataLuca(void){
+	}
+
+
+/* WAIT LUCA */	
+void WaitLuca(int Board){
+	int ret,ic,id;
+	uint32_t Stats1[LUCA_STATLEN];
+	uint32_t Stats2[LUCA_STATLEN];
+	uint32_t Bank = 0;
+	uint32_t Lambda = 0;
+	uint32_t MeasIndex = 0;
+	
+	while(!(TRS_ACQ(&P.Spc.Luca[Board].Handle,P.Spc.Luca[Board].Hist,P.Spc.Luca[Board].Hist+LUCA_HISTLEN,LUCA_HISTLEN,LUCA_HISTLEN,Stats1,Stats2,LUCA_STATLEN,LUCA_STATLEN,&Bank,&Lambda,&MeasIndex)));
+	for(id=0;id<P.Num.Det;id++){
+		for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[Board][id*P.Chann.Num+ic]=(T_DATA) P.Spc.Luca[Board].Hist[(P.Chann.Num-1-ic)+(id*P.Chann.Num)];
+		}
+	}
+
+#else  // alternative void function
+
+int LucaBox(int Start){return(0);}
+int LucaLasers(int Start){return(0);}
+void InitLuca(int Board){}
+void TimeLuca(int Board, double Time){}
+void TrashLuca(void){}
+void CloseLuca(void){}
+void StartLuca(int Board){}
+void StopLuca(int Board){}
+void GetDataLuca(void){}
+void WaitLuca(int Board){}
+
+#endif
+
 
 /* ########################   THARP SPC FUNCTIONS   ####################### */
 
@@ -4191,7 +4406,8 @@ void InitSwitch(char Switch){
 		case SWITCH2X2:     if(P.Switch[Switch].Type==TIO) InitSwitch2X2(Switch); break;
 		case SWITCH1X4:	    if((P.Switch[Switch].Type==TIO)||(P.Switch[Switch].Type==NI_6602)) InitSwitch1X4(Switch); break;
 		case SWITCH1X9:     if((P.Switch[Switch].Type==TIO)||(P.Switch[Switch].Type==NI_6602)) InitSwitch1X9(Switch); break;
-		case SWITCH_EOL2x2:  if((P.Switch[Switch].Type==LPT) || (P.Switch[Switch].Type==COM)) InitSwitch2X2EOL(Switch); break;                                  //Reb
+		case SWITCH_EOL2x2: if((P.Switch[Switch].Type==LPT) || (P.Switch[Switch].Type==COM)) InitSwitch2X2EOL(Switch); break;                                  //Reb
+		case SWITCH_LUCA:	InitSwitchLuca(Switch); break;
 		default:break; 
 		}
 }
@@ -4211,7 +4427,7 @@ void CloseSwitch(char Switch){
 										  break;
 								default:break;
 								}
-			
+		case SWITCH_LUCA:	break;
 		default:break; 
 		}
 }
@@ -4227,6 +4443,7 @@ void MoveSwitch(long Goal, char Switch){
 						   else if(P.Switch[Switch].Type==NIDAQmx); MoveSwitch1X4(Goal,Switch); break;
 		case SWITCH1X9:    if((P.Switch[Switch].Type==TIO)||(P.Switch[Switch].Type==NI_6602)) MoveSwitch1X9(Goal,Switch); break;
 		case SWITCH_EOL2x2: if((P.Switch[Switch].Type==LPT)||(P.Switch[Switch].Type==COM))  MoveSwitch2X2EOL(Goal,Switch); break; 
+		case SWITCH_LUCA:	MoveSwitchLuca(Goal,Switch); break;
 		default:break; 
 		}
 	}
@@ -4248,7 +4465,7 @@ void InitPosSwitch(char Switch){
 	long label;
 	int loop=P.Switch[Switch].Loop;
 	long num=P.Loop[loop].Num;
-	double dpos;
+	long pos;
 	char message[STRLEN];
 	FILE *fpos;
 
@@ -4267,15 +4484,15 @@ void InitPosSwitch(char Switch){
 			}				
 	   	while(!feof(fpos)){
     		fscanf(fpos,"%ld",&label);
-			fscanf(fpos,"%lf",&dpos);
+			fscanf(fpos,"%lf",&pos);
 			if(label==P.Loop[loop].Home)
 				if(!sethome){
-					P.Switch[Switch].Home = (long)(dpos+0.5); // contollare +0.5;Andrea 18/2/2002
+					P.Switch[Switch].Home = pos; // c'era double+0.5;Andrea 18/2/2002
 					sethome = TRUE;
 					}
 			for(il=0;il<num;il++){
 				     if(label==(P.Loop[loop].First+il*P.Loop[loop].Delta)){
-					 P.Switch[Switch].Pos[il]=(long)(dpos+0.5);
+					 P.Switch[Switch].Pos[il]=pos;
 					 numread++;
 					 }
 				}
@@ -4718,12 +4935,31 @@ void MoveSwitch2X2EOL (long Goal, char Switch) {
  }
      
 
+/* ########################    LUCA SWITCH FUNCTIONS (LUCA)  ####################### */
+ 
+	
+/* INITIALIZE SWITCH LUCA */
+void InitSwitchLuca(char Switch){
+	char message[STRLEN];
+
+	sprintf(message,"Initializing LUCA WAVELENGTH Switch #%d",Switch+1);
+	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
+	// check initialization
+	if(P.Spc.Luca[0].InitializedBox!=TRUE) Failure("Error: Luca Box is not Initialized, go to proper Panel"); else Passed();
+	}
 
 
-
-
-
-
+/*MOVE SWITCH LUCA */  
+void MoveSwitchLuca(long Goal,char Switch){
+	int ret;
+	
+	P.Spc.Luca[0].Lambda = (uint32_t) (Goal);
+	uint32_t freq = (uint32_t) (P.Spc.Luca[0].Freq);
+	uint32_t lambda = (uint32_t) (P.Spc.Luca[0].Lambda);
+	uint32_t ctrtime = (uint32_t) (P.Spc.Luca[0].CtrTime);
+	uint32_t inttime = (uint32_t) (P.Spc.Luca[0].IntTime);
+	ret = TRS_SET(&P.Spc.Luca[0].Handle, P.Spc.Luca[0].RegOut, P.Spc.Luca[0].RegOut, LUCA_REGLEN, LUCA_REGLEN, ctrtime, lambda, inttime, freq);
+	}
 
 
 /* ########################   SYNC PROCEDURES   ########################### */ 
@@ -5110,8 +5346,6 @@ void StartCont(char Step, char Status){
 		if(P.Mamm.Status) P.Spc.Trash=FALSE; 
 		//Delay(1);
 	}
-	
-	
 }
 
 
@@ -5169,6 +5403,7 @@ void InitStep(char Step){
 		case LT900:  InitLt900(Step); break;
 		case CHAMALEON:  InitCham(Step); break;
 		case STEP_STANDA2: InitStanda2(Step); break;
+		case ATT_LUCA:	InitAttLuca(Step); break;
 		case NONE: break;
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
@@ -5203,6 +5438,7 @@ void CloseStep(char Step){
 		case LT900: CloseLt900(Step); break;
 		case CHAMALEON: CloseCham(Step); break;
 		case STEP_STANDA2: CloseStanda2(Step); break;
+		case ATT_LUCA:	CloseAttLuca(Step); break;
 		case NONE: break;
 		}
 	}
@@ -5235,6 +5471,7 @@ void SetVel(char Step, double Freq){
 		case LT900: break;
 		case CHAMALEON: SetVelCham(Step,Freq); break;
 		case STEP_STANDA2: SetVelStanda2(Step,Freq); break;
+		case ATT_LUCA: SetVelAttLuca(Step,Freq); break;
 		case NONE: break;
 		}
 	P.Step[Step].FreqActual=Freq;
@@ -5366,6 +5603,7 @@ void DefineHome(char Step){
 		case LT900: DefineHomeLt900(Step); break;
 		case CHAMALEON: DefineHomeCham(Step); break;
 		case STEP_STANDA2: DefineHomeStanda2(Step); break;
+		case ATT_LUCA: DefineHomeAttLuca(Step); break;
 		case NONE: break;
 		}
 
@@ -5427,6 +5665,7 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case LT900: MoveLt900(Step,Goal); break;
 		case CHAMALEON: MoveCham(Step,Goal,Wait); break;
 		case STEP_STANDA2: MoveStanda2(Step,Goal,Wait); break;
+		case ATT_LUCA: MoveAttLuca(Step,Goal,Wait); break;
 		}
 	P.Spc.Trash=TRUE;
 	if(Wait) return;	
@@ -5467,6 +5706,7 @@ void StopStep(char Step){
 		case LT900: break;
 		case CHAMALEON: StopCham(Step); break;
 		case STEP_STANDA2: StopStanda2(Step); break;
+		case ATT_LUCA: StopAttLuca(Step); break;
 		}
 	}
 
@@ -5497,6 +5737,7 @@ void TellPos(char Step,long *Position){
 		case LT900: break;
 		case CHAMALEON: TellPosCham(Step,Position); break;
 		case STEP_STANDA2: TellPosStanda2(Step,Position); break;
+		case ATT_LUCA: TellPosAttLuca(Step,Position); break;
 		}
 	}
 
@@ -5558,6 +5799,7 @@ void WaitStep(long *Actual,long Goal,char Step,char Status){
 		case LT900: break;
 		case CHAMALEON: WaitCham(Step,Goal); break;
 		case STEP_STANDA2: WaitStanda2(Step,Goal); break;
+		case ATT_LUCA: WaitAttLuca(Step,Goal); break;
 		default: break;
 		}
 	}
@@ -6872,9 +7114,78 @@ void DefineHomeStanda2(char Step){
 	P.Step[Step].Standa2.DeltaHome=P.Step[Step].Home-actualStanda2;  // it rapresents the shift to be given to the internal Standa2 position to obtain the absolute TRS position
    }
 
+
+// #### LUCA ATTENUATOR STEPPER (ATT_LUCA) ####
+	
+/* INITIALIZE ATT_LUCA */
+void InitAttLuca(char Step){
+	char message[STRLEN];
+
+	sprintf(message,"Initializing LUCA ATTENUATOR Stepper #%d",Step+1);
+	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
+	// check initialization
+	if(P.Spc.Luca[0].InitializedBox!=TRUE) Failure("Error: Luca Box is not Initialized, go to proper Panel"); else Passed();
+	}
+
+
+/* CLOSE ATT_LUCA */
+void CloseAttLuca(char Step){
+	// no action by now. Goto Home?
+	}
+
+
+/* SET FREQUENCY ATT_LUCA */	
+void SetVelAttLuca(char Step, double Freq){
+	// not used now: defauult max speed
+	// you can set here functions to change the velocity (Freq) of the Attenuator
+	}
+
+
+/* MOVE ATT_LUCA */
+void MoveAttLuca(char Step,long Goal,char Wait){
+	int ret;
+	if(Goal==P.Step[Step].Actual) return;
+	uint32_t attenuator = (uint32_t) (P.Spc.Luca[0].Lambda); 
+	uint32_t value = (uint32_t) (Goal); 
+	ret = TRS_WATTEN(&P.Spc.Luca[0].Handle,P.Spc.Luca[0].RegOut,P.Spc.Luca[0].RegOut,LUCA_REGLEN,LUCA_REGLEN,attenuator,LUCA_ATT_ABS,value);
+   	if (ret!=1) Failure("Luca Attenuation Movement\n");
+	if(Wait) WaitAttLuca(Step,Goal); 
+	}
+
+
+/* WAIT END OF ATT_LUCA MOVEMENT */
+void WaitAttLuca(char Step,long Goal){
+	int ret;
+	uint32_t status;
+	uint32_t attenuator = (uint32_t) (P.Spc.Luca[0].Lambda);
+	do{
+		ret = TRS_RATTEN(&P.Spc.Luca[0].Handle,attenuator,&status);
+   		if (ret!=1) Failure("Luca Attenuation Wait\n");
+		}
+	while(status==LUCA_ATT_DONE);
+	P.Step[Step].Actual=Goal;
+	} 
+
+
+/* TELL POSITION ATT_LUCA */
+void TellPosAttLuca(char Step,long *Actual){
+	// not implemented by now
+	}
+
+
+/* STOP ATT_LUCA */
+void StopAttLuca(char Step){
+	// not implemented by now
+	}
+
+
+/* DEFINE HOME ATT_LUCA */
+void DefineHomeAttLuca(char Step){
+	// not implemented by now
+   }
+
+
 // #### NATIONAL INSTRUMENTS USB-6229 ####
-
-
 
 void SetFreqNI_USB6229(char Step,long Goal){
 	uInt32 value;

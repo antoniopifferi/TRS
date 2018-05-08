@@ -1,7 +1,11 @@
 /* ########################   CONSTANTS   ################################# */
 
+// CONDITIONAL COMPILE
+#define _NIRS	// Enable NIRS compilation, load also NIRS_DLL_v2.lib
+#define _LUCA	// Enable LUCA compilation, load also LUCA_TRS.lib
+
 // VERSION
-#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 16.0\nDate: January 2018"
+#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 17.0\nDate: May 2018"
 
 // TYPE OF DATA
 // USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards.
@@ -75,7 +79,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1169
+#define MAX_TABLE		1170
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -85,7 +89,7 @@
 #define CT				1
 #define MAX_TTABLE		13
 #define STRLEN_TTABLE	20
-#define MAX_PANEL		14
+#define MAX_PANEL		15
 
 
 /* FILE CONSTANTS AND ENVIRONMENT SETTINGS */  
@@ -512,6 +516,7 @@
 #define SWITCH1X9	 3
 #define SHUTTER 	 4
 #define SWITCH_EOL2x2 5
+#define SWITCH_LUCA  6
 
 #define LPT			 1
 #define NEWP	 	 2
@@ -537,6 +542,8 @@
 #define CHAMALEON	22
 #define MICRO2		23
 #define STEP_STANDA2	24
+#define ATT_LUCA		25
+
 #define VARRO		 1
 #define NI_6602	     5
 #define COM          6
@@ -552,6 +559,8 @@
 #define SPC_SC1000		 10
 #define SPC_SPADLAB		 11
 #define SPC_NIRS		 12
+#define SPC_LUCA		 13
+
 #define WAIT_DELAY	 0
 #define WAIT_TIME	 1
 #define WAIT_COUNT	 2
@@ -717,6 +726,27 @@
 #define NIRS_LAMBDA1  1
 #define NIRS_LAMBDA2  2
 #define NIRS_LAMBDA12 3
+
+/* LUCA CONSTANTS */
+#define LUCA_HISTLEN  8192	   // number of channels per detector (fixed)
+#define LUCA_DT	(10000.0/1024) // (ps) Time Bin
+#define LUCA_REGLEN ((int32_t) 128)
+#define LUCA_NUMDET	2
+#define LUCA_STATLEN ((uint32_t) 3)
+#define LUCA_DETNUM	2
+#define LUCA_STOP	0
+#define LUCA_AUTO	1
+#define LUCA_MANUAL	2
+#define LUCA_SHOT	3
+#define LUCA_ATT_ABS	0
+#define LUCA_ATT_INC	1
+#define LUCA_ATT_DEC	2
+#define LUCA_ATT_DB		3
+#define LUCA_ATT_IDLE	0
+#define LUCA_ATT_DONE	1
+#define LUCA_ATT_RUNNING 2
+#define LUCA_ATT_ERROR	3
+#define LUCA_FILE_HANDLE "LucaHandle.log"
 
 /* TEST CONSTANTS */
 #define TEST_MUS	10.0
@@ -1388,6 +1418,20 @@ struct NirsS{
 	int		 Lambda; // 1 -> Laser1 always active, 2 -> Laser2 always active, 3 -> toggling Laser1/Laser2
 	uint32_t *Hist;
 	uint32_t RegOut[NIRS_REGLEN];
+	int	InitializedBox;
+	int InitializedLaser;
+	};
+
+struct LucaSpcS{
+	uint64_t Handle;
+	uint32_t IntTime; // ms
+	uint32_t CtrTime; // ms
+	int		 Freq;	  //MHz
+	uint32_t Lambda; // 0 -> END, 1->635nm,2->670nm,3->730nm,4->830nm,5->852nm,6->915nm,7->980nm,8->1040nm
+	uint32_t *Hist;
+	uint32_t RegOut[LUCA_REGLEN];
+	int	InitializedBox;
+	int InitializedLaser;
 	};
 
 struct SpcS {
@@ -1436,6 +1480,7 @@ struct SpcS {
 	int ScInit;			   //patch
 	struct SpadS Spad[MAX_BOARD];
 	struct NirsS Nirs[MAX_BOARD];
+	struct LucaSpcS Luca[MAX_BOARD];
 	};
 
 struct AcqS{
@@ -1842,6 +1887,7 @@ int hTrim;
 int hStep;
 int hSwitch;
 int hNirs;
+int hLuca;
 int hMamm;
 int hSave;
 int hLabel;
@@ -1893,6 +1939,7 @@ double Binsize;								// temporal width of the mean bin
 double Period;									// period between two IRF peaks (used in rebinning)
 
 /* #####################    MEASUREMENT FUNCTIONS   ########################### */
+void InitVariable(void);
 void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel);
 void CVICALLBACK RunOscilloscope (int menuBar, int menuItem, void *callbackData,int panel);
 void KernelGen(void);   
@@ -2028,6 +2075,20 @@ void GetDataNirs(void);
 void WaitNirs(int Board);
 
 
+/* ########################    LUCA TDC FUNCTIONS (LUCA)  ####################### */
+
+int LucaBox(int Start);
+int LucaLasers(int Start);
+void InitLuca(int Board);
+void TimeLuca(int Board, double Time);
+void TrashLuca(void);
+void CloseLuca(void);
+void StartLuca(int Board);
+void StopLuca(int Board);
+void GetDataLuca(void);
+void WaitLuca(int Board);
+
+
 /* ########################   VARRO SPC FUNCTIONS   ####################### */
 void InitVarro(void);
 char CheckAcqVarro(void);
@@ -2070,6 +2131,8 @@ void MoveSwitch1X4_old(long Goal,char Switch);
 void MoveSwitch1X4(long Goal,char Switch);
 void InitSwitch2X2EOL(char Switch);
 void MoveSwitch2X2EOL(long Goal,char Switch);
+void InitSwitchLuca(char Switch);
+void MoveSwitchLuca(long Goal,char Switch);
 
 
 
@@ -2224,6 +2287,16 @@ void WaitStanda2(char Step,long Goal);
 void TellPosStanda2(char Step,long *Actual);
 void StopStanda2(char Step);
 void DefineHomeStanda2(char Step);
+
+// #### ATT_LUCA STEPPER ####
+void InitAttLuca(char Step);
+void CloseAttLuca(char Step);
+void SetVelAttLuca(char Step, double Freq);
+void MoveAttLuca(char Step,long Goal,char Wait);
+void WaitAttLuca(char Step,long Goal);
+void TellPosAttLuca(char Step,long *Actual);
+void StopAttLuca(char Step);
+void DefineHomeAttLuca(char Step);
 
 // #### NATIONAL INSTRUMENTS USB-6229
 void SetFreqNI_USB6229(char Step,long Goal);

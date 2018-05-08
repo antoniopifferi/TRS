@@ -47,6 +47,7 @@ int main (int argc, char *argv[])
 	if ((hStep = LoadPanel (hTrs, PATH_UIR, STEP)) < 0) return -1;
 	if ((hGeom = LoadPanel (hTrs, PATH_UIR, GEOMETRY)) < 0) return -1;//ALE
 	if ((hNirs = LoadPanel (hTrs, PATH_UIR, NIRS)) < 0) return -1;
+	if ((hLuca = LoadPanel (hTrs, PATH_UIR, LUCA)) < 0) return -1;
 	
 	CreateTable();
 	
@@ -54,6 +55,7 @@ int main (int argc, char *argv[])
 	DisplayPanel(hParm);
 	InitPanel();
 	InitPad();								//ALE
+	InitVariable();
 	SetSleepPolicy (VAL_SLEEP_MORE);
 	RunUserInterface ();
 	return 0;
@@ -78,6 +80,7 @@ void CVICALLBACK SaveSetting (int menuBar, int menuItem, void *callbackData, int
 		case MENU_FILE_SAVE_STEP: 			c_panel=STEP; break;
 		case MENU_FILE_SAVE_SWITCH:			c_panel=SWITCH; break;
 		case MENU_FILE_SAVE_NIRS:			c_panel=NIRS; break;
+		case MENU_FILE_SAVE_LUCA:			c_panel=LUCA; break;
 		case MENU_FILE_SAVE_GEOMETRY:		c_panel=GEOMETRY; break;//ALE
 		}
 	SaveSet(fpath,c_panel);
@@ -140,6 +143,7 @@ void CVICALLBACK LoadSetting (int menuBar, int menuItem, void *callbackData,int 
 		case MENU_FILE_LOAD_STEP: 			c_panel=STEP; break;
 		case MENU_FILE_LOAD_SWITCH:			c_panel=SWITCH; break;
 		case MENU_FILE_LOAD_NIRS:			c_panel=NIRS; break;
+		case MENU_FILE_LOAD_LUCA:			c_panel=LUCA; break;
 		case MENU_FILE_LOAD_GEOMETRY:		c_panel=GEOMETRY; break;//ALE
 		}
 	LoadSet(fpath,c_panel);
@@ -208,16 +212,17 @@ void CVICALLBACK ShowPanel (int menuBar, int menuItem, void *callbackData,
 		case MENU_WINDOW_PARM:    DisplayPanel (hParm); break;
 		case MENU_WINDOW_LAYOUT:  DisplayPanel (hLayout); break;
 		case MENU_WINDOW_PRESENT: DisplayPanel (hPresent); break;
-		case MENU_WINDOW_MOXY:    DisplayPanel (hMoxy); break;
+		case MENU_DEVICE_MOXY:    DisplayPanel (hMoxy); break;
 		case MENU_WINDOW_TRIM:    DisplayPanel (hTrim); break;
 		case MENU_WINDOW_STEP:    DisplayPanel (hStep); break;
 		case MENU_WINDOW_SWITCH:  DisplayPanel (hSwitch); break;
-		case MENU_WINDOW_MAMM:    DisplayPanel (hMamm); break;
+		case MENU_DEVICE_MAMM:    DisplayPanel (hMamm); break;
 		case MENU_WINDOW_LABEL:   DisplayPanel (hLabel); break;
 		case MENU_WINDOW_DO_STEP: DisplayPanel (hDoStep); break;
 		case MENU_WINDOW_DISPLAY: DisplayPanel (hDisplay); break;
 		case MENU_WINDOW_GEOMETRY:DisplayPanel (hGeom); break;//ALE
-		case MENU_WINDOW_NIRS:	  DisplayPanel (hNirs); break;
+		case MENU_DEVICE_NIRS:	  DisplayPanel (hNirs); break;
+		case MENU_DEVICE_LUCA:	  DisplayPanel (hLuca); break;
 		}
 	}
 
@@ -243,6 +248,7 @@ void InitPanel(void){
 	hPanel[DISPLAY]=hDisplay;
 	hPanel[GEOMETRY]=hGeom;//ALE
 	hPanel[NIRS]=hNirs;
+	hPanel[LUCA]=hLuca;
 	LoadSet(FILESET,NEG);
 	ReadAll();
 	CompleteParmS();
@@ -666,6 +672,9 @@ void CreateTable(void){
 	AddTab(CE,TINT,NIRS,NIRS_TIME,"NirsTime",0,0,&P.Spc.Nirs[0].UirTime);
 	AddTab(CE,TINT,NIRS,NIRS_LAMBDA,"NirsLambda",0,0,&P.Spc.Nirs[0].Lambda);
 	
+	//1
+	AddTab(CE,TINT,LUCA,LUCA_FREQ,"LucaFreq",0,0,&P.Spc.Luca[0].Freq);
+
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;
 	}
 
@@ -675,7 +684,6 @@ void CreateTable(void){
 int CVICALLBACK NirsBoxCbk(int panel,int control,int event,void *callbackData,int eventData1,int eventData2){
 	int start;
 	GetCtrlVal(panel,control,&start);
-	//int start = *((int *)callbackData);
 	switch (event){
 		case EVENT_COMMIT:
 			if(!NirsBox(start))
@@ -689,7 +697,6 @@ int CVICALLBACK NirsBoxCbk(int panel,int control,int event,void *callbackData,in
 int CVICALLBACK NirsLasersCbk(int panel,int control,int event,void *callbackData,int eventData1,int eventData2){
 	int start;
 	GetCtrlVal(panel,control,&start);
-	//int start = *((int *)callbackData);
 	switch (event){
 		case EVENT_COMMIT:
 			if(!NirsLasers(start))
@@ -699,6 +706,34 @@ int CVICALLBACK NirsLasersCbk(int panel,int control,int event,void *callbackData
 	return 0;
 	}
 
+
+/* ################### LUCA BOX SECTION ################ */
+
+/* LUCA BOX PRESSED (ON or OFF) */
+int CVICALLBACK LucaBoxCbk(int panel,int control,int event,void *callbackData,int eventData1,int eventData2){
+	int start;
+	GetCtrlVal(panel,control,&start);
+	switch (event){
+		case EVENT_COMMIT:
+			if(!LucaBox(start))
+				SetCtrlVal (panel, control, !start); // undo action on press button
+			break;
+		}
+	return 0;
+	}
+
+/* LUCA LASER PRESSED (ON or OFF) */
+int CVICALLBACK LucaLasersCbk(int panel,int control,int event,void *callbackData,int eventData1,int eventData2){
+	int start;
+	GetCtrlVal(panel,control,&start);
+	switch (event){
+		case EVENT_COMMIT:
+			if(!LucaLasers(start))
+				SetCtrlVal (panel, control, !start); // undo action on press button
+			break;
+		}
+	return 0;
+	}
 
 
 /* ################### GEOMETRY SECTION ################ */ //ALE
