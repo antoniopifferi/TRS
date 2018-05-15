@@ -2139,9 +2139,9 @@ void SpcRestart(void){  //TODO: check
 
 /* OPTIMIZED DATA CLEAR & DATA IN */
 void SpcReset(char Status, char Clear, char Stop){
-	if(Clear) SpcClear(); 
 	if((P.Spc.Type==SPC_NIRS)&&P.Spc.Trash) TrashNirs(); // note Trash clear for SPC_NIRS is inserted here  
 	if((P.Spc.Type==SPC_LUCA)&&P.Spc.Trash) TrashLuca(); // note Trash clear for SPC_LUCA is inserted here  
+	if(Clear) SpcClear(); 
 	if(P.Spc.Trash) SpcOut(FALSE);
 	if(Stop||(!P.Spc.Started)) SpcIn();
 	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, ON);
@@ -3596,8 +3596,8 @@ int LucaBox(int Start){
 			if(ret!=1){ MessagePopup("ERROR WITH LUCA BOX", "Error in Initializing Luca"); return FALSE; }
 			P.Spc.Luca[0].InitializedBox=TRUE;
 			// save Handle on a text file
-			FILE *pFile=fopen(LUCA_FILE_HANDLE,"r");
-			fprintf(pFile,"%d",P.Spc.Luca[0].Handle);
+			FILE *pFile=fopen(LUCA_FILE_HANDLE,"w");
+			fprintf(pFile,"%lld",P.Spc.Luca[0].Handle);
 			fclose(pFile);
 			// message
 			MessagePopup("STARTING LUCA BOX", "Action Completed Successfully!");
@@ -3706,7 +3706,7 @@ void TrashLuca(void){
 /* START LUCA */	
 void StartLuca(int Board){
 	int ret;
-	ret = TRS_MEAS(&P.Spc.Luca[Board].Handle, P.Spc.Luca[Board].RegOut, P.Spc.Luca[Board].RegOut, LUCA_REGLEN, LUCA_REGLEN, LUCA_SHOT);
+	ret = TRS_MEAS(&P.Spc.Luca[Board].Handle, P.Spc.Luca[Board].RegOut, P.Spc.Luca[Board].RegOut, LUCA_REGLEN, LUCA_REGLEN, LUCA_MANUAL);
 	P.Spc.Started=TRUE;
 	}
 
@@ -7162,7 +7162,7 @@ void WaitAttLuca(char Step,long Goal){
 		ret = TRS_RATTEN(&P.Spc.Luca[0].Handle,attenuator,&status);
    		if (ret!=1) Failure("Luca Attenuation Wait\n");
 		}
-	while(status==LUCA_ATT_DONE);
+	while(status!=LUCA_ATT_DONE);
 	P.Step[Step].Actual=Goal;
 	} 
 
