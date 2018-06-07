@@ -289,10 +289,9 @@
 #define  MAMM_TITLE_12                    46      /* control type: textMsg, callback function: (none) */
 #define  MAMM_TITLE_17                    47      /* control type: textMsg, callback function: (none) */
 #define  MAMM_TITLE_13                    48      /* control type: textMsg, callback function: (none) */
-#define  MAMM_PHYSICAL_BORDER             49      /* control type: numeric, callback function: Setting */
-#define  MAMM_MARGIN                      50      /* control type: numeric, callback function: Setting */
-#define  MAMM_STATUS                      51      /* control type: binary, callback function: Setting */
-#define  MAMM_SHIFT_BACK                  52      /* control type: numeric, callback function: Setting */
+#define  MAMM_STATUS                      49      /* control type: binary, callback function: Setting */
+#define  MAMM_SHIFT_BACK                  50      /* control type: numeric, callback function: Setting */
+#define  MAMM_TAKE_REF_MEAS               51      /* control type: binary, callback function: Setting */
 
 #define  MOXY                             8       /* callback function: ClosePanel */
 #define  MOXY_TITLE                       2       /* control type: textMsg, callback function: (none) */

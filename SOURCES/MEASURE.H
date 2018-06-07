@@ -695,21 +695,19 @@
 #define TH260_LENCODE			4 //  Note: HistLen=1024*(2^TH260_LENCODE)
 #define TH260_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 #define SEC_2_MILLISEC	1000 // conversion factor for second to millisecond
+#define MILLISEC_2_SEC	1/1000 // conversion factor for millisecond to second
 
 /* SC1000 CONSTANTS */
 #define SC1000_TYPE unsigned long			// data type of hystogram SC1000 data (non-lin)
 #define SC1000_TIME_INFINITY 1000000       // sec
 #define SC1000_BINDEPTH BS32					// max size of the bin (BS32=unsigned int)
-#define SC1000_NOREFOLD  0					// no refolding
 #define SC1000_LINEARISE  1					// 1 = use background file to linearise time scale, 0 = do not linearise
-#define SC1000_SOFTREFOLD  1					// software refolding using fixed Period and fraction of channels
 #define SC1000_HARDREFOLD  5					// hardware refolding using SC and Modulo
 #define SC1000_NODATAOPERATION -1
-#define SC1000_LAST			19000		// last good channel in the DCR  // 10MHZ
-#define SC1000_FIRST		300		// first good channel in the DCR 	  // 40 mhz
-//#define SC1000_MAXBIN		20700		// max number of channels (bin) in SC1000 // 10 mhz
-#define SC1000_REFOLDTYPE  1					// software rebinning put in GUI
-#define SC1000_MODULO  38882					// modulo = Period/Binsize*32 (es. for T=25 ns, modulo=9720)
+#define SC1000_MAXBIN	40800		// max number of channels (bin) in SC1000 // 10 mhz
+#define SC1000_REBIN 32
+#define SC1000_MAX_COUNT_RATE 25000000
+#define SC1000_MIN_COUNT_RATE 7000
 
 /* SPADLAB CONSTANTS */
 #define SPADLAB_TDC_WRITE  "\\\\localhost\\MyProcess\\tdc-write"
@@ -791,7 +789,7 @@
 #define	MAMM_NIR_IDX_MAX_BORDER	360	
 #define MAMM_NIR_STEP_MAX   400
 #define	MAMM_NUM_BOARD		2
-#define MAMM_NUM_DET		8 //patch
+#define MAMM_NUM_DET		8 //EDO
 #define	MAMM_NUM_ROW		240
 #define D2				(char) 2
 #define X				(char) 0
@@ -804,9 +802,17 @@
 #define MAMM_VIS_AND_NIR	3
 #define MAMM_VIS_OR_NIR		4
 #define MAMM_NUM_LAMBDA		7
-#define MAMM_CountRateTreshold 1500000 //patch
-#define FFIRST			(char) 0
-#define FLAST			(char) 1
+#define MAMM_NORTHWEST_DET	0
+#define MAMM_WEST_DET		1
+#define MAMM_SOUTHWEST_DET	2
+#define MAMM_SOUTH_DET		3
+#define MAMM_SOUTHEAST_DET	4
+#define MAMM_EAST_DET		5
+#define MAMM_NORTHEAST_DET	6
+#define MAMM_NORTH_DET		7
+
+
+
 
 /* OMA CONSTANTS  */
 /***/
@@ -962,7 +968,6 @@ struct NumS {
 	long Fiber;
 	long Source; //ALE
 	long LoopxFrame;
-	long Acq;
 	};
 
 struct FiberS {
@@ -1076,7 +1081,6 @@ struct MammRateS {
 	double Mid[MAMM_NUM_BOARD];
 	double Low[MAMM_NUM_BOARD];
 	double Actual[MAMM_NUM_BOARD];
-	double Actual_new[MAMM_NUM_BOARD][MAMM_NUM_DET]; //patch
 	};
 
 struct MammAttS{
@@ -1090,11 +1094,38 @@ struct MammAttS{
 	int IdxGoal;
 	double FreqOpen;
 	};
-	
+
+struct MammRefMeaS{	   //EDO
+	double Width;
+	double BaricentrePos;
+	long MaxPos;
+	long MaxVal;
+	long Area;
+	long First;
+	long Last;
+	double Treshold;
+};
+struct ScReinitS{  //EDO
+	int Measure;
+	int TrimmerPreBreak;
+	int TrimmerPostBreak;
+	int Oscilloscope;
+	int InitMammot;
+	int AnyOper;
+};
+struct NumAcqS{		  //EDO
+	int Actual;
+	float Tot;
+	char Active;
+};
+struct ExtraFrameS{
+	int Num;
+	int IsActiveOnLoopYNum;
+};
 struct MammS {
 	char Mamm;
 	char AutoLabel;
-	char FindTop;
+	char FindTop;		
 	int IterBord;
 	int IdxBorderNIR;
 	double BackTopNIR;
@@ -1106,20 +1137,20 @@ struct MammS {
 	struct MammRateS Count;
 	struct MammRateS Rate;
 	struct MammAttS Att[MAMM_NUM_BOARD];
-	char OverTreshold;   //patch
-	char OverTresholdPrevious; //patch
-	unsigned int SC1000_MAXBIN;
-	char IsTop;
-	char PostProcess;
-	int PhysicalBorder;
-	int ShiftBack;
-	int MarginMM;
-	int TopLim;
-	int CorrShift;
-	char InvertSignCorr;
-	char ParityMem;
+	char OverTreshold;   //EDO
+	char IsTop;					//EDO
+	int ShiftBack;				//EDO
+	int TopLim;					//EDO
+	int CorrShift;				//EDO
+	char Roi;					//EDO
+	double Fract;				//EDO
+	char IgnoreTrash;			//EDO
 	char Status;
-	char   IniFile[MAMM_NUM_BOARD][260];
+	char   IniFile[MAMM_NUM_BOARD][260];		//EDO
+	struct MammRefMeaS RefMeas;				    //EDO
+	struct NumAcqS NumAcq;		  //EDO
+	struct ExtraFrameS ExtraFrame;             //EDO
+	int IsRefMeas;
 	};
 
 struct ActionS{
@@ -1152,14 +1183,13 @@ struct ActionS{
 	char StartAdc;
 	char WaitAdc;
 	char ReadUIR;
-	//patch
-	char StartMamm;
-	char CheckMamm;
-	char StopMamm;
-	char DoJumpMamm;
-	char SpcRestart;
-	char AdjustIndex;
-	char ScReInit;
+	char SpcTime;			//EDO
+	char InitMamm;         //EDO
+	char StartMamm;			 //EDO
+	char CheckMamm;         //EDO
+	char StopMamm;		    //EDO
+	char DoJumpMamm;		//EDO
+	struct ScReinitS ScReInit;			//EDO
 	};
 
 struct LoopS {
@@ -1286,7 +1316,7 @@ struct StepS {
 	char  FPath[STRLEN];
 	struct Delay_GateS Delay_Gate;
 	struct Standa2S Standa2;
-	long StopGoal; // patch
+	long StopGoal; // EDO
 	};
 
 struct SwitchS {
@@ -1433,7 +1463,39 @@ struct LucaSpcS{
 	int	InitializedBox;
 	int InitializedLaser;
 	};
-
+struct SurfaceConceptS{
+	int	 Refolding; //EDO
+	int	 ScBoard[MAX_BOARD];	 //EDO
+	int  ScBoardInitialized[MAX_BOARD];   //EDO
+	int  ScInitializedForMammot[MAX_BOARD];   //EDO
+	double ScTimeElapsed;//EDO
+	float  ScAcqTime;		//EDO          
+	int    ScAutoTrim; //EDO
+	int ScPipeClose;			//EDO
+	int SelRepNum;			//EDO
+	int StartDivider;		//EDO
+	int ScFirstBin;			//EDO
+	int ScLastBin;			//EDO
+	int ScDeinit;		   //EDO
+	char ScWait;
+	int	 Pipe[MAX_BOARD][MAX_DET];
+	unsigned int ScNumBin; //EDO
+	char DCR_files[MAX_BOARD][MAX_DET][STRLEN];
+	double *LinArray;
+	FILE *FID;
+	SC1000_TYPE *NonLinArray;
+	SC1000_TYPE *DCR_raw_count;
+	double *DCR_raw_time;
+	double *Buffer;
+	double *Buffer2;
+	SC1000_TYPE *IRF_raw_count;
+	double *IRF_raw_time;
+	int Modulo; // perform Refolding operation via SC hardware. It corresponds to the Modulo length, i.e. Period=Number of Bins to refold (NOT SURE, VERIFY)
+	double ***NonLinDt;     // corrections coefficients
+	double Binsize;								// temporal width of the mean bin
+	double Period;									// period between two IRF peaks (used in rebinning)
+	double Rebin;
+};
 struct SpcS {
 	char   Type;
 	char   Control;
@@ -1453,31 +1515,33 @@ struct SpcS {
 	int	   TimeTH260;
 	int	   TH260HistLen;
 	int	   TimeSC1000;
-	int    SCAutoTrim; //patch
 	long   Count;
-	long   CountRate; //patch
-	float  AcqTimeSC1000;		//patch
-	double TimeElapsed;//patch
 	char   TdcDcrFileRoot[260];
 	char   Scale;
 	double Calib;
 	double Factor;
 	int    RoutingBits;
-	int	 Refolding;
 	double RepRate;
 	int	   MaxPage[MAX_BOARD];
 	char   Settings[MAX_BOARD][260];
 	char   IniFile[MAX_BOARD][260];
-	int	 ScBoard[MAX_BOARD];
-	int  ScBoardInitialized[MAX_BOARD];   //patch
-	int PipeClose;			//patch
-	int SelRepNum;			//patch
-	int StartDivider;		//patch
-	int ScFirstBin;			//patch
-	int ScLastBin;			//patch
-	int ScDeinit;		   //patch
-	int	 Pipe[MAX_BOARD][MAX_DET];
-	int ScInit;			   //patch
+	int	 Refolding; //EDO
+	int	 ScBoard[MAX_BOARD];	 //EDO
+	int  ScBoardInitialized[MAX_BOARD];   //EDO
+	int  ScInitializedForMammot[MAX_BOARD];   //EDO
+	double ScTimeElapsed;//EDO
+	float  ScAcqTime;		//EDO          
+	int    ScAutoTrim; //EDO
+	int ScPipeClose;			//EDO
+	int SelRepNum;			//EDO
+	int StartDivider;		//EDO
+	int ScFirstBin;			//EDO
+	int ScLastBin;			//EDO
+	int ScDeinit;		   //EDO
+	char ScWait;			//EDO
+	int	 Pipe[MAX_BOARD][MAX_DET];//EDO
+	unsigned int ScNumBin; //EDO
+	struct SurfaceConceptS SC;   //EDO
 	struct SpadS Spad[MAX_BOARD];
 	struct NirsS Nirs[MAX_BOARD];
 	struct LucaSpcS Luca[MAX_BOARD];
@@ -1505,10 +1569,10 @@ struct FrameS{
 	long Actual;
 	int Min;
 	int Max;
-	//patch
-	int First;
-	int Last;
-	int Mem[2][300];
+	int First;		 //EDO
+	int Half;		 //EDO
+	int Dir;		 //EDO
+	int Last;		 //EDO
 	};
 
 struct FilterS{
@@ -1928,6 +1992,7 @@ char tempString[PROF_MAX_ID];
 // move to std code when finished debugging
 char DCR_files[MAX_BOARD][MAX_DET][STRLEN];
 double *LinArray;
+FILE *FID;
 SC1000_TYPE *NonLinArray;
 SC1000_TYPE *DCR_raw_count;
 double *DCR_raw_time;
@@ -1937,6 +2002,9 @@ int Modulo; // perform Refolding operation via SC hardware. It corresponds to th
 double ***NonLinDt;     // corrections coefficients
 double Binsize;								// temporal width of the mean bin
 double Period;									// period between two IRF peaks (used in rebinning)
+double *BufferTDC;
+double *BufferTDC2;
+
 
 /* #####################    MEASUREMENT FUNCTIONS   ########################### */
 void InitVariable(void);
@@ -1977,6 +2045,7 @@ void GraphRoi(void);
 void GraphPlot(void);
 void DisplayRoi(void);
 long CalcArea(long First, long Last);
+double CalcBaricentre(long First, long Last);
 double CalcWidth(long First,long Last,double Treshold);
 void GetRange(long RoiFirst,long RoiLast,double Fract,long *Max, long *Peak, long *pRangeFirst, long *pRangeLast,double *Treshold);
 int CVICALLBACK GetMarker(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
@@ -2043,7 +2112,7 @@ void CloseSC1000(void);
 void GetDataSC1000(void);
 void ClearSC1000(void);
 void CompleteClosureSC1000(int Board);
-void ReInitSC1000(int Board, char Operation);
+void ReInitSC1000(char Operation);
 void CalcNonlinSC1000(void);
 void LinRefoldSC1000(int Refold,int Board,int Det,SC1000_TYPE *NonLinArray, double *LinArray, int NumChannLin);
 void FlushSC1000(int Board);
@@ -2444,14 +2513,13 @@ char IsBorderNIR(char, char);
 void InitLegend(void);
 void AddLabel(int IdName);
 void AddThick(int ID);
-/*patch*/
-void StartMammot(void);
-void StopMammot(void);
-void CheckMammot(void);
-void AnalysisMamm_new(void);
-void AdjustIndex(void);
-void ShiftCorrection(void);
-void BackShift(void);
+void InitMammot(void);			//EDO
+void StartMammot(void);			//EDO
+void StopMammot(void);			//EDO
+void CheckMammot(void);			//EDO
+void AnalysisMamm_new(void);	//EDO
+void ShiftCorrection(void);		//EDO
+void BackShift(void);			//EDO
 
 
 /* ########################   MOXY PROCEDURES   ########################### */
@@ -2503,4 +2571,3 @@ void ReadGeom(void);
 void InitPad (void);																						      //ALE
 void ReCreatePad (void);																						  //ALE
 /* END GEOMETRY FUNCTIONS DEFINITION */								   										      //ALE
-
