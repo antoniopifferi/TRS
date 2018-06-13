@@ -215,7 +215,7 @@ void KernelGen(){
 						if(P.Action.ReadUIR) GetUserEvent (0, &panel, &control);
 						if(P.Command.Abort) break;
 						if(P.Action.DoJump) if(P.Jump.Break) break;
-						if(P.Action.DoJumpMamm)	break; //patch
+						if(P.Action.DoJumpMamm)	break;
 						for(isw=0;isw<MAX_SWITCH;isw++)
 				    		if(P.Action.MoveSwitch[isw]) MoveSwitch(CalcGoalSwitch(isw),isw);
 						for(is=0;is<MAX_STEP;is++)
@@ -223,35 +223,32 @@ void KernelGen(){
 							MoveStep(&P.Step[is].Actual,CalcGoal(is),is,(char)(P.Step[is].Mode!=STEP_MULTI),P.Action.Status);
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.WaitStep[is]) WaitStep(&P.Step[is].Actual,CalcGoal(is),is,P.Action.Status);
-						int ir=0; //patch
-						for(it=0;it<MAX_TRIM;it++) // Trim BEFORE Break
-							if((P.Action.Trim[it])&&!P.Trim[it].Break){
-								if(P.Action.ScReInit&&ir==0) ReInitSC1000(0,'T'); ir++; // patch
-								AutoTrim(it);
-								}
+						if(P.Action.ScReInit.TrimmerPreBreak) ReInitSC1000('T'); // EDO
+						for(it=0;it<MAX_TRIM;it++)
+							if((P.Action.Trim[it])&&!P.Trim[it].Break)
+								AutoTrim(it);  // Trim BEFORE Break
 						if(P.Action.DisplayStatus) DisplayStatus();
+						if(P.Action.ScReInit.Oscilloscope) ReInitSC1000('O');								  //EDO
 						for(il=0;il<MAX_LOOP;il++)
-							if(P.Action.Break[il]){ if (P.Action.ScReInit) ReInitSC1000(0,'O'); Oscilloscope();if(P.Command.Abort) break;}
-						ir = 0; //patch
-						for(it=0;it<MAX_TRIM;it++) // Trim AFTER Break
-							if((P.Action.Trim[it])&&P.Trim[it].Break){
-								if(P.Action.ScReInit&&ir==0) ReInitSC1000(0,'T'); // patch
-								AutoTrim(it);
-								}
-						if(P.Action.ScReInit) ReInitSC1000(0,'M');  //patch
+							if(P.Action.Break[il]){Oscilloscope();if(P.Command.Abort) break;}
+						if(P.Action.ScReInit.TrimmerPostBreak) ReInitSC1000('T'); 							  
+						for(it=0;it<MAX_TRIM;it++)
+							if((P.Action.Trim[it])&&P.Trim[it].Break)
+								AutoTrim(it); // Trim AFTER Break
+						if(P.Action.SpcTime) SpcTime(P.Spc.TimeM);
+						if(P.Action.ScReInit.Measure) ReInitSC1000('M');  
 						if(P.Action.StartOma) StartOma();
 						if(P.Action.Ophir) GetOphir();
-						if(P.Action.StartMamm) {if(P.Command.Abort) break; StartMammot();}	   //patch
+						if(P.Action.InitMamm) {if(P.Command.Abort) break; InitMammot();}	   
+						if(P.Action.StartMamm) StartMammot();
 						if(P.Action.WaitChrono) WaitChrono();
 						if(P.Action.StartAdc) {StartAdc(); P.Time.Start=clock();}		 // se è attivo ADC e power
 			    		if(P.Action.StartSync) StartSync();
 	                    if(P.Action.SpcReset) 
 							SpcReset(P.Action.Status,P.Meas.Clear,P.Meas.Stop);
-						if(P.Action.AdjustIndex) AdjustIndex();	   //patch
-						if(P.Action.SpcRestart) SpcRestart();	  //patch
-						for(is=0;is<MAX_STEP;is++) 
+						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.StartCont[is])
-								StartCont(is,P.Action.Status);		 //patch
+								StartCont(is,P.Action.Status);		 
 						if(P.Action.WaitEnd) WaitEnd(P.Spc.TimeM,P.Wait.Pos,P.Wait.Type,P.Wait.Step);
 						if(P.Action.StopSync) StopSync();
 						if(P.Action.SpcStop) SpcStop(P.Action.Status);
@@ -259,16 +256,16 @@ void KernelGen(){
 		    		    //if(P.Action.StopAdc) StopAdc();		 // mi da errore...Andrea F
 						if(P.Action.StopOma) StopOma();
 						if(P.Action.SpcOut) SpcOut(P.Action.Status);
-                        if(P.Action.CheckMamm) CheckMammot(); //patch						
+						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
 						if(P.Action.DisplayRoi) DisplayRoi();
-						if(P.Action.StopMamm) StopMammot();  //patch
-						if(P.Action.DataSave) DataSave();	 //patch
+						if(P.Action.StopMamm) StopMammot();  
+						if(P.Action.DataSave) DataSave();	 
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.WaitCont[is]) WaitCont(is,P.Action.Status);
 						if(P.Action.CheckJump) CheckJump();
-						NewAcq();		 //patch
-	 					}
+						NewAcq();		 
+						}
 	 	    		}
 	    		}
 			}
@@ -361,7 +358,8 @@ void SetLoopActual(void){
 	int il;
 	for(il=0;il<MAX_LOOP;il++) P.Loop[il].Actual=P.Loop[il].Idx;
 	for(il=1;il<MAX_LOOP;il++)
-		if((P.Loop[il].Invert)&&REMINDER(P.Loop[il-1].Idx,2)) P.Loop[il].Actual=P.Loop[il].Num-1-P.Loop[il].Idx;
+		if((P.Loop[il].Invert)&&REMINDER(P.Loop[il-1].Idx,2))
+			P.Loop[il].Actual=P.Loop[il].Num-1-P.Loop[il].Idx;
 	}
 
 
@@ -463,8 +461,6 @@ void DecideAction(void){
   		P.Action.WaitCont[is]=(P.Step[is].Step&&action);
   		}
 	
-	P.Action.ScReInit = FALSE; //patch
-   	
 	// Trim
    	for(it=0;it<MAX_TRIM;it++){
    		if(!P.Trim[it].Trim) P.Action.Trim[it]=FALSE;
@@ -475,8 +471,6 @@ void DecideAction(void){
 				regionfile=P.Trim[it].RegionFile[idxloop];
     			if(regionfile==NEG) P.Action.Trim[it]=FALSE;
 				}
-	if(P.Action.Trim[it]&&P.Spc.Type==SPC_SC1000) P.Action.ScReInit = TRUE;	//patch
-	
 	}
 
 /*   	for(it=0;it<MAX_TRIM;it++){
@@ -507,7 +501,6 @@ void DecideAction(void){
 			}
 		else isbreak=P.Loop[il].Break;
 		P.Action.Break[il]=(new[il]&&isbreak);
-		if(P.Action.Break[il]&&P.Spc.Type==SPC_SC1000) P.Action.ScReInit = TRUE;	//patch
 	}
 	if(P.Action.Break[LOOP1]==TRUE){
 		P.Action.Break[LOOP2]=FALSE;
@@ -558,6 +551,9 @@ void DecideAction(void){
 	
 	// Spc Out
 	P.Action.SpcOut=TRUE;
+	
+	// Spc Time
+	P.Action.SpcTime=TRUE;  //EDO
 
 	// Data Save
    	P.Action.DataSave=(REMINDER(index,P.Ram.Loop)==0);
@@ -580,6 +576,7 @@ void DecideAction(void){
 	
 	// New Frame
 	//P.Action.NewFrame = (P.Acq.Actual==P.Acq.Frame);
+	P.Frame.Dir = 1;	 //EDO
 	
 	// Oma
 	P.Action.StartOma = (P.Oma.Oma&&new[P.Oma.Loop]);
@@ -593,81 +590,81 @@ void DecideAction(void){
 	P.Action.ReadUIR=P.Command.ReadUIR;
 	
 	// MAMMOT
-	if(P.Mamm.Status){
+	P.Action.ScReInit.InitMammot = FALSE;
+	P.Spc.ScWait = FALSE;
+	if(P.Mamm.Status){		   //EDO	 //controllare
+		P.Mamm.CorrShift=1;
+		char is_checkmamm;
+		int HalfFrame=0;
 	
-	P.Mamm.TopLim=5;
-	P.Mamm.CorrShift=3;
-	P.Mamm.PostProcess=0;
-	int BorderLength=P.Mamm.PhysicalBorder*2;
-	
-	char is_before,is_near,is_within,is_margin_neg,is_loopy_even,is_loopy_firstidx,is_loopx_firstidx;
-	int margin,MarginFrame=0;
-	int IdxY=P.Loop[P.Mamm.Loop[Y]].Idx;
-	int IdxX=P.Loop[P.Mamm.Loop[X]].Idx;
-	int HalfFrame=0;
-	
-	is_loopy_even= REMINDER(IdxY,2);
-	is_loopy_firstidx=(IdxY==0);
-	is_loopx_firstidx=(IdxX==0);
-	
-	if(P.Mamm.FindTop){
-		if(is_loopy_firstidx){
-			if(P.Loop[P.Mamm.Loop[X]].First==0){
-					is_before=P.Loop[P.Mamm.Loop[X]].Idx<=min(abs(P.Loop[P.Mamm.Loop[X]].Last/2),P.Frame.Num/2);
-					is_near=P.Loop[P.Mamm.Loop[X]].Idx>=(min(P.Frame.Num,BorderLength/2)-P.Mamm.MarginMM/abs(P.Loop[P.Mamm.Loop[X]].Delta));
-				}
-				else{
-					is_before=P.Loop[P.Mamm.Loop[X]].Idx<=((P.Frame.Mem[FFIRST][IdxY]<=P.Mamm.CorrShift)?min(BorderLength/2-1,P.Frame.Num/2)+P.Frame.Mem[FFIRST][IdxY]:(min(BorderLength/2-1,P.Frame.Num/2)+P.Frame.Mem[FFIRST][IdxY]));
-					is_near=(P.Loop[P.Mamm.Loop[X]].Idx>=((P.Frame.Mem[FFIRST][IdxY]<=P.Mamm.CorrShift)?(min(BorderLength-1-P.Frame.Mem[FFIRST][IdxY],P.Frame.Num)-(P.Mamm.MarginMM/abs(P.Loop[P.Mamm.Loop[X]].Delta))):(min(BorderLength-1-P.Frame.Mem[FFIRST][IdxY],P.Frame.Num)-(P.Mamm.MarginMM/abs(P.Loop[P.Mamm.Loop[X]].Delta)))));
-				}
+		if(P.Mamm.FindTop){
+			P.Mamm.Roi = 2; P.Mamm.Fract = 0.4;
+			if(first[P.Mamm.Loop[Y]]) {
+				P.Mamm.TopLim=5;
+				P.Frame.Min = 0; P.Frame.Max = P.Frame.Num;
+				P.Frame.First = 0; P.Frame.Last = P.Frame.Max -1;
+				P.Mamm.OverTreshold = FALSE; P.Mamm.IsTop = FALSE;
+				P.Action.StopMamm = FALSE;
+			}
+			P.Frame.Half = (P.Frame.Last-P.Frame.First+1)/2+P.Frame.First;
+			if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
+				is_checkmamm = P.Frame.Actual>=P.Frame.Half;
+			else
+				is_checkmamm = P.Frame.Actual<=P.Frame.Half;
+		//is_checkmamm = is_checkmamm||((P.Frame.Last-P.Frame.First) <= P.Mamm.TopLim*5); //controllare continous check if Frames are really close
+		if((P.Frame.Last-P.Frame.First+1)<=P.Mamm.TopLim) P.Mamm.IsTop = TRUE;
+			else P.Mamm.IsTop = FALSE;
 		}
-		else{
-			HalfFrame=abs(P.Frame.Mem[FFIRST][IdxY-1]-P.Frame.Mem[FLAST][IdxY-1])/2;
-			HalfFrame=is_loopy_even?P.Frame.Mem[FFIRST][IdxY-1]+HalfFrame:P.Frame.Mem[FLAST][IdxY-1]+HalfFrame;
-			is_before=is_loopy_even?P.Frame.Actual>=HalfFrame:P.Frame.Actual<=HalfFrame;
-			MarginFrame=is_loopy_even?(P.Frame.Num-1-P.Frame.Mem[FFIRST][IdxY-1]-(P.Mamm.MarginMM/abs(P.Loop[P.Mamm.Loop[X]].Delta))):(P.Frame.Mem[FFIRST][IdxY-1]-(P.Mamm.MarginMM/abs(P.Loop[P.Mamm.Loop[X]].Delta)));
-			is_margin_neg=is_loopy_even?MarginFrame<=HalfFrame:MarginFrame<=HalfFrame;
-			if(is_margin_neg) is_near=!is_before;
-				else is_near=P.Loop[P.Mamm.Loop[X]].Idx>=MarginFrame;
+		else is_checkmamm=0;
+		P.Mamm.ExtraFrame.Num = 20;
+		if(P.Mamm.ExtraFrame.IsActiveOnLoopYNum){
+			//P.Mamm.IsTop = FALSE;
+			//is_checkmamm = TRUE;
+			P.Mamm.ExtraFrame.Num = P.Frame.Num;
+			if(P.Mamm.ExtraFrame.IsActiveOnLoopYNum == P.Loop[P.Mamm.Loop[Y]].Idx){
+				P.Mamm.ExtraFrame.Num = P.Frame.Num;
+				P.Mamm.ExtraFrame.IsActiveOnLoopYNum = FALSE;
+			}
 		}
-	is_near=P.Mamm.MarginMM?is_near:1;
-	is_within=is_near&&!is_before&&!is_loopx_firstidx;
+		P.Action.DoJumpMamm=(P.Mamm.OverTreshold||P.Mamm.IsTop||P.Action.StopMamm);
+		P.Action.ScReInit.InitMammot = first[P.Mamm.Loop[Y]];
+		if(new[P.Mamm.Loop[Y]]) {P.Mamm.OverTreshold = FALSE; P.Action.DoJumpMamm = P.Mamm.IsTop;}
+		if(P.Mamm.IsTop&&(!new[P.Mamm.Loop[Y]])&&P.Mamm.Shrink[Y])
+			D.Head.LoopLast[P.Mamm.Loop[Y]-2] = P.Loop[P.Mamm.Loop[Y]].Actual;
+		P.Action.InitMamm=first[P.Mamm.Loop[Y]];
+		P.Action.MoveStep[P.Mamm.Step[X]]=first[P.Mamm.Loop[Y]]?0:P.Action.MoveStep[P.Mamm.Loop[X]];
+		P.Action.StartMamm=new[P.Mamm.Loop[Y]];
+		P.Action.CheckMamm=is_checkmamm;
+		P.Action.StopMamm=last[P.Mamm.Loop[X]];
+		P.Action.StopMamm=P.Action.StopMamm||(new[P.Mamm.Loop[Y]]?0:(P.Frame.Actual==P.Frame.Min||P.Frame.Actual==(P.Frame.Max-1)));//controllare
+		P.Action.DataSave=P.Action.StopMamm;
+		P.Frame.Dir = REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0?+1:-1;
+		P.Action.ReadUIR=P.Command.ReadUIR&&new[P.Mamm.Loop[Y]];
 	}
-	else is_within=0;
 	
-	P.Action.DoJumpMamm=(P.Mamm.OverTreshold||P.Mamm.IsTop);
-			
-	if(P.Mamm.OverTresholdPrevious){
-		P.Mamm.OverTresholdPrevious=FALSE;
-		//P.Action.SpcRestart=new[P.Mamm.Loop[Y]]&&!first[P.Mamm.Loop[Y]];
-		//P.Action.AdjustIndex=new[P.Mamm.Loop[Y]]&&!first[P.Mamm.Loop[Y]];
-		//P.Action.SpcReset=(new[P.Mamm.Loop[Y]]&&!first[P.Mamm.Loop[Y]])?FALSE:P.SpcReset;
-		P.Action.SpcRestart=TRUE;
-		P.Action.AdjustIndex=TRUE;
-		P.Action.SpcReset=FALSE;}
-	  else {P.Action.SpcRestart=FALSE;P.Action.AdjustIndex=FALSE;}
-	if(P.Mamm.OverTreshold) {P.Mamm.OverTresholdPrevious=TRUE; P.Mamm.OverTreshold=FALSE;}
-	
-	P.Action.StopMamm=(P.Loop[P.Mamm.Loop[X]].Idx==(P.Frame.Num-P.Mamm.CorrShift-1));
-	P.Action.DataSave=P.Action.StopMamm;
-	P.Action.StartMamm=first[P.Mamm.Loop[Y]];
-	P.Action.MoveStep[P.Mamm.Step[X]]=first[P.Mamm.Loop[Y]]?0:P.Action.MoveStep[P.Mamm.Step[X]];
-	P.Action.MoveStep[P.Mamm.Step[Y]]=first[P.Mamm.Loop[Y]]?0:P.Action.MoveStep[P.Mamm.Step[Y]];
-	P.Action.WaitStep[P.Mamm.Step[X]]=first[P.Mamm.Loop[Y]]?0:P.Action.WaitStep[P.Mamm.Step[X]];
-	P.Action.WaitStep[P.Mamm.Step[Y]]=first[P.Mamm.Loop[Y]]?0:P.Action.WaitStep[P.Mamm.Step[Y]];
-	P.Action.CheckMamm=is_within;
-	P.Action.ReadUIR=P.Command.ReadUIR&&new[P.Mamm.Loop[Y]];
+	// Surface Concept TDC operation					//EDO
+	P.Action.ScReInit.TrimmerPreBreak = FALSE;	
+	P.Action.ScReInit.TrimmerPostBreak = FALSE;
+	P.Action.ScReInit.Oscilloscope = FALSE;
+	P.Action.ScReInit.Measure = FALSE;
+	if(P.Spc.Type==SPC_SC1000){
+		for(it=0;it<MAX_TRIM;it++) if((P.Action.Trim[it])&&!P.Trim[it].Break) P.Action.ScReInit.TrimmerPreBreak = TRUE;  // Trim BEFORE Break	
+		for(it=0;it<MAX_TRIM;it++) if((P.Action.Trim[it])&&P.Trim[it].Break) P.Action.ScReInit.TrimmerPostBreak = TRUE;;  // Trim POST Break
+		for(il=0;il<MAX_LOOP;il++) if(P.Action.Break[il]) P.Action.ScReInit.Oscilloscope = TRUE;
 	}
-	/**/
+	P.Action.ScReInit.Measure = first[LOOP1];
+	P.Action.ScReInit.Measure = (!P.Action.ScReInit.InitMammot)&&(P.Action.ScReInit.Oscilloscope||P.Action.ScReInit.TrimmerPostBreak||P.Action.ScReInit.TrimmerPreBreak||P.Action.ScReInit.Measure);
+	P.Action.ScReInit.AnyOper = P.Action.ScReInit.InitMammot || P.Action.ScReInit.TrimmerPreBreak || P.Action.ScReInit.TrimmerPostBreak || P.Action.ScReInit.Oscilloscope || P.Action.ScReInit.Measure;
+	
 	//P.Action.ReadUIR=P.Command.ReadUIR;
 	if(P.Info.Appl==APPL_MAMM){
 		for(il=0;il<MAX_LOOP;il++)
 			if(P.Loop[il].Cont){
 				P.Action.ReadUIR=(P.Action.ReadUIR && first[il]);
 				P.Action.SpcReset=(P.Action.SpcReset && first[il]);
-				}
-		}
+			}
 	}
+}
 
 
 /* RESTORE INITIAL CONDITIONS */
@@ -713,7 +710,6 @@ void InitMem(void){
 	if(P.Moxy.Moxy) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Info.SubHeader) D.Sub=SAlloc2D(P.Frame.Num,P.Num.Page);
 	D.Data=DAlloc3D(P.Frame.Num,P.Num.Page,P.Chann.Num); 
-    if(P.Mamm.PostProcess) D.BufferTDC=DAlloc3D_SC1000(P.Frame.Num,P.Num.Page,P.Mamm.SC1000_MAXBIN);	//patch
 	Passed();
 	}
 
@@ -723,13 +719,10 @@ void CloseMem(void){
 	DFree2D(D.Osc,P.Num.Board*P.Num.Det); 
 	DFree2D(D.Buffer,P.Num.Board); 
 	if(P.Spc.Subtract) DFree1D(D.Last); 
-	
 	if(P.Contest.Run!=CONTEST_MEAS) return;
-	
 	if(P.Moxy.Moxy) DFree2D(D.Bank,P.Num.Board); 
 	if(P.Info.SubHeader) SFree2D(D.Sub,P.Frame.Num);
 	DFree3D(D.Data,P.Frame.Num,P.Num.Page); 
-	if(P.Mamm.PostProcess) DFree3D_SC1000(D.BufferTDC,P.Frame.Num,P.Num.Page); //patch	
 }
 
 
@@ -958,12 +951,8 @@ void CompleteParmS(void){
     	P.Oscill.First[ir]=MAX(P.Oscill.First[ir],0);
     	}
 	if(P.Spc.Type==SPC_SC1000) {
-		Period = (double) (1/(P.Spc.RepRate*1e6))*1e12;
+		Period = (double) (1/(P.Spc.RepRate*1e6))*1e12;		// in ps   //EDO
 		if(P.Spc.Refolding==2||P.Spc.Refolding==4) {
-			//P.Spc.Factor=Period/P.Chann.Num; //if the chann num defines the factor
-			//P.Chann.Num=Period/P.Spc.Factor; //if the factor defines the chann num
-			//P.Chann.Last=P.Chann.Num-1;
-			//P.Spc.Calib = P.Spc.Factor;
 			if(Binsize==0) P.Spc.Calib=ns2ps*(0.0823045267489712);
 				else P.Spc.Calib=ns2ps*Binsize;
 			P.Spc.Factor= P.Spc.Calib;
@@ -1014,8 +1003,7 @@ void CompleteParmS(void){
 	// Frame
 	P.Frame.Num = CEIL(P.Ram.Loop,P.Num.LoopxFrame);
 	if (P.Info.Appl==APPL_MAMM) P.Frame.Num = P.Loop[LOOP5].Num;
-	//patch
-	if(P.Mamm.Status) P.Frame.Num = P.Loop[P.Mamm.Loop[X]].Num;
+	if(P.Mamm.Status) P.Frame.Num = P.Loop[P.Mamm.Loop[X]].Num;		   //EDO
 	
 	P.Frame.Actual = 0;
 	
@@ -1846,7 +1834,7 @@ void DisplayRoi(void){
 			for(id=0;id<P.Num.Det;id++)
 				for(ic=0;ic<P.Chann.Num;ic++)
 					area+=D.Osc[id+ib*P.Num.Det][ic];
-			area/=P.Spc.TimeO;//area/=(P.Spc.Type==SPC_SC1000&&P.Contest.Run==CONTEST_MEAS)?P.Spc.TimeM:P.Spc.TimeO; //patch
+			area/=P.Spc.TimeO;
 			SetTableCellAttribute(hDisplay,DISPLAY_T_BOARD,MakePoint(1,ib+1),ATTR_CTRL_VAL,area);
 			}			
 	for(ir=0;ir<MAX_ROW_ROI;ir++)
@@ -1877,7 +1865,14 @@ long CalcArea(long First, long Last){
 	return(area);
 	}
 
-
+/* CALCULATE BARICENTRE */   
+double CalcBaricentre(long First, long Last){ //EDO
+	long area=0, values = 0;
+	int ic;
+	for(ic=First;ic<=Last;ic++) {area+=ic*D.Curve[ic]; values+=ic;}
+	return(area/values);
+	
+}
 /* CALCULATE WIDTH */   
 double CalcWidth(long First,long Last,double Treshold){
 	int FirstP=First+1;
@@ -2073,12 +2068,7 @@ void SpcClear(void){
 		case HYDRA: ClearHydra(); break;
 		case TH260: ClearTH260(); break;
 		case SPC_SPADLAB: ClearSpad(); break;
-		case SPC_SC1000:	  // forse si può sostituire con if(P.Spc.Trash) FlushSC1000(0);
-			if(P.Contest.Function == CONTEST_OSC) {if(P.Spc.Trash) FlushSC1000(0);}
-			else if(P.Mamm.Status){if(P.Spc.Trash) 
-					ClearSC1000();} //forse si può eliminare ma controllare
-					else if(P.Spc.Trash) FlushSC1000(0); 
-			break; /*patch*/
+		case SPC_SC1000: ClearSC1000(); break; 
 		case TEST: break;
 		case DEMO: break;
 		default: break;
@@ -2091,7 +2081,7 @@ void SpcClear(void){
 /* DATA IN */
 void SpcIn(){
 	int ib;
-	int ret;
+	
 	switch(P.Spc.Type){
 		case NONE:  break;  
 		case VARRO: CharCommVarro('a'); break;
@@ -2116,7 +2106,7 @@ void SpcIn(){
 
 /* DATA RESTART */
 void SpcRestart(void){  //TODO: check
-	int ib;
+	int ib=0;
 	switch(P.Spc.Type){
 		case NONE:  break;  
 		case VARRO: CharCommVarro('a'); break;
@@ -2127,7 +2117,7 @@ void SpcRestart(void){  //TODO: check
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_restart_measurement(ib); break;
 		case HYDRA: HH_StartMeas(HYDRA_DEV0,P.Spc.TimeHydra); break;
 		case TH260: TH260_StartMeas(TH260_DEV0,P.Spc.TimeHydra); break;
-		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++) P.Spc.AcqTimeSC1000=StartSC1000(P.Spc.ScBoard[ib],P.Mamm.Status?(abs(P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx-1]-P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx-1])+1+20)*P.Spc.TimeM:SC1000_TIME_INFINITY); break;
+		case SPC_SC1000: break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StartLuca(ib); break;
@@ -2187,7 +2177,7 @@ void SpcStop(char Status){
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_stop_measurement(ib);break;
 		case HYDRA: HH_StopMeas(HYDRA_DEV0); break;
 		case TH260: TH260_StopMeas(TH260_DEV0); break;
-		case SPC_SC1000: break;//if(P.Contest.Function = CONTEST_MEAS); for(ib=0;ib<P.Num.Board;ib++) StopSC1000(ib); break;	 /*patch*/
+		case SPC_SC1000: break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StopSpad(ib);break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StopNirs(ib);break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StopLuca(ib);break;
@@ -2226,10 +2216,10 @@ void SpcWait(void){
 		case TH260: for(ib=0;ib<P.Num.Board;ib++)
     					do TH260_CTCStatus(TH260_DEV0,&mod_state2);
 						while(mod_state2==0);break;
-		case SPC_SC1000: break;
-/*		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++)
+		case SPC_SC1000: //if(P.Spc.ScWait) Delay(MILLISEC_2_SEC*(P.Spc.TimeSC1000*10));
+						/*for(ib=0;ib<P.Num.Board;ib++)
     					do  sc_tdc_get_status2(P.Spc.ScBoard[ib],&mod_state2);
-						while(mod_state2==0);break; */
+						while(mod_state2==0);*/ break;
  		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) WaitSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) WaitNirs(ib); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) WaitLuca(ib); break;
@@ -2265,8 +2255,7 @@ void SpcGet(void){
 void SpcOut(char Status){
 	if(P.Spc.Started) CalcTime();
 	SpcGet();
-	if(P.Mamm.PostProcess&&P.Contest.Function==CONTEST_MEAS) {} //patch
-		else DataCopy();
+	DataCopy();
 	if((P.Spc.Type==VARRO)||(P.Spc.Type==SILENA)) DataReverse();
 	if((P.Spc.Type==VARRO)||(P.Spc.Type==SILENA)) DataSubtract();
 	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, OFF);
@@ -2377,27 +2366,15 @@ void DataCopy(void){
 
 /* UPDATE ALL ACQ INDEXES */
 void NewAcq(void){
-	P.Acq.Actual++;
+P.Acq.Actual++;
 	if(P.Acq.Actual==P.Acq.Frame){
-		if(P.Mamm.Status){  //patch
-		char loopx=P.Mamm.Loop[X];
-		char loopy=P.Mamm.Loop[Y];
-		if(P.Mamm.OverTreshold||P.Loop[loopx].Idx==P.Loop[loopx].Num-P.Mamm.CorrShift-1){ }
-  			else if((P.Loop[loopx].Invert)&&(REMINDER(P.Loop[loopy].Idx,2)))
-			      P.Frame.Actual--;
-   		 		   else P.Frame.Actual++;
-		}
-			
-			
-		else P.Frame.Actual++;
-			 
+		P.Frame.Actual=P.Frame.Actual+P.Frame.Dir;
 		P.Acq.Actual=0;
 	}
-	
 	if(P.Frame.Actual==P.Frame.Num){
 		P.Ram.Actual++;
 		P.Frame.Actual=0;
-		} 
+	} 
 }
 
 
@@ -2742,10 +2719,6 @@ void GetDataTH260(void){
 		}
 	}
 
-void patch2(int ret){
-	//ErrHandler(ERR_SC1000,ret,"SC1000 error in getting binsize (factor)");
-	for(ret=0;ret<10000;ret++);
-}
 /* CLEAR TH260 */	
 void ClearTH260(void){
 	short ret;
@@ -2767,67 +2740,85 @@ void ClearTH260(void){
 void CompleteClosureSC1000(int Board){
 	int id,ib,ret; ib=Board;  
 	if(P.Spc.Type!=SPC_SC1000) return;
-	if(P.Spc.TimeElapsed==0) 
-		if(!P.Action.ScReInit)
-			return;
-	P.Spc.TimeElapsed=Timer()-P.Spc.TimeElapsed;
-	if(P.Spc.TimeElapsed<6) Delay(6-P.Spc.TimeElapsed);
-	if(P.Action.ScReInit) 
-		{ret=sc_tdc_interrupt2(P.Spc.ScBoard[ib]); Delay(3);};
+	if(P.Spc.ScTimeElapsed==0) if(!P.Action.ScReInit.AnyOper) return;
+	P.Spc.ScTimeElapsed=Timer()-P.Spc.ScTimeElapsed;
+	if(P.Spc.ScTimeElapsed<6) Delay(6-P.Spc.ScTimeElapsed);
+	if(P.Action.ScReInit.AnyOper) {ret=sc_tdc_interrupt2(P.Spc.ScBoard[ib]); Delay(3);};
 	char message[STRLEN];
-	if(P.Spc.PipeClose){
-	sprintf (message, "Closing Pipes SC1000\n");
-	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
-		for(id=0;id<P.Num.Det;id++){
-			while(sc_pipe_read2(P.Spc.ScBoard[ib],P.Spc.Pipe[ib][id],(void *)&(NonLinArray),-1));
-			ret=sc_pipe_close2(P.Spc.ScBoard[ib],P.Spc.Pipe[ib][id]);  // close pipe.
-	}
-	P.Spc.PipeClose=FALSE;
-	sprintf (message, "Pipes Closed\n");
-	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
+	if(P.Spc.ScPipeClose){
+		sprintf (message, "Closing Pipes SC1000\n");
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
+			for(id=0;id<P.Num.Det;id++){
+				while(sc_pipe_read2(P.Spc.ScBoard[ib],P.Spc.Pipe[ib][id],(void *)&(NonLinArray),-1));
+				ret=sc_pipe_close2(P.Spc.ScBoard[ib],P.Spc.Pipe[ib][id]);
+		}
+		P.Spc.ScPipeClose=FALSE;
+		sprintf (message, "Pipes Closed\n");
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
 	}
 	if(P.Spc.ScDeinit){
-	sprintf (message, "Deinitializing SC1000\n");
-	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
-		ret=sc_tdc_deinit2(P.Spc.ScBoard[ib]); // release hardware and resources.
+		sprintf (message, "Deinitializing SC1000\n");
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
+		ret=sc_tdc_deinit2(P.Spc.ScBoard[ib]); 
 		P.Spc.ScDeinit=FALSE;
 		P.Spc.ScBoardInitialized[Board]=FALSE;
-	sprintf (message, "SC1000 Deinitialized\n");
-	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);}		
-	P.Spc.TimeElapsed=0;
+		P.Spc.ScInitializedForMammot[Board]=FALSE;
+		sprintf (message, "SC1000 Deinitialized\n");
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
+	}		
+	P.Spc.ScTimeElapsed=0;
+	P.Spc.Started = FALSE;
 }
 
-void ReInitSC1000(int Board, char Operation){
-	if (Operation=='M'&&P.Mamm.Status) return;
+void ReInitSC1000(char Operation){  //EDO
+	int Board = 0; //controllare
+	//if (Operation=='M'&&P.Mamm.Status) return;
+	if(P.Spc.Type!=SPC_SC1000) return;
 	int it,id,ret;
-	P.Spc.PipeClose = TRUE;
+	P.Spc.ScPipeClose = TRUE;
 	if (Operation=='S') P.Spc.ScDeinit = TRUE; else P.Spc.ScDeinit = FALSE;
+	//if(P.Mamm.Status)			  //controllare
+	//	if(P.Spc.ScInitializedForMammot[Board])
+	//		P.Spc.ScDeinit = TRUE;
 	CompleteClosureSC1000(Board);
+	P.Mamm.NumAcq.Active = FALSE;
+	P.Spc.ScAutoTrim = FALSE;
 	double AccTime[8] = {0};
+	char IniPath[260];
 	switch (Operation){
-		case 'T': 
-			for(it=0; it<MAX_TRIM; it++) if(P.Trim[it].Trim) for(id=0;id<P.Num.Det;id++) AccTime[id] = P.Trim[it].Time;
+		case 'T':
+			P.Spc.ScAutoTrim = TRUE;
+			for(it=0;it<MAX_TRIM;it++) if(P.Trim[it].Trim) for(id=0;id<P.Num.Det;id++) AccTime[id] = P.Trim[it].Time;
+			SpcTime(P.Trim[it].Time);
+			P.Spc.ScInitializedForMammot[Board] = FALSE;
 			break;
 		case 'O':
 			for(id=0;id<P.Num.Det;id++) AccTime[id] = P.Spc.TimeO;
+			SpcTime(P.Spc.TimeO);
+			P.Spc.ScInitializedForMammot[Board] = FALSE;
 			break;
 		case 'M':
 			for(id=0;id<P.Num.Det;id++) AccTime[id] = P.Spc.TimeM;
+			SpcTime(P.Spc.TimeM);
+			P.Spc.ScInitializedForMammot[Board] = FALSE;
 			break;
 		case 'S':
-			{char IniPath[260];
-			strcpy(IniPath,P.Spc.Settings[Board]);   // riveder
+			strcpy(IniPath,P.Spc.Settings[Board]);   
 			IniPath[strlen(IniPath)-4]='\0';
 			strcat(IniPath,"_sync.ini");
 			ret = sc_tdc_init_inifile(IniPath);
 			if (ret < 0) {ErrHandler(ERR_SC1000,ret,"Error initializing SC board"); return;}
-				else {
+				else{
 					char message[STRLEN];
 					P.Spc.ScBoard[Board]=ret; 
 					sprintf (message, "\nCommunication set\n");
 	    			SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
-					P.Spc.ScBoardInitialized[Board] = TRUE;}
-			for(id=0;id<P.Num.Det;id++) AccTime[id] = P.Spc.TimeM;}
+					P.Spc.ScBoardInitialized[Board] = TRUE;
+					P.Spc.ScInitializedForMammot[Board] = TRUE;
+				}
+			for(id=0;id<P.Num.Det;id++) AccTime[id] = P.Spc.TimeM;
+			SpcTime(P.Spc.TimeM);
+			P.Mamm.NumAcq.Active = TRUE;
 			break;
 	}
 	
@@ -2836,10 +2827,10 @@ void ReInitSC1000(int Board, char Operation){
 		struct sc_pipe_tdc_histo_params_t params;
 		params.depth = SC1000_BINDEPTH; // 32 bit per time channel (bin) in the histogram
 		params.channel = id; // pipe for channel #id is requested
-		params.modulo = P.Spc.Refolding<SC1000_HARDREFOLD?-1:P.Spc.Refolding;
+		params.modulo = P.Spc.Refolding<SC1000_HARDREFOLD?0:P.Spc.Refolding;  // modulo = Period/Binsize*32 (es. for T=25 ns, modulo=9720)
 		params.binning = P.Spc.Scale; // histogram binning is set to 1
 		params.offset =0; // histogram starts from the 0 time bins (see sc_tdc_get_binsize2()).
-		params.size = P.Mamm.SC1000_MAXBIN; // histogram size is P.Mamm.SC1000_MAXBIN time bins (but note binning)!
+		params.size = P.Spc.ScNumBin; // histogram size is P.Spc.ScNumBin time bins (but note binning)!
 		params.accumulation_ms = AccTime[id]*SEC_2_MILLISEC; // 0=accumulation is off
 		params.allocator_owner = NULL; // parameter for allocator cbf
 		params.allocator_cb = NULL; // internal allocator is used
@@ -2848,12 +2839,13 @@ void ReInitSC1000(int Board, char Operation){
 		else P.Spc.Pipe[Board][id]=ret;
 		}
 		
-		if (Operation!='S') P.Spc.AcqTimeSC1000=StartSC1000(Board,SC1000_TIME_INFINITY);
+	if (Operation!='S') {P.Spc.ScAcqTime=StartSC1000(Board,SC1000_TIME_INFINITY); P.Spc.Started = TRUE;}
+		else P.Spc.Started = FALSE;
 }
 
 /* INIT SC1000 */	
-void InitSC1000(int Board){
-	//CVIProfSetCurrentThreadProfiling(1);	/*patch*/
+void InitSC1000(int Board){			   //EDO
+	//CVIProfSetCurrentThreadProfiling(1); //for code profiling
 	CompleteClosureSC1000(Board);	
 	
 	int ret=0,id,it,il;
@@ -2864,29 +2856,11 @@ void InitSC1000(int Board){
 	
 	char IniPath[260];
 	strcpy(IniPath,P.Spc.Settings[Board]);
-	char StartMeasure=TRUE;
 	double AccTime[8] = {0};
-	if(P.Contest.Run==CONTEST_OSC&&P.Contest.Function==CONTEST_OSC) {
-		for(id=0;id<P.Num.Det;id++)
-			AccTime[id] = P.Spc.TimeO;
-	}
-	if(P.Contest.Run==CONTEST_MEAS&&P.Contest.Function==CONTEST_MEAS){
-		int TrimFlag=0;
-		for(it=0; it<MAX_TRIM; it++) 
-			if(P.Trim[it].Trim)
-				for(id=0;id<P.Num.Det;id++){AccTime[id] = P.Trim[it].Time; TrimFlag=1;}
-		if(TrimFlag==0) for(id=0;id<P.Num.Det;id++) AccTime[id] = P.Spc.TimeM; 
-		if(!P.Meas.SkipOscill) for(id=0;id<P.Num.Det;id++) {AccTime[id] = P.Spc.TimeO;}
-	}
-
-	P.Spc.Started=StartMeasure;
+	for(id=0;id<P.Num.Det;id++) AccTime[id] = P.Spc.TimeO;
 	FILE* file=fopen(IniPath,"r");
 	char row[4*STRLEN]; 
-	for(it=0;it<81;it++)
-		fgets(row,4*STRLEN,file);//skip header
-    //fgets(row,4*STRLEN,file);//skip header	
-	fscanf(file,"%*s%*s%d",&P.Spc.StartDivider);
-	fclose(file);
+	for(it=0;it<81;it++) fgets(row,4*STRLEN,file); fscanf(file,"%*s%*s%d",&P.Spc.StartDivider); P.Spc.SelRepNum = P.Spc.StartDivider; fclose(file);
 	// read settings
 	if(!P.Spc.ScBoardInitialized[Board]) ret = sc_tdc_init_inifile(IniPath);
 		else ret=P.Spc.ScBoard[Board];
@@ -2906,17 +2880,17 @@ void InitSC1000(int Board){
 		}
 	if (ret < 0) {ErrHandler(ERR_SC1000,ret,"SC1000 error in getting binsize factor"); return;}
     
-    P.Mamm.SC1000_MAXBIN=Period*P.Spc.SelRepNum/(ns2ps*Binsize);
+    P.Spc.ScNumBin=floor(Period*P.Spc.SelRepNum/(ns2ps*Binsize)/P.Spc.Scale);
 	
 	// initialize pipe
 	for(id=0;id<P.Num.Det;id++){
 		struct sc_pipe_tdc_histo_params_t params;
 		params.depth = SC1000_BINDEPTH; // 32 bit per time channel (bin) in the histogram
 		params.channel = id; // pipe for channel #id is requested
-		params.modulo = P.Spc.Refolding<SC1000_HARDREFOLD?-1:P.Spc.Refolding;
+		params.modulo = P.Spc.Refolding<SC1000_HARDREFOLD?0:P.Spc.Refolding;// modulo = Period/Binsize*32 (es. for T=25 ns, modulo=9720)
 		params.binning = P.Spc.Scale; // histogram binning is set to 1
 		params.offset =0; // histogram starts from the 0 time bins (see sc_tdc_get_binsize2()).
-		params.size = P.Mamm.SC1000_MAXBIN; // histogram size is P.Mamm.SC1000_MAXBIN time bins (but note binning)!
+		params.size = P.Spc.ScNumBin; // histogram size is P.Spc.ScNumBin time bins (but note binning)!
 		params.accumulation_ms = AccTime[id]*SEC_2_MILLISEC; // 0=accumulation is off
 		params.allocator_owner = NULL; // parameter for allocator cbf
 		params.allocator_cb = NULL; // internal allocator is used
@@ -2928,195 +2902,180 @@ void InitSC1000(int Board){
 	P.Spc.TimeInit=TimerN();   // era Timer() 
 	
 	// initialize memory
-	if(Board==0){ // Only 1 item is needed for all the boards
-		LinArray = doubleAlloc1D(P.Chann.Num);
-		DCR_raw_count = SC1000Alloc1D(42526);  //20700
-		DCR_raw_time = doubleAlloc1D(42526);
-		IRF_raw_count = SC1000Alloc1D(42526);
-		IRF_raw_time = doubleAlloc1D(42526);
-		NonLinDt = doubleAlloc3D(P.Num.Board,P.Num.Det,42526);
+	if(Board==0){
+		char root_DCR_name[STRLEN];char trash_file[STRLEN];
+		strcpy(root_DCR_name,"TDC\\"); strcat(root_DCR_name,P.Spc.TdcDcrFileRoot);
+		SC1000_TYPE *trash_counts; double *trash_time; int file_lenght[P.Num.Det]; int max_file_lenght = 0;
+		for(int ib=0;ib<P.Num.Board;ib++){
+			for(id=0;id<P.Num.Det;id++){
+				sprintf(DCR_files[ib][id],"%s_ch%d.txt",root_DCR_name,id);
+				FILE *pfile=fopen(DCR_files[ib][id], "r");
+				if (!pfile) {ErrHandler(ERR_SC1000,0,"Unable to open DCR File"); return;}
+				fgets(trash_file, STRLEN, pfile); // discard first title line
+				int icc=0;
+				while(fscanf(pfile,"%lf\t%d",&trash_time,&trash_counts)!=EOF) icc++;
+				fclose(pfile);
+				file_lenght[id] = icc; if(icc>=max_file_lenght) max_file_lenght = icc;
+			}
 		}
-
+		LinArray = doubleAlloc1D(P.Chann.Num);// Only 1 item is needed for all the boards
+		NonLinDt = doubleAlloc3D(P.Num.Board,P.Num.Det,max_file_lenght); //P.Spc.ScNumBins should be the max number of entries  in the file. +500 is to take into account of possible mismatch between files
+		DCR_raw_count = SC1000Alloc1D(max_file_lenght);  				 //controllare
+		DCR_raw_time = doubleAlloc1D(max_file_lenght);
+		//BufferTDC = doubleAlloc1D(SC1000_REBIN*P.Spc.ScNumBin);
+		//BufferTDC2 = doubleAlloc1D(SC1000_REBIN*P.Spc.ScNumBin);
+	}
+	
 	// initialise correction coefficients
 	if(linearise) CalcNonlinSC1000(); // load BACKGROUND curve and derives coefficients for non-lin correction
 	
+	SpcTime(P.Spc.TimeO);
+	
 	// start acquisition
-	if(StartMeasure) 
-		P.Spc.AcqTimeSC1000=StartSC1000(Board,SC1000_TIME_INFINITY);
+	P.Spc.ScAcqTime=StartSC1000(Board,SC1000_TIME_INFINITY);
+	P.Spc.Started = TRUE;
 	Passed();
 	
 } 
 
 /* START ACQUISITION */
-float StartSC1000(int Board,float AcqTime){   /*patch*/
+float StartSC1000(int Board,float AcqTime){   //EDO
 	int Time=AcqTime*SEC_2_MILLISEC;
 	int ret=sc_tdc_start_measure2(P.Spc.ScBoard[Board],Time);
-	if(ret<0) ErrHandler(ERR_SC1000,ret,"StartSC1000");
+	if(ret<0) {ErrHandler(ERR_SC1000,ret,"StartSC1000"); Failure("Error in starting acquisition"); return -1;}
+	P.Mamm.NumAcq.Tot = ceil(Time/P.Spc.TimeSC1000);
 	return AcqTime;
 }
 
 /* CLOSE SC1000 */	
-void CloseSC1000(void){
+void CloseSC1000(void){	   //EDO	
 	int ib,id,ret;
-	double now,delta;
-	int status;
 	for(ib=0;ib<P.Num.Board;ib++){
-		/*patch*/
-		if(P.Mamm.OverTresholdPrevious||P.Mamm.IsTop){ //substitute with: if(P.Action.DoJumpMamm)??
-		for(id=0;id<P.Num.Det;id++) 
-			ret=sc_pipe_close2(P.Spc.ScBoard[ib],P.Spc.Pipe[ib][id]);
-		//ret=sc_tdc_deinit2(P.Spc.ScBoard[ib]);
-		P.Spc.PipeClose=FALSE;
-		P.Spc.ScDeinit=TRUE;
+		if(!P.Spc.Started){//	   controllare
+			for(id=0;id<P.Num.Det;id++) ret=sc_pipe_close2(P.Spc.ScBoard[ib],P.Spc.Pipe[ib][id]);
+			P.Spc.ScPipeClose=FALSE;
+			P.Spc.ScDeinit=TRUE;
+			
+			if(P.Mamm.IsTop&&P.Mamm.Shrink[Y]){
+				rewind(P.File.File);
+				P.Loop[P.Mamm.Loop[Y]].Last = P.Loop[P.Mamm.Loop[Y]].First+P.Loop[P.Mamm.Loop[Y]].Delta*D.Head.LoopLast[P.Mamm.Loop[Y]-2];
+				P.Loop[P.Mamm.Loop[Y]].Num=abs((P.Loop[P.Mamm.Loop[Y]].Last-P.Loop[P.Mamm.Loop[Y]].First)/P.Loop[P.Mamm.Loop[Y]].Delta)+1;
+				CompileHeader();
+				while(fwrite(&D.Head,sizeof(D.Head),1,P.File.File)<1);
+				fflush(P.File.File);
+			}
+			
 		}
 		else{
-		ret=sc_tdc_interrupt2(P.Spc.ScBoard[ib]);
-		P.Spc.PipeClose=TRUE;
-		P.Spc.ScDeinit=FALSE;
+			ret=sc_tdc_interrupt2(P.Spc.ScBoard[ib]);
+			P.Spc.ScPipeClose=TRUE;
+			P.Spc.ScDeinit=FALSE;
 		}
-		P.Spc.TimeElapsed=Timer();
-		P.Spc.ScDeinit|=P.Spc.ScInit;
-		P.Mamm.OverTresholdPrevious=0;
-		P.Mamm.IsTop=0;
-		P.Mamm.InvertSignCorr=0;
-		P.Num.Acq=0;
-		int it;
-		for(it=0;it<300;it++){
-		P.Frame.Mem[0][it]=0;
-        P.Frame.Mem[1][it]=0;		
-		}
+		P.Spc.ScTimeElapsed=Timer();
+		P.Spc.Started = FALSE;
+		if(P.Mamm.Status) P.Mamm.IgnoreTrash = FALSE;
+		P.Mamm.NumAcq.Active = FALSE;
 	}
 	
 	// free memory
 	doubleFree1D(LinArray);
+	//doubleFree1D(BufferTDC);
+	//doubleFree1D(BufferTDC2);
+	doubleFree3D(NonLinDt,P.Num.Board,P.Num.Det);
 	SC1000Free1D(DCR_raw_count);
 	doubleFree1D(DCR_raw_time);
-	SC1000Free1D(IRF_raw_count);
-	doubleFree1D(IRF_raw_time);
-	doubleFree3D(NonLinDt,P.Num.Board,P.Num.Det);
 } 
 
 /* PIPE READING */
-int PipeRead(int Board,int Det,int Timeout){
+int PipeRead(int Board,int Det,int Timeout){			 //EDO
 	int ret,it=0;  
-	do{
-	ret=sc_pipe_read2(P.Spc.ScBoard[Board],P.Spc.Pipe[Board][Det],(void *)&(NonLinArray),Timeout); // 2 ms ; 3 ms
-	it++;
-	}while(ret<0 && (P.Mamm.Status?it<=0:it<=2));
+	//do{
+	ret=sc_pipe_read2(P.Spc.ScBoard[Board],P.Spc.Pipe[Board][Det],(void *)&(NonLinArray),Timeout); 
+	//it++;
+	//}while(ret<0 && (P.Mamm.Status?it<=0:it<=2));
 	return ret;
 }
 
 /* TRANSFER DATA FROM SC1000 */	
-void GetDataSC1000(void){
-	FILE *fid=fopen("CheckMamm.txt","a+");
-	if(P.Action.StartCont[P.Mamm.Step[X]]&&P.Mamm.Status) P.Num.Acq=0;
-	//int Timeout=(P.Contest.Function==CONTEST_OSC?P.Spc.TimeO:P.Spc.TimeM)*SEC_2_MILLISEC;
-	//Timeout=Timeout>=1000?2*Timeout:1000;
-	//if(P.Action.StartCont[P.Mamm.Step[X]]&&P.Mamm.Status) Timeout=-1;
-	int Timeout;
-	if(P.Mamm.Status) Timeout=-1;  /*check*/ //patch
-	else Timeout=-1; //da sistemare 
-	int ib,id,ic,ret,icc;
-	int status;
+void GetDataSC1000(void){						  //EDO
+	//if(P.Action.StartCont[P.Mamm.Step[X]]&&P.Mamm.Status) P.Num.Acq=0;
+	int Timeout = -1;
+	int ib,id,ic,ret,icc,status;
 	int linearise=(SC1000_LINEARISE&&(P.Spc.Refolding<SC1000_HARDREFOLD)&&(P.Spc.Refolding!=SC1000_NODATAOPERATION));
+	/*if(P.Spc.ScWait){
+		int icount=0; char Cond = FALSE;
+		//do{
+		//	Cond = TRUE;
+			for(id=0;id<P.Num.Det;id++)
+				do{ret = PipeRead(ib,id,-1);}while(ret<0);
+			//{ret=PipeRead(ib,id,1000); Cond = Cond && ret>=0?1:0;};
+			//Delay(MILLISEC_2_SEC*10*P.Spc.TimeSC1000);
+		//	icount++;
+		//}while(Cond==FALSE||icount<4);
+	fprintf(FID,"RetNeg\t%d\t%d\t%d\t%d\t%d\t%d\n",P.Frame.Actual,P.Frame.First,P.Frame.Last,ret,id,icount);
+	}*/
 	for(ib=0;ib<P.Num.Board;ib++){
 		for(id=0;id<P.Num.Det;id++){
 			ret=PipeRead(ib,id,Timeout);  
-			if(P.Spc.SCAutoTrim&&id>=1) break;
-			//fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%d\tGetData\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000,ret);
 			if(ret<0){ 
-				/*if(ret==-17&&P.Mamm.Status&&((P.Num.Acq+1)*P.Spc.TimeM>=P.Spc.AcqTimeSC1000)) {*/
 				if(P.Mamm.Status&&P.Contest.Function==CONTEST_MEAS){
-					FILE *fid=fopen("CheckMamm.txt","a+");
-					fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\tGetData\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);
-					fclose(fid);
 					P.Action.StopMamm=1;
 					P.Action.DataSave=1;
 					ErrHandler(ERR_SC1000,ret,"Sync");
 					return;}
-				else ;//ErrHandler(ERR_SC1000,ret,"PipeRead"); 
+				else SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Error in pipe reading. Measure will attempt to continue");
 					}
+			if(P.Spc.ScAutoTrim&&id>=1) break;   //controllare
 			if(linearise){
-			 if(P.Mamm.PostProcess&&P.Contest.Function==CONTEST_MEAS){
-				for(ic=0;ic<P.Mamm.SC1000_MAXBIN;ic++) D.BufferTDC[P.Frame.Actual][id][ic]=NonLinArray[ic];
-			 }
-			  else{
-				LinRefoldSC1000(P.Spc.Refolding,ib,id,NonLinArray,LinArray,P.Chann.Num); // 3 ms;0.75 ms
+				LinRefoldSC1000(P.Spc.Refolding,ib,id,NonLinArray,LinArray,P.Chann.Num);	//controllare
 			  	for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[ib][id*P.Chann.Num+ic]=(T_DATA) floor(LinArray[ic]+0.5);
-			  }
 			}
 			else{
-				for(ic=0;ic<min(P.Chann.Num,P.Mamm.SC1000_MAXBIN);ic++) D.Buffer[ib][id*P.Chann.Num+ic]=(T_DATA) floor(NonLinArray[ic]+0.5);
-				for(ic=min(P.Chann.Num,P.Mamm.SC1000_MAXBIN);ic<P.Chann.Num;ic++) D.Buffer[ib][id*P.Chann.Num+ic]=0;
+				for(ic=0;ic<min(P.Chann.Num,P.Spc.ScNumBin);ic++) D.Buffer[ib][id*P.Chann.Num+ic]=(T_DATA) floor(NonLinArray[ic]+0.5);
+				for(ic=min(P.Chann.Num,P.Spc.ScNumBin);ic<P.Chann.Num;ic++) D.Buffer[ib][id*P.Chann.Num+ic]=0;
 				}
 			if(ret<0) ErrHandler(ERR_SC1000,ret,"GetDataSC1000");
 		}
-	if(P.Mamm.Status) {
-		if(P.Contest.Function != CONTEST_OSC){
-			P.Num.Acq++;
-			if(P.Num.Acq>=P.Spc.AcqTimeSC1000/P.Spc.TimeM){
-				P.Action.StopMamm=1;
-				P.Action.DataSave=1;
-				fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\tOverMaxMeasNum\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);
-				SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "OverMaxMeasNum\n");
-			}
-		}
 	}
+	if(P.Mamm.NumAcq.Active){
+		P.Mamm.NumAcq.Actual++;
+		if(P.Mamm.NumAcq.Actual>=P.Mamm.NumAcq.Tot){
+			P.Action.StopMamm = 1;
+			P.Action.DataSave = 1;
+			SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "OverMaxMeasNum\n");}
 	}
-	fclose(fid);
 }
 
-/* CLEAR SC1000 */	//REDUNDANT?
+/* CLEAR SC1000 */	//EDO
 void ClearSC1000(void){
-	int ic,ib,id=0,ret;
-	int status;
-	for(ib=0;ib<P.Num.Board;ib++){
-		ret=sc_tdc_interrupt2(P.Spc.ScBoard[ib]);
-		P.Spc.CountRate=0;
-		 	for(id=0;id<P.Num.Det;id++)
-		        for(ic=0;ic<P.Chann.Num;ic++)
-					P.Spc.CountRate+=D.Buffer[ib][ic+id*P.Chann.Num];
-		P.Spc.CountRate/=P.Spc.TimeM;
-		
-		Delay(P.Spc.CountRate<=9e6?3:5);/*patch. utilizzare anche un limite per le misure normali*/
-		for(id=0;id<P.Num.Det;id++){
-			while(sc_pipe_read2(P.Spc.ScBoard[ib],P.Spc.Pipe[ib][id],(void *)&(NonLinArray),1000));
-			}
-	P.Spc.Started=TRUE;
-	if(!(P.Contest.Function==CONTEST_MEAS&&P.Mamm.Status)) 
-		P.Spc.AcqTimeSC1000=StartSC1000(ib,SC1000_TIME_INFINITY);
-	else P.Spc.Started=FALSE;
-	}
-	
+	int ib=0, id=0; //Timeout = -1;//P.Spc.TimeSC1000*2;		//controllare
+	if(P.Spc.Trash)
+		if (!P.Mamm.IgnoreTrash)
+			for(ib=0;ib<P.Num.Board;ib++)
+				for(id=0;id<P.Num.Det;id++)
+					while(sc_pipe_read2(P.Spc.ScBoard[ib],P.Spc.Pipe[ib][id],(void *)&(NonLinArray),-1));
 }
 
 /* FLUSH SC1000 BUFFER */
 void FlushSC1000(int Board){
 int id,ret=0;
-	FILE *fid=fopen("CheckMamm.txt","a+");
-	fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\tFlushStart\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);
-	int Timeout=1000;	
+	int Timeout=1000;//controllare. sarebbe meglio mettere un controllo sul fatto che il numero di curve lette sia esattamente quello	
 	//Delay(2);
-	if(P.Mamm.Status&&P.Contest.Function==CONTEST_MEAS){
-		if(P.Num.Acq!=0){
-		while(P.Num.Acq*P.Spc.TimeM<=P.Spc.AcqTimeSC1000||ret>0){
-		P.Num.Acq++;
-			for(id=0;id<P.Num.Det;id++){
-				ret=PipeRead(Board,id,Timeout);
-				//fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%d\tFlushIter\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000,ret);
-			}
-		};
-
+	if(P.Mamm.NumAcq.Active){
+		if(P.Mamm.NumAcq.Actual!=0){
+		while(P.Mamm.NumAcq.Actual<=P.Mamm.NumAcq.Tot||ret>0){
+			for(id=0;id<P.Num.Det;id++) ret=PipeRead(Board,id,Timeout);
+			/*if(ret<0&&(P.Mamm.NumAcq.Actual<P.Mamm.NumAcq.Tot)) P.Mamm.NumAcq.Actual = P.Mamm.NumAcq.Actual;
+				else */P.Mamm.NumAcq.Actual++;
+		}
+		P.Mamm.NumAcq.Actual = 0;
+		}
 	}
-	}
-	else for(id=0;id<P.Num.Det;id++) while(PipeRead(Board,id,Timeout));
-	fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\tFlushStop\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);
-	fclose(fid);
-	P.Spc.Started=TRUE;
+	else for(id=0;id<P.Num.Det;id++) while(PipeRead(Board,id,-1));
 }
 
 /* CALCULATE COEFFICIENTS FOR NON-LIN COMPENSATION */
-void CalcNonlinSC1000(void){
+void CalcNonlinSC1000(void){	   //EDO
 	char trash[STRLEN];
 	double meanDCR;
 	int id,icc,ib;
@@ -3124,7 +3083,6 @@ void CalcNonlinSC1000(void){
 	char root_DCR_name[STRLEN];
 	strcpy(root_DCR_name,"TDC\\");
 	strcat(root_DCR_name,P.Spc.TdcDcrFileRoot);
-	
 	for(ib=0;ib<P.Num.Board;ib++){
 		for(id=0;id<P.Num.Det;id++){
 			sprintf(DCR_files[ib][id],"%s_ch%d.txt",root_DCR_name,id);
@@ -3133,17 +3091,18 @@ void CalcNonlinSC1000(void){
 			if (!pfile) {ErrHandler(ERR_SC1000,0,"Unable to open DCR File"); return;}
 			fgets(trash, STRLEN, pfile); // discard first title line
 			icc=0;
-			while(fscanf(pfile,"%lf\t%d",&DCR_raw_time[icc],&DCR_raw_count[icc++])>0);
+			while(fscanf(pfile,"%lf\t%d",&DCR_raw_time[icc],&DCR_raw_count[icc])!=EOF) icc++;
 			fclose(pfile);
-			int LengthDCRFile = icc-350;
+			int LengthDCRFile = icc-350;  //to remove the effects of the non linear time scale at the end of the acquisition
 			meanDCR=0;
 			for(icc=0;icc<LengthDCRFile;icc++) meanDCR+=DCR_raw_count[icc]; // icc = channel (bin) on the original non-lin TDC data
 			meanDCR/=LengthDCRFile;
 			// calc non-lin coefficients
-			meanDCR=0;
-			for(icc=P.Spc.ScFirstBin-1;icc<P.Spc.ScLastBin;icc++) meanDCR+=DCR_raw_count[icc]; // icc = channel (bin) on the original non-lin TDC data
-			meanDCR/=(P.Spc.ScLastBin-P.Spc.ScFirstBin+1);
-			for(icc=P.Spc.ScFirstBin-1;icc<P.Spc.ScLastBin;icc++){ 
+			//meanDCR=0;
+			//for(icc=P.Spc.ScFirstBin;icc<P.Spc.ScLastBin;icc++) meanDCR+=DCR_raw_count[icc]; // icc = channel (bin) on the original non-lin TDC data
+			//meanDCR/=(P.Spc.ScLastBin-P.Spc.ScFirstBin+1);
+			//for(icc=P.Spc.ScFirstBin;icc<P.Spc.ScLastBin;icc++){
+			for(icc=0;icc<LengthDCRFile;icc++){ 
 				if(P.Spc.Refolding!=2&&P.Spc.Refolding!=0)
 					NonLinDt[ib][id][icc]=ns2ps*Binsize*DCR_raw_count[icc]/meanDCR; // dtt stores the time-width of a bin
 			    else 
@@ -3155,19 +3114,19 @@ void CalcNonlinSC1000(void){
 
 /* APPLY LINEARIZATION & REBINNING */
 void LinRefoldSC1000(int Refold,int Board,int Det,SC1000_TYPE *NonLinArray, double *LinArray, int NumChannLin){
-	int ic,itp;
-	int    	itt = P.Spc.ScFirstBin-1;	// index that scans over the original non-linear time scale
+	int ic,itp,is,iit;
+	int    	itt = P.Spc.ScFirstBin;	// index that scans over the original non-linear time scale
 	int    	it = 0; 					// index that scans over the new linear time-scale
-	int 		ntt = min(P.Spc.ScLastBin,P.Mamm.SC1000_MAXBIN); // last chann of the Non-Lin Array
+	int 		ntt = min(P.Spc.ScLastBin,P.Spc.ScNumBin); // last chann of the Non-Lin Array
 	int 		nt = NumChannLin; 	// length of the Lin Array
 	double 	*dtt = NonLinDt[Board][Det]; 		// array with NonLin Delta;
 	double   dt=P.Spc.Factor;				// lin delta
-	double   rtt = NonLinDt[Board][Det][P.Spc.ScFirstBin-1];   //	remainder of the non-lin channel
+	double   rtt = NonLinDt[Board][Det][P.Spc.ScFirstBin];   //	remainder of the non-lin channel
 	double  	rt = dt;  			// remainder of the new linerized time-interval that need to be filled with photons
 	double 	T=Period; 				// full Period (ps) of the signal (take it exact for rebinning)
 	double 	tt=0;						// absolute time of the actual non-lin channel (ps)
 	int		numrep=0;				// number of replica so far, to be incremented every time you surpass T
-	double somma1=0,somma=0,somma2=0, somma3=0;
+	int Rebin = SC1000_REBIN;
 	
 	//Refold -1 = NoDataOperation
 	//Refold 0 = OnlyLinearization
@@ -3176,127 +3135,95 @@ void LinRefoldSC1000(int Refold,int Board,int Det,SC1000_TYPE *NonLinArray, doub
 	//Refold 3 = "Lorenzo"   //to check
 	//Refold 4 = OnlyRefold
 	
+	static double Buffer[SC1000_MAXBIN*SC1000_REBIN]; //P.Spc.ScLastBin*Rebin
+	static double Buffer2[SC1000_MAXBIN*SC1000_REBIN]; //P.Spc.ScLastBin*Rebin
+	for(it=0;it<min(P.Spc.ScLastBin,P.Spc.ScNumBin)*Rebin;it++) {Buffer[it]=0; Buffer2[it]=0;}
 	for(ic=0;ic<P.Chann.Num;ic++) LinArray[ic]=0;
-	if(P.Spc.SelRepNum>=16) P.Spc.SelRepNum=16;
-	if(Refold==2||Refold==0){
-	//int Rebin=(ns2ps*Binsize)/(Period/P.Chann.Num); //P.Chann.Num sould be 65535 to obtain max Rebin. if chann num defines the factor
-	int Rebin =(ns2ps*Binsize)/(P.Spc.Factor); 		  //if the factor defines the chann num
-	Rebin=32;
-	if(Refold==0) Rebin=1;
-	int iit;
-	int MaxRebinValue = (ns2ps*Binsize); 
-	static double Buffer[42526*32]; //P.Spc.ScLastBin*Rebin
-	static double Buffer2[42526*32]; //P.Spc.ScLastBin*Rebin
-	for(it=0;it<P.Spc.ScLastBin*Rebin;it++) {Buffer[it]=0; Buffer2[it]=0;}
-	int itt=0;
-	for(it=P.Spc.ScFirstBin-1;it<P.Spc.ScLastBin;it++){ 
-		for (iit=0;iit<Rebin;iit++){
-			Buffer[iit+it*Rebin]=(NonLinArray[it]/dtt[it])/((float) Rebin);
-			if(IsNotANumber(Buffer[iit+it*Rebin])||IsInfinity(Buffer[iit+it*Rebin])) 
-				Buffer[iit+it*Rebin]=0;
-			/*if(Refold==2){
-				if(itt>=(Period/((ns2ps*Binsize)/Rebin))){ 
-			itt=0;
-			numrep++;}
-			Buffer2[itt]+=Buffer[iit+it*Rebin];
-			itt++;
-			}*/
-			
-		}
 	
-	}
-	//for(it=P.Spc.ScFirstBin-1;it<P.Spc.ScLastBin;it++) somma+=(NonLinArray[it]);
-	//for(it=(P.Spc.ScFirstBin-1)*Rebin;it<P.Spc.ScLastBin*Rebin;it++) somma1+=Buffer[it];
-	
-	if(Refold==2){
-	//for (itp=itt+1;itp<(Period/((ns2ps*Binsize)/Rebin));itp++) Buffer2[itp]*=((float) (numrep) /max(numrep-1,1));  // complete filling the LinArray and normalize for lower number of replica in the last part
-	it=0;
-	for(iit=(P.Spc.ScFirstBin-1)*Rebin;iit<P.Spc.ScLastBin*Rebin;iit++){
-		if(it==RoundRealToNearestInteger(Period/((ns2ps*Binsize)/Rebin))){ 
-			it=0;
-			numrep++;}
-		//if(it<P.Chann.Num) LinArray[it]+=Buffer[iit]; 
-		Buffer2[it]+=Buffer[iit];
-		it++;					   
-	}  
-	for (itp=it;itp<(Period/((ns2ps*Binsize)/Rebin));itp++) Buffer2[itp]*=((float) (numrep+1) /max(numrep,1));  // complete filling the LinArray and normalize for lower number of replica in the last part
-	//for(it=(P.Spc.ScFirstBin-1)*Rebin;it<P.Spc.ScLastBin*Rebin;it++) somma2+=Buffer2[it];
-	for(it=0;it<P.Chann.Num;it++)
-    		for (iit=0;iit<Rebin;iit++) 
-				LinArray[it]+=Buffer2[it*Rebin+iit];
-    
-	}
-	else for(it=0;it<min(P.Chann.Num,P.Spc.ScLastBin-P.Spc.ScFirstBin+1);it++) LinArray[it]+=Buffer[it+P.Spc.ScFirstBin-1];
-	//for(it=0;it<P.Chann.Num;it++) somma3+=LinArray[it];
-	//int trash;
-	
-	
-	
-	
-	}
-	else if(Refold==1){
-	//for(it=P.Spc.ScFirstBin;it<P.Spc.ScLastBin;it++) somma+=NonLinArray[it];
-	while(itt<(ntt*P.Spc.SelRepNum/P.Spc.SelRepNum)){
-		if(((Refold==1)||(Refold==3)) && tt>T){  // if REBIN, both t & tt have surpassed the Period, then reset
-			tt-=T;
-			rt=dt-tt;
-			it=0;
-			numrep++;
+	switch(Refold){
+		case 0: 
+			for(it=P.Spc.ScFirstBin;it<min(P.Spc.ScLastBin+1,P.Spc.ScNumBin);it++){ 
+				Buffer[it]=(NonLinArray[it]/dtt[it]);
+					if(IsNotANumber(Buffer[it])||IsInfinity(Buffer[it]))
+						Buffer[it]=0;
 			}
-		if(rt >= rtt)  { // the receiving linear channel is large enough to accomodate the remaining of the original non-linear channel
-			if(it<nt) LinArray[it] += (double)((NonLinArray[itt]/(dtt[itt])))*(rtt);
-			if(Refold==1) tt+=rtt;
-			if(Refold==3) tt+=ns2ps*Binsize;
-			itt++;	  
-			rt -= rtt;
-			rtt = dtt[itt];
+			for(it=0;it<min(P.Chann.Num,min(P.Spc.ScLastBin,P.Spc.ScNumBin)-P.Spc.ScFirstBin+1);it++)
+				LinArray[it]=Buffer[it+P.Spc.ScFirstBin];
+		break;
+		case 1:
+			while(itt<(ntt)){
+				if(((Refold==1)||(Refold==3)) && tt>T){  // if REBIN, both t & tt have surpassed the Period, then reset
+					rt=dt-tt;
+					it=0;
+					numrep++;
+				}
+				if(rt >= rtt)  { // the receiving linear channel is large enough to accomodate the remaining of the original non-linear channel
+					if(it<nt) LinArray[it] += (double)((NonLinArray[itt]/(dtt[itt])))*(rtt);
+					if(Refold==1) tt+=rtt;
+					if(Refold==3) tt+=ns2ps*Binsize;
+					itt++;	  
+					rt -= rtt;
+					rtt = dtt[itt];
+				}
+				else{		      // the receiving linear channel is smaller than the remaining of the original non-linear channel
+					if(it<nt) LinArray[it] += (double)((NonLinArray[itt]/(dtt[itt])))*(rt);
+					if(Refold==1) tt+=rt;
+					it++;
+					rtt -= rt;
+					tt-=T;
+					rt = dt;
+					}
+   			}
+   			for (itp=it+1;itp<nt;itp++) LinArray[itp]*=((numrep+1)/max(numrep,1));  // complete filling the LinArray and normalize for lower number of replica in the last part
+	   	break;
+		case 2: 
+			for(it=P.Spc.ScFirstBin;it<min(P.Spc.ScLastBin+1,P.Spc.ScNumBin);it++){ 
+				for (iit=0;iit<Rebin;iit++){
+					Buffer[iit+it*Rebin]=(NonLinArray[it]/dtt[it])/((float) Rebin);
+						if(IsNotANumber(Buffer[iit+it*Rebin])||IsInfinity(Buffer[iit+it*Rebin]))
+							Buffer[iit+it*Rebin]=0;
+				}
 			}
-		else{		      // the receiving linear channel is smaller than the remaining of the original non-linear channel
-			if(it<nt) LinArray[it] += (double)((NonLinArray[itt]/(dtt[itt])))*(rt);
-			if(Refold==1) tt+=rt;
-			it++;
-			rtt -= rt;
-			rt = dt;
+			it = 0;
+			for(iit=P.Spc.ScFirstBin*Rebin;iit<min(P.Spc.ScLastBin+1,P.Spc.ScNumBin)*Rebin;iit++){
+				if(it==RoundRealToNearestInteger(Period/((ns2ps*Binsize)/Rebin))){ 
+					it=0;
+					numrep++;
+				}
+				Buffer2[it]+=Buffer[iit];
+				it++;
 			}
-   	}
+			for (itp=it;itp<RoundRealToNearestInteger(Period/((ns2ps*Binsize)/Rebin));itp++) Buffer2[itp]*=((float) (numrep+1) /max(numrep,1));  // complete filling the LinArray and normalize for lower number of replica in the last part
+			for(it=0;it<min(P.Chann.Num,P.Spc.ScLastBin-P.Spc.ScFirstBin+1);it++)
+    			for (iit=0;iit<Rebin;iit++) 
+					LinArray[it]+=Buffer2[it*Rebin+iit];
+			for (itp=it+1;itp<nt;itp++) LinArray[itp]*=((numrep+1)/max(numrep,1));  // complete filling the LinArray and normalize for lower number of replica in the last part
+    	break;
+		case 3: break;
+		case 4:
+			for(it=P.Spc.ScFirstBin;it<min(P.Spc.ScLastBin+1,P.Spc.ScNumBin);it++){ 
+				for (iit=0;iit<Rebin;iit++){
+					Buffer[iit+it*Rebin]=(NonLinArray[it])/((float) Rebin);
+						if(IsNotANumber(Buffer[iit+it*Rebin])||IsInfinity(Buffer[iit+it*Rebin]))
+							Buffer[iit+it*Rebin]=0;
+				}
+			}
+			it = 0;
+			for(iit=P.Spc.ScFirstBin*Rebin;iit<min(P.Spc.ScLastBin+1,P.Spc.ScNumBin)*Rebin;iit++){
+				if(it==RoundRealToNearestInteger(Period/((ns2ps*Binsize)/Rebin))){ 
+					it=0;
+					numrep++;
+				}
+				Buffer2[it]+=Buffer[iit];
+				it++;
+			}
+			for (itp=it;itp<RoundRealToNearestInteger(Period/((ns2ps*Binsize)/Rebin));itp++) Buffer2[itp]*=((float) (numrep+1) /max(numrep,1));  // complete filling the LinArray and normalize for lower number of replica in the last part
+			for(it=0;it<min(P.Chann.Num,P.Spc.ScLastBin-P.Spc.ScFirstBin+1);it++)
+    			for (iit=0;iit<Rebin;iit++) 
+					LinArray[it]+=Buffer2[it*Rebin+iit];
+			for (itp=it+1;itp<nt;itp++) LinArray[itp]*=((numrep+1)/max(numrep,1));  // complete filling the LinArray and normalize for lower number of replica in the last part
+		break;
 	}
-	//for(it=0;it<P.Chann.Num;it++) somma1+=LinArray[it];
-
-	else {
-	int Rebin = 32;
-	for(it=P.Spc.ScFirstBin-1;it<P.Spc.ScLastBin;it++) somma+=(NonLinArray[it]);
-	int iit;
-	static double Buffer[42526*32]; //P.Spc.ScLastBin*Rebin
-	static double Buffer2[42526*32]; //P.Spc.ScLastBin*Rebin
-	for(it=0;it<P.Spc.ScLastBin*Rebin;it++) {Buffer[it]=0; Buffer2[it]=0;}
-	for(it=P.Spc.ScFirstBin-1;it<P.Spc.ScLastBin;it++){
-		for (iit=0;iit<Rebin;iit++){
-			Buffer[iit+it*Rebin]=(NonLinArray[it])/((float) Rebin);
-			if(IsNotANumber(Buffer[iit+it*Rebin])||IsInfinity(Buffer[iit+it*Rebin]))
-				Buffer[iit+it*Rebin]=0;
-		}
-	}
-	//for(it=(P.Spc.ScFirstBin-1)*Rebin;it<P.Spc.ScLastBin*Rebin;it++) somma1+=Buffer[it];
-	it=0;
-	for(iit=(P.Spc.ScFirstBin-1)*Rebin;iit<P.Spc.ScLastBin*Rebin*(P.Spc.SelRepNum/P.Spc.SelRepNum);iit++){
-		if(it==RoundRealToNearestInteger(Period/((ns2ps*Binsize)/Rebin))){ 
-			it=0;
-			numrep++;}
-		//if(it<P.Chann.Num) LinArray[it]+=Buffer[iit]; 
-		Buffer2[it]+=Buffer[iit];
-		it++;					   
-	}  
-	for (itp=it;itp<(Period/((ns2ps*Binsize)/Rebin));itp++) Buffer2[itp]*=((float) (numrep+1) /max(numrep,1));  // complete filling the LinArray and normalize for lower number of replica in the last part
-	for(it=0;it<P.Chann.Num;it++)
-    		for (iit=0;iit<Rebin;iit++) 
-				LinArray[it]+=Buffer2[it*Rebin+iit];
-	
-	}
-	
-	
-	for (itp=it+1;itp<nt;itp++) LinArray[itp]*=(numrep/max(numrep-1,1));  // complete filling the LinArray and normalize for lower number of replica in the last part
-	//for(it=0;it<P.Chann.Num;it++) somma2+=LinArray[it];
-	//int rash;
 }
 
 /* ########################   DEIB SPADLAB TDC FUNCTIONS (SPADLAB)  ####################### */
@@ -4103,7 +4030,6 @@ void InitTrim(char Trim){
 
 /* AUTO TRIMMER */
 void AutoTrim(int Trim){
-	if(P.Spc.Type==SPC_SC1000) P.Spc.SCAutoTrim=1;   //patch
 	struct TrimS *T = &P.Trim[Trim];
 	char si=T->Step;
 	char datareset,tellpos,movestep,startstep,dataclear,datain,typewait,datastop,dataout;
@@ -4144,7 +4070,7 @@ void AutoTrim(int Trim){
 	T->PosBest = P.Step[si].Actual;
 	
 	// If already Success or Maximum Boundary for Step then smart exit
-	SpcReset(FALSE,is_any_SPC,is_any_SPC); //patch SpcReset(FALSE,is_any_SPC||P.Spc.Type==SPC_SC1000,is_any_SPC); //patch
+	SpcReset(FALSE,is_any_SPC,is_any_SPC);
 	WaitEnd(T->Time,0,(T->Wait==TRIM_WAIT_SPC?WAIT_SPC:WAIT_TIME),si);
 	SpcStop(FALSE);
 	SpcOut(FALSE);
@@ -4262,7 +4188,6 @@ void AutoTrim(int Trim){
 	P.Spc.Trash=TRUE;
 	SpcTime(P.Spc.TimeM);
 	P.Contest.Function=CONTEST_MEAS;
-	if(P.Spc.Type==SPC_SC1000) P.Spc.SCAutoTrim=0;
 	}
 
 
@@ -5305,7 +5230,6 @@ void StartCont(char Step, char Status){
 	int iloop = P.Loop[loop].Actual;
 	long start[MAXPOS];
 	long stop[MAXPOS];
-	char TrashMemory;
 	
 	char invert=(P.Loop[loop].Invert)&&REMINDER(P.Loop[loop-1].Idx,2);
 	for(il=P.Step[Step].Loop+1;il<MAX_LOOP;il++) num_meas*=P.Loop[il].Num;
@@ -5338,14 +5262,7 @@ void StartCont(char Step, char Status){
 		P.Wait.Pos=start[iloop]+(imeas*delta/num_meas);
 		}
 	
-	TrashMemory=P.Spc.Trash;
-	P.Step[Step].StopGoal=stopgoal; //patch
 	MoveStep(&P.Step[Step].Actual,stopgoal,Step,FALSE,Status);	
-	if(P.Spc.Type==SPC_SC1000) {
-		P.Spc.Trash=TrashMemory;
-		if(P.Mamm.Status) P.Spc.Trash=FALSE; 
-		//Delay(1);
-	}
 }
 
 
@@ -8451,49 +8368,21 @@ void DataSave(void){
 		}
 	while(P.File.File == NULL);
 */	
-	if(P.Mamm.PostProcess){
-    long actual=P.Frame.Actual;
-	for(ib=0;ib<P.Num.Board;ib++){ 
-		for(ifr=0;ifr<P.Frame.Num;ifr++){
-			P.Frame.Actual=ifr;
-			for(id=0;id<P.Num.Det;id++){
-				   LinRefoldSC1000(P.Spc.Refolding,ib,id,D.BufferTDC[ifr][id],LinArray,P.Chann.Num); // 3 ms;0.75 ms
-				   for(ic=0;ic<P.Chann.Num;ic++) 
-					   D.Buffer[ib][id*P.Chann.Num+ic]=(T_DATA) floor(LinArray[ic]+0.5);
-			}
-		DataCopy();
-		}
-	}
-	
-	
-	for(ifr=0;ifr<P.Frame.Num;ifr++)
-		for(ip=0;ip<P.Num.Page;ip++)
-			for(ic=0;ic<P.Mamm.SC1000_MAXBIN;ic++)
-				D.BufferTDC[ifr][ip][ic]=0;
-	
-	P.Frame.Actual=actual;
-	}
-	
 	if(P.Mamm.Shrink[X]&&P.Mamm.Status){
 	
     int IdY=P.Loop[P.Mamm.Loop[Y]].Idx;
-	int delta=REMINDER(IdY,2)?-1:1;	
-	for(ifr=P.Frame.Mem[FFIRST][IdY];(REMINDER(IdY,2)?(ifr>P.Frame.Mem[FLAST][IdY]-1):(ifr<P.Frame.Mem[FLAST][IdY]+1));ifr=ifr+delta)
+	for(ifr=P.Frame.First;ifr<=P.Frame.Last;ifr++)
 		for(ip=0;ip<P.Num.Page;ip++){
 			if(P.Info.SubHeader) while(fwrite (&D.Sub[ifr][ip], sizeof(T_SUB), 1, P.File.File)<1);
 			while(fwrite((D.Data[ifr][ip]),sizeof(T_DATA),P.Chann.Num,P.File.File)<P.Chann.Num);
 		}	
 	
-	if(P.Mamm.Status)
-		for(ifr=0; ifr<P.Frame.Num; ifr++)		  // da fare comunque se sono in modalità mammot
-			for(ip=0; ip<P.Num.Page; ip++)
-				CompileSub(P.Ram.Actual, ifr, ip);
-	
 	FILE *fid;
 	char path[STRLEN];
 	sprintf(path, "%s\\%s.%s",P.File.Dir,P.File.Name,"txt");
-	fid=fopen(path,"a+");
-	fprintf(fid,"%d\t%d\t%d\t%d\n",P.Frame.Mem[FFIRST][IdY]+1,P.Frame.Mem[FLAST][IdY]+1,abs(P.Frame.Mem[FLAST][IdY]-P.Frame.Mem[FFIRST][IdY])+1,IdY);
+	if(IdY==0) {fid=fopen(path,"w+"); fprintf(fid,"FrameFirst\tFrameLast\tIdY\n");}
+	else fid=fopen(path,"a+");
+	fprintf(fid,"%d\t%d\t%d\n",P.Frame.First,P.Frame.Last,IdY);
 	fclose(fid);
 	}
 	else{
@@ -8866,7 +8755,6 @@ void ErrHandler(int Device, int Code, char* Function){
 			strcpy (sdevice, "GENERIC ERROR");
 			break;
 		}
-	/*patch*///sprintf(smessage,"Device = %s\nFunction = %s\nMessage = %s",sdevice,Function,serror);
 	sprintf(smessage,"Device = %s\nFunction = %s\nMessage = %s",sdevice,Function,serror); 
 	MessagePopup ("ERROR RETURN FUNCTION", smessage);
 	}
@@ -9437,13 +9325,45 @@ void AnalysisMamm(void){
 
 /* IS OVERTHRESHODLS? */
 void AnalysisMamm_new(void){
-	int ib,id,ic;
-	if(P.Mamm.PostProcess){
-		for(ib=0;ib<P.Num.Board;ib++) P.Mamm.Count.Actual[ib]=0; 
-		for(ib=0;ib<P.Num.Board;ib++)
-			for(id=0;id<P.Num.Det;id++)
-		 		for(ic=P.Spc.ScFirstBin-1;ic<P.Spc.ScLastBin;ic++)
-			  		P.Mamm.Count.Actual[ib]+=D.BufferTDC[P.Frame.Actual][id][ic];
+	
+	int ib,id=0,ic;
+	long Area, MaxVal, MaxPos, First, Last;
+	double Treshold, BaricentrePos, Width, Target1, Target2, Target3;
+	char Cond1, Cond2, Cond3;
+	
+	P.Mamm.OverTreshold = FALSE; 
+	id = (P.Step[P.Mamm.Step[X]].Dir==1)?MAMM_WEST_DET:MAMM_EAST_DET;  //most right or most left detector according to step movement
+	if(P.Mamm.IsRefMeas){
+	int FirstNeighb = 1; int iframe;
+	long Frames[FirstNeighb+1]; long Areas[FirstNeighb+1]; double Derivatives[FirstNeighb];
+	for(iframe=0;iframe<(FirstNeighb+1);iframe++){
+		Frames[iframe]=P.Frame.Actual-P.Frame.Dir*iframe;
+		if(Frames[iframe]<0) Frames[iframe] = 0;
+		D.Curve = D.Data[Frames[iframe]][id];
+		Areas[iframe]=CalcArea(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi])-CalcArea(P.Roi.First[P.Mamm.Roi]-10,P.Roi.First[P.Mamm.Roi]);		
+	}
+	for(iframe=1;iframe<(FirstNeighb+1);iframe++){
+		Derivatives[iframe-1]=(Areas[iframe-1]-Areas[iframe])/((double) P.Mamm.RefMeas.Area);
+	}
+	
+	D.Curve = D.Data[P.Frame.Actual][id];
+	Area = CalcArea(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi])-CalcArea(P.Roi.First[P.Mamm.Roi]-10,P.Roi.First[P.Mamm.Roi]);
+	//GetRange(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi],P.Mamm.Fract,&MaxVal,&MaxPos,&First,&Last,&Treshold);
+	
+	Target1 =  (Area-P.Mamm.RefMeas.Area)/((double) P.Mamm.RefMeas.Area);
+	Cond1 = Target1 <= -0.5;
+	Target2 = (double) Derivatives[0];
+	Cond2 = Target2 <=-0.3;
+	
+	if(Cond1&&Cond2) P.Mamm.OverTreshold = TRUE;
+	else{
+		Cond1 = Target1 <= -0.7;
+		Cond2 = TRUE;
+		for(iframe=0;iframe<FirstNeighb;iframe++)
+			Cond2=Cond2&&(Derivatives[iframe]<=-0.3?1:0);
+		if(Cond1||Cond2) P.Mamm.OverTreshold = TRUE;
+			else P.Mamm.OverTreshold = FALSE; 
+	}
 	}
 	else{
 	for(ib=0;ib<P.Num.Board;ib++) P.Mamm.Count.Actual[ib]=0; 
@@ -9451,238 +9371,167 @@ void AnalysisMamm_new(void){
 		for(id=0;id<P.Num.Det;id++)
 		 	for(ic=0;ic<P.Chann.Num;ic++)
 			  P.Mamm.Count.Actual[ib]+=D.Buffer[ib][ic+id*P.Chann.Num];
-	}
 	for(ib=0;ib<P.Num.Board;ib++){
 			P.Mamm.Rate.Actual[ib]=P.Mamm.Count.Actual[ib]/P.Spc.TimeM; //Antonio. P.Spc.TimeM o P.Spc.EffTime[ib]
-			P.Spc.CountRate=P.Mamm.Rate.Actual[ib];
-	        P.Mamm.OverTreshold=P.Mamm.Rate.Actual[ib]>P.Mamm.Rate.High[ib]||P.Mamm.Rate.Actual[ib]<P.Mamm.Rate.Low[ib];
+			P.Mamm.OverTreshold=P.Mamm.Rate.Actual[ib]>P.Mamm.Rate.High[ib]||P.Mamm.Rate.Actual[ib]<P.Mamm.Rate.Low[ib];
 	}
-
-
+	}
+	if(!P.Mamm.OverTreshold){
+		D.Curve = D.Data[P.Frame.Actual][id];
+		Area = CalcArea(P.Chann.First,P.Chann.Last)*P.Num.Det;
+		if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)>=SC1000_MAX_COUNT_RATE) P.Mamm.OverTreshold = TRUE; 
+	}
+	if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)<=SC1000_MIN_COUNT_RATE)
+		P.Mamm.ExtraFrame.IsActiveOnLoopYNum = P.Loop[P.Mamm.Loop[Y]].Idx+2;
 }
 
-/* START MAMMOT */
-void StartMammot(void){
-	
-	P.Action.ScReInit = TRUE;
-	ReInitSC1000(0,'S');
-	
+/* INIT MAMMOT */
+void InitMammot(void){	   //EDO
 	char StepX=P.Mamm.Step[X];
 	char StepY=P.Mamm.Step[Y];
 	char LoopX=P.Mamm.Loop[X];
-	int is,ifr,ic,ib,id;
-	long StopGoal;
-	double freq,CorrShift;
+	int ib=0,ifr,ip,id = MAMM_SOUTH_DET; 
+
+	if(P.Mamm.IsRefMeas){
+	/*
+	MoveStep(&P.Step[StepX].Actual,P.Step[StepX].Home,StepX,TRUE,P.Action.Status);
+	ReInitSC1000('S');
+	StartMammot();
+	MoveStep(&P.Step[StepX].Actual,CalcGoal(StepX),StepX,TRUE,P.Action.Status);
+	int ic=0;
+	do{
+		SpcOut(TRUE);
+		CheckMammot();
+		ic++;
+	}while(ic<P.Mamm.NumAcq.Tot&&P.Mamm.OverTreshold==FALSE);
+	StopMammot();
+	D.Curve = D.Data[P.Frame.Actual][id];
+	P.Mamm.RefMeas.Area = CalcArea(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi])-CalcArea(P.Roi.First[P.Mamm.Roi]-10,P.Roi.First[P.Mamm.Roi]);
+	GetRange(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi],P.Mamm.Fract,&P.Mamm.RefMeas.MaxVal,&P.Mamm.RefMeas.MaxPos,&P.Mamm.RefMeas.First,&P.Mamm.RefMeas.Last,&P.Mamm.RefMeas.Treshold);
+	P.Mamm.RefMeas.BaricentrePos = CalcBaricentre(P.Mamm.RefMeas.First,P.Mamm.RefMeas.Last);
+	P.Mamm.RefMeas.Width=CalcWidth(P.Mamm.RefMeas.First,P.Mamm.RefMeas.Last,P.Mamm.RefMeas.Treshold);
+	P.Frame.Min = 0; P.Frame.Max = P.Frame.Num;
+	P.Frame.Last = P.Frame.Max-1;
+	P.Mamm.IgnoreTrash = TRUE; P.Spc.ScWait = TRUE;
+	P.Frame.Actual = ic--; P.Frame.First = P.Frame.Actual;
+	*/
+	MoveStep(&P.Step[StepX].Actual,P.Step[StepX].Home,StepX,TRUE,P.Action.Status);
+	P.Spc.ScWait = FALSE;
+	ReInitSC1000('M');
+	//for(ib=0;ib<P.Num.Board;ib++) FlushSC1000(ib);
+	SpcOut(TRUE);
+	MoveStep(&P.Step[StepX].Actual,CalcGoal(StepX),StepX,TRUE,P.Action.Status);
+	D.Curve = D.Data[P.Frame.Actual][id];
+	P.Mamm.RefMeas.Area = CalcArea(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi])-CalcArea(P.Roi.First[P.Mamm.Roi]-10,P.Roi.First[P.Mamm.Roi]);
+	GetRange(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi],P.Mamm.Fract,&P.Mamm.RefMeas.MaxVal,&P.Mamm.RefMeas.MaxPos,&P.Mamm.RefMeas.First,&P.Mamm.RefMeas.Last,&P.Mamm.RefMeas.Treshold);
+	P.Mamm.RefMeas.BaricentrePos = CalcBaricentre(P.Mamm.RefMeas.First,P.Mamm.RefMeas.Last);
+	P.Mamm.RefMeas.Width=CalcWidth(P.Mamm.RefMeas.First,P.Mamm.RefMeas.Last,P.Mamm.RefMeas.Treshold);
+	}
+	if(P.Action.ScReInit.InitMammot) ReInitSC1000('S'); 
+	P.Frame.Min = 0; P.Frame.Max = P.Frame.Num;
+	P.Frame.First = 0; P.Frame.Last = P.Frame.Max-1;
+	P.Mamm.IgnoreTrash = TRUE; P.Spc.ScWait = TRUE;
+}
+
+/* RESUME MAMMOT PROCEDURE */
+void StartMammot(void){
+	// Clear DATA
+	int ifr,ip,ib;
+	for(ifr=0; ifr<P.Frame.Num;ifr++)
+		for(ip=0; ip<P.Num.Page;ip++)
+			for(ic=0; ic<P.Chann.Num;ic++)
+				D.Data[ifr][ip][ic]=0;
+	for(ifr=0; ifr<P.Frame.Num;ifr++)
+		for(ip=0; ip<P.Num.Page;ip++)
+			CompileSub(P.Ram.Actual, ifr, ip);
 	
-	freq=fabs(P.Step[StepX].Delta)/(P.Spc.TimeM*P.Loop[P.Step[StepX].Loop].Num);
-	if(freq!=P.Step[StepX].FreqActual) SetVel(StepX,freq);
-	StopGoal=P.Loop[LoopX].First*P.Step[StepX].Factor;
-	
-	if(P.Loop[LoopX].First!=0)
-		for(ib=0;ib<P.Num.Board;ib++) 
-			P.Spc.AcqTimeSC1000=StartSC1000(ib,ceil(abs(P.Loop[LoopX].First/P.Loop[LoopX].Delta)-P.Mamm.CorrShift+1)*P.Spc.TimeM);
-	P.Spc.Started=TRUE;
-	MoveStep(&P.Step[StepX].Actual,StopGoal,StepX,FALSE,P.Action.Status);
-	
-	for(is=0;is<=ceil(abs(P.Loop[LoopX].First/P.Loop[LoopX].Delta))-P.Mamm.CorrShift;is++){
-		SpcOut(P.Action.Status);
-	    AnalysisMamm_new();
-		if(P.Mamm.OverTreshold){ StopStep(StepX);break; }
-	    }
-	StopStep(StepX);
-	
-	P.Num.Acq=is+P.Mamm.OverTreshold;
-	
-	for(ib=0;ib<P.Num.Board;ib++)
-		 for(id=0;id<P.Num.Det;id++)
-			 for(ic=0;ic<P.Chann.Num;ic++) 
-	            D.Data[P.Frame.Actual][id][ic]=0;
-	
-	if(P.Mamm.PostProcess) {
+	float AcqTime = min((P.Frame.Last-P.Frame.First)+(P.Mamm.ExtraFrame.Num)/abs(P.Loop[P.Mamm.Loop[X]].Delta),P.Frame.Num)*P.Spc.TimeM; //controllare  //20 è in mm
+	if(!P.Spc.Started)
 		for(ib=0;ib<P.Num.Board;ib++)
-			 for(id=0;id<P.Num.Det;id++)
-				 for(ic=0;ic<P.Mamm.SC1000_MAXBIN;ic++)		 
-	 				D.BufferTDC[P.Frame.Actual][id][ic]=0;
-	}
-	
-	for(ifr=0; ifr<P.Frame.Num; ifr++)
-			for(ip=0; ip<P.Num.Page; ip++)
-				CompileSub(P.Ram.Actual, ifr, ip);	 
-	 
-	P.Frame.Actual=abs(P.Loop[LoopX].First/P.Loop[LoopX].Delta)-(is-!P.Mamm.OverTreshold);
-	if(P.Frame.Actual<0) P.Frame.Actual=0; 
-	
-	FILE *fid;
-	fid=fopen("CheckMamm.txt","w+");
-	fprintf(fid,"Rate\tPos\tX\tY\tFA\tFL\tFF\IsTop\tNumAcq\tTimeSC\n");
-	fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\tStartMammot\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);
-	
-	
-	CorrShift=abs(P.Loop[LoopX].First/P.Loop[LoopX].Delta)-abs(P.Step[StepX].Actual/P.Step[StepX].Factor/P.Loop[LoopX].Delta)-P.Frame.Actual;
-	StopGoal=P.Step[StepX].Actual+SIGNUM(P.Loop[LoopX].First)*CorrShift*P.Step[StepX].Factor*abs(P.Loop[LoopX].Delta);
-	MoveStep(&P.Step[StepX].Actual,StopGoal,StepX,1,P.Action.Status);
-	
-	fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\tStartMammot\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);
-	
-	if(P.Mamm.ShiftBack&&P.Loop[LoopX].First!=0){
-		StopGoal=P.Step[StepX].Actual-SIGNUM(StopGoal)*P.Mamm.ShiftBack*P.Step[StepX].Factor*abs(P.Loop[LoopX].Delta);
-		MoveStep(&P.Step[StepX].Actual,StopGoal,StepX,1,P.Action.Status);
-		P.Frame.Actual=P.Frame.Actual+P.Mamm.ShiftBack;}
-	 
-	 if(P.Loop[LoopX].First==0) {
-		 P.Frame.Actual=P.Mamm.CorrShift+P.Mamm.ShiftBack;
-		 StopGoal=SIGNUM(P.Loop[LoopX].Last)*P.Frame.Actual*P.Step[StepX].Factor*abs(P.Loop[LoopX].Delta);
-		 MoveStep(&P.Step[StepX].Actual,StopGoal,StepX,1,P.Action.Status); 
-	 }
-	 
-     P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx]=P.Frame.Actual;
-	 P.Loop[LoopX].Idx=P.Frame.Actual;			 //riposizionamento dei cicli
-	 P.Mamm.OverTreshold=0;
-	fprintf(fid,"%.0f\t%d\t%d\t%d\t%d\t%d\t%d\t%lf\n",P.Mamm.Rate.Actual[0],P.Step[StepX].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Last,P.Frame.First,P.Time.Stop);
-	fclose(fid);
-	
-	//P.Action.SpcReset=0;
-	P.Action.MoveStep[StepY]=0;
-	P.Spc.Trash=FALSE;
-	for(ib=0;ib<P.Num.Board;ib++){ 
-			FlushSC1000(ib);
-			P.Spc.AcqTimeSC1000=StartSC1000(ib,(P.Loop[LoopX].Num+1)*P.Spc.TimeM);
-	}
-	
+			P.Spc.ScAcqTime=StartSC1000(ib,AcqTime);
+	P.Spc.Started = TRUE;
+	P.Mamm.IgnoreTrash = TRUE;
+	P.Spc.ScWait = TRUE;
+	P.Mamm.NumAcq.Active = TRUE;
 }
 
 /* STOP STEP AND PREPARE FOR DATA SAVE */
-void StopMammot(void){
-	FILE *fid;
-	double stop;
+void StopMammot(void){	  //EDO
 	StopStep(P.Mamm.Step[X]);
-	int ib;
-	for(ib=0;ib<P.Num.Board;ib++) {
-		double start=Timer();
-		FlushSC1000(ib);
-		stop=Timer()-start;
-	}
-	fid=fopen("CheckMamm.txt","a+");
-	fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%lf\tStop\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000,stop);
-	if(P.Mamm.CorrShift) {ShiftCorrection();
-	fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\tStop\tShift\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);}
-	if(P.Mamm.ShiftBack) {BackShift();
-	fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\tStop\tBackShift\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);}
+	double stop;
+	int ib,ifr,ip;
+	for(ib=0;ib<P.Num.Board;ib++) FlushSC1000(ib);
 	
-	P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx]=P.Frame.Actual;
-	P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx+1]=P.Frame.Actual;
-	P.Mamm.OverTreshold=TRUE;
-	P.Mamm.IsTop=abs(P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx]-P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx])<=(P.Mamm.TopLim);
-	fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\tStopFinished\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);
-	P.Num.Acq=0;    
-	fclose(fid);
-}
-
-/* ADJUST LOOP INDEX */
-void AdjustIndex(void){
-P.Spc.Trash=FALSE;
-	if(REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)) 
-		P.Loop[P.Mamm.Loop[X]].Idx=P.Loop[P.Mamm.Loop[X]].Num-P.Frame.Actual-1;
-	else 
-    	P.Loop[P.Mamm.Loop[X]].Idx=P.Frame.Actual;
-
-FILE* fid=fopen("CheckMamm.txt","a+");
-fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%lf\tAdjustIndex\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);
-fclose(fid);
+	if(P.Mamm.CorrShift) ShiftCorrection();
+	if(P.Mamm.ShiftBack) BackShift();
+	if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
+		P.Frame.Last = P.Frame.Actual;
+	else
+		P.Frame.First = P.Frame.Actual;
+	P.Spc.Started=FALSE;
+	P.Frame.Dir = 0;
+	P.Mamm.NumAcq.Active = FALSE;
+	P.Mamm.IgnoreTrash=FALSE;
 }
 
 /* OVERTHRESHOLDS OPERATIONS */
 void CheckMammot(void){
-
-P.Mamm.OverTreshold=0; //da eliminare  
 AnalysisMamm_new();			
-		
-if(P.Mamm.OverTreshold){
-	P.Action.DataSave=1;
-	P.Action.StopMamm=1;
-	FILE* fid;
-	fid=fopen("CheckMamm.txt","a+");
-	fprintf(fid,"%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%lf\tOverTreshold\n",P.Mamm.Rate.Actual[0],P.Step[P.Mamm.Step[X]].Actual,P.Loop[P.Mamm.Loop[X]].Idx,P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual,P.Frame.Mem[FLAST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Frame.Mem[FFIRST][P.Loop[P.Mamm.Loop[Y]].Idx],P.Mamm.IsTop,P.Num.Acq,P.Spc.AcqTimeSC1000);
-	fclose(fid);
-	}
+if(P.Mamm.OverTreshold){P.Action.DataSave=1;P.Action.StopMamm=1;}
 }
 
 /* APPLY CORRECTION SHIFT */
 void ShiftCorrection(void){
-	float Shift;
 	char StepX=P.Mamm.Step[X];
 	char LoopX=P.Mamm.Loop[X];
-	char LoopY=P.Mamm.Loop[Y];
-	char TrashMem,Sign,is_loopy_odd;
-	long PosX,StopGoal,StartPoint;
-	
+	long PosX, StopGoal; float Shift;
 	TellPos(StepX,&PosX);
-	is_loopy_odd=REMINDER(P.Loop[LoopY].Idx,2)==0;
-	if(P.Loop[LoopX].First!=0){
-	Sign = is_loopy_odd?1:-1;
-	if((P.Mamm.InvertSignCorr==1)&&P.Mamm.ParityMem==is_loopy_odd) Sign=-Sign;
-	StartPoint=(is_loopy_odd?abs(P.Loop[LoopX].First):abs(P.Loop[LoopX].First));
-	Shift=(StartPoint+Sign*abs(PosX)/P.Step[StepX].Factor)/abs(P.Loop[LoopX].Delta) - P.Frame.Actual;//-is_loopy_odd;
-	StopGoal=PosX+SIGNUM(P.Loop[LoopX].First)*Shift*P.Step[StepX].Factor*abs(P.Loop[LoopX].Delta);
-	if(StopGoal*PosX <= 0) {
-		P.Mamm.ParityMem=is_loopy_odd;
-		P.Mamm.InvertSignCorr++;
-	if(P.Mamm.InvertSignCorr>=2){
-	Sign = is_loopy_odd?1:-1;
-	StartPoint=(is_loopy_odd?abs(P.Loop[LoopX].First):abs(P.Loop[LoopX].First));
-	Shift=StartPoint+Sign*abs(PosX)/P.Step[StepX].Factor - P.Frame.Actual;	
-	StopGoal=PosX+SIGNUM(P.Loop[LoopX].First)*Shift*P.Step[StepX].Factor*abs(P.Loop[LoopX].Delta);
-	P.Mamm.InvertSignCorr--;}
-	}
-	}
-	else{
-	Shift=abs(PosX)/P.Step[StepX].Factor - P.Frame.Actual;		
-	Sign=((P.Loop[LoopX].Last)>0?-1:1);
-	if((P.Mamm.InvertSignCorr==1)&&P.Mamm.ParityMem==is_loopy_odd) Sign=-Sign;
-	StopGoal=PosX+Sign*Shift*P.Step[StepX].Factor*abs(P.Loop[LoopX].Delta);	
-	if(StopGoal*PosX <= 0) {
-	//	P.Mamm.ParityMem=is_loopy_odd;
-	//	P.Mamm.InvertSignCorr++;
-	}
-	}
-	TrashMem=P.Spc.Trash;
+	if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
+		StopGoal = P.Step[StepX].Stop[P.Frame.Actual]; // controllare il +1
+	else
+		StopGoal = P.Step[StepX].Start[P.Frame.Actual]; // controllare il +1
 	MoveStep(&PosX,StopGoal,StepX,TRUE,P.Action.Status);
-	P.Spc.Trash=TrashMem;
+
 }
 
 /* BACK SHIFT */
 void BackShift(void){
-	int ShiftBack=P.Mamm.ShiftBack;
-	long pos,stopgoal;
-	TellPos(P.Mamm.Step[X],&pos);
-	stopgoal=pos+P.Step[P.Mamm.Step[X]].Dir*P.Mamm.ShiftBack*P.Step[P.Mamm.Step[X]].Factor*abs(P.Loop[P.Mamm.Loop[X]].Delta);
-	/*if(P.Step[P.Mamm.Step[X]].StopGoal==0) stopgoal=pos+SIGNUM(pos)*ShiftBack*P.Step[P.Mamm.Step[X]].Factor*abs(P.Loop[P.Mamm.Loop[X]].Delta);  
-		else stopgoal=P.Step[P.Mamm.Step[X]].StopGoal<0?pos+P.Mamm.ShiftBack*P.Step[P.Mamm.Step[X]].Factor*abs(P.Loop[P.Mamm.Loop[X]].Delta):pos-P.Mamm.ShiftBack*P.Step[P.Mamm.Step[X]].Factor*abs(P.Loop[P.Mamm.Loop[X]].Delta);*/
-	char trashmem=P.Spc.Trash;
-	MoveStep(&pos,stopgoal,P.Mamm.Step[X],TRUE,P.Action.Status);
-	P.Spc.Trash=trashmem;
-	int ib,ic,id,iframe,delta;
-	delta=(REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)?1:-1);
-	ShiftBack=ShiftBack*delta;
-	if(P.Mamm.PostProcess){
-	for(ib=0;ib<P.Num.Board;ib++)
-		for(id=0;id<P.Num.Det;id++)
-			for(ic=P.Spc.ScFirstBin-1;ic<P.Spc.ScLastBin;ic++){ 
-	   			for(iframe=P.Frame.Actual;P.Frame.Actual-abs(ShiftBack)<iframe&&iframe<P.Frame.Actual+abs(ShiftBack);iframe=iframe+delta){
-					D.BufferTDC[iframe][id][ic]=0;
-					if(P.Info.SubHeader) CompileSub(P.Ram.Actual,iframe,id);}
-			}
+	char StepX=P.Mamm.Step[X];
+	char LoopX=P.Mamm.Loop[X];
+	long PosX, StopGoal; float Shift;
+	int ShiftBack=P.Mamm.ShiftBack,id,ib,ic,iframe;
+	
+	TellPos(P.Mamm.Step[X],&PosX);
+	long Frame = P.Frame.Actual-P.Frame.Dir*(P.Mamm.ShiftBack-1);
+	if(Frame < 0) return;
+	if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
+		StopGoal = P.Step[StepX].Stop[Frame]; // controllare il +1
+	else
+		StopGoal = P.Step[StepX].Start[Frame]; // controllare il +1
+	MoveStep(&PosX,StopGoal,StepX,TRUE,P.Action.Status);
+	
+	if(P.Frame.Dir==1){
+		for(ib=0;ib<P.Num.Board;ib++)
+			for(id=0;id<P.Num.Det;id++)
+				for(iframe=P.Frame.Actual;iframe>Frame;iframe--){
+					for(ic=0;ic<P.Chann.Num;ic++){ 
+	   					D.Data[iframe][id][ic]=0;
+							if(P.Info.SubHeader) CompileSub(P.Ram.Actual,iframe,id);
+					}
+				}
 	}
 	else{
 		for(ib=0;ib<P.Num.Board;ib++)
-		for(id=0;id<P.Num.Det;id++)
-			for(ic=0;ic<P.Chann.Num;ic++){ 
-	   			for(iframe=P.Frame.Actual;P.Frame.Actual-abs(ShiftBack)<iframe&&iframe<P.Frame.Actual+abs(ShiftBack);iframe=iframe+delta){
-					D.Data[iframe][id][ic]=0;
-						if(P.Info.SubHeader) CompileSub(P.Ram.Actual,iframe,id);}
-			}
+			for(id=0;id<P.Num.Det;id++)
+				for(iframe=P.Frame.Actual;iframe<Frame;iframe++){
+					for(ic=0;ic<P.Chann.Num;ic++){ 
+	   					D.Data[iframe][id][ic]=0;
+							if(P.Info.SubHeader) CompileSub(P.Ram.Actual,iframe,id);
+					}
+				}
+		
 	}
-	P.Frame.Actual=P.Frame.Actual+ShiftBack;
+	P.Frame.Actual=Frame;
 }
 
 /* MOVE ATTENUATOR ON PMTs */
