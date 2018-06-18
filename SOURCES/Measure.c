@@ -2789,7 +2789,7 @@ void ReInitSC1000(char Operation){  //EDO
 		case 'T':
 			P.Spc.ScAutoTrim = TRUE;
 			for(it=0;it<MAX_TRIM;it++) if(P.Trim[it].Trim) for(id=0;id<P.Num.Det;id++) AccTime[id] = P.Trim[it].Time;
-			SpcTime(P.Trim[it].Time);
+			SpcTime(P.Trim[0].Time);
 			P.Spc.ScInitializedForMammot[Board] = FALSE;
 			break;
 		case 'O':
