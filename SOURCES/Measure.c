@@ -9351,16 +9351,16 @@ void AnalysisMamm_new(void){
 	//GetRange(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi],P.Mamm.Fract,&MaxVal,&MaxPos,&First,&Last,&Treshold);
 	
 	Target1 =  (Area-P.Mamm.RefMeas.Area)/((double) P.Mamm.RefMeas.Area);
-	Cond1 = Target1 <= -0.5;
+	Cond1 = Target1 <= P.Mamm.NegativeTreshold;
 	Target2 = (double) Derivatives[0];
-	Cond2 = Target2 <=-0.3;
+	Cond2 = Target2 <= -0.5;
 	
 	if(Cond1&&Cond2) P.Mamm.OverTreshold = TRUE;
 	else{
-		Cond1 = Target1 <= -0.7;
+		Cond1 = Target1 <= P.Mamm.NegativeTreshold;
 		Cond2 = TRUE;
 		for(iframe=0;iframe<FirstNeighb;iframe++)
-			Cond2=Cond2&&(Derivatives[iframe]<=-0.3?1:0);
+			Cond2=Cond2&&(Derivatives[iframe]<=-0.5?1:0);
 		if(Cond1||Cond2) P.Mamm.OverTreshold = TRUE;
 			else P.Mamm.OverTreshold = FALSE; 
 	}

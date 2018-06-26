@@ -546,6 +546,7 @@ void CreateTable(void){
 	AddTab(CE,TDOUBLE,MAMM,MAMM_RATE_HIGH_NIR,"MammRateHighNIR",0,0,&P.Mamm.Rate.High[MAMM_NIR]);
 	AddTab(CE,TDOUBLE,MAMM,MAMM_RATE_MID_NIR,"MammRateMidNIR",0,0,&P.Mamm.Rate.Mid[MAMM_NIR]);
 	AddTab(CE,TDOUBLE,MAMM,MAMM_RATE_LOW_NIR,"MammRateLowNIR",0,0,&P.Mamm.Rate.Low[MAMM_NIR]);
+	AddTab(CE,TDOUBLE,MAMM,MAMM_NEG_PER_VAR_COUNTS,"NegativeTreshold",0,0,&P.Mamm.NegativeTreshold);
 	AddTab(CE,TCHAR,MAMM,MAMM_STATUS,"Status",0,0,&P.Mamm.Status);
 	AddTab(CE,TINT,MAMM,MAMM_SHIFT_BACK,"ShiftBack",0,0,&P.Mamm.ShiftBack);
 	AddTab(CE,TINT,MAMM,MAMM_TAKE_REF_MEAS,"Ref_Meas",0,0,&P.Mamm.IsRefMeas);
