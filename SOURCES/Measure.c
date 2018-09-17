@@ -1,6 +1,6 @@
 /* ######################################################################## */
 /* 									   														*/
-/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 17.0  May  2018   */
+/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 17.1  September  2018   */
 /* 									   														*/
 /* ######################################################################## */
 
@@ -4862,7 +4862,8 @@ void MoveSwitch2X2EOL (long Goal, char Switch) {
      
 
 /* ########################    LUCA SWITCH FUNCTIONS (LUCA)  ####################### */
- 
+
+#ifdef _LUCA // conditional compilation to address the use of LUCABOX (need for LabView & load LUCA_DLL_v2.lib
 	
 /* INITIALIZE SWITCH LUCA */
 void InitSwitchLuca(char Switch){
@@ -4887,6 +4888,12 @@ void MoveSwitchLuca(long Goal,char Switch){
 	ret = TRS_SET(&P.Spc.Luca[0].Handle, P.Spc.Luca[0].RegOut, P.Spc.Luca[0].RegOut, LUCA_REGLEN, LUCA_REGLEN, ctrtime, lambda, inttime, freq);
 	}
 
+#else  // alternative void function
+
+void InitSwitchLuca(char Switch){}
+void MoveSwitchLuca(long Goal,char Switch){}
+
+#endif
 
 /* ########################   SYNC PROCEDURES   ########################### */ 
 
@@ -5389,7 +5396,7 @@ void SetVel(char Step, double Freq){
 		case LT900: break;
 		case CHAMALEON: SetVelCham(Step,Freq); break;
 		case STEP_STANDA2: SetVelStanda2(Step,Freq); break;
-		case ATT_LUCA: SetVelAttLuca(Step,Freq); break;
+		case ATT_LUCA: break;
 		case NONE: break;
 		}
 	P.Step[Step].FreqActual=Freq;
@@ -7034,7 +7041,9 @@ void DefineHomeStanda2(char Step){
 
 
 // #### LUCA ATTENUATOR STEPPER (ATT_LUCA) ####
-	
+
+#ifdef _LUCA // conditional compilation to address the use of LUCABOX (need for LabView & load LUCA_DLL_v2.lib)
+
 /* INITIALIZE ATT_LUCA */
 void InitAttLuca(char Step){
 	char message[STRLEN];
@@ -7049,13 +7058,6 @@ void InitAttLuca(char Step){
 /* CLOSE ATT_LUCA */
 void CloseAttLuca(char Step){
 	// no action by now. Goto Home?
-	}
-
-
-/* SET FREQUENCY ATT_LUCA */	
-void SetVelAttLuca(char Step, double Freq){
-	// not used now: defauult max speed
-	// you can set here functions to change the velocity (Freq) of the Attenuator
 	}
 
 
@@ -7101,6 +7103,18 @@ void StopAttLuca(char Step){
 void DefineHomeAttLuca(char Step){
 	// not implemented by now
    }
+
+#else  // alternative void function
+
+void InitAttLuca(char Step){}
+void CloseAttLuca(char Step){}
+void MoveAttLuca(char Step,long Goal,char Wait){}
+void WaitAttLuca(char Step,long Goal){}
+void TellPosAttLuca(char Step,long *Actual){}
+void StopAttLuca(char Step){}
+void DefineHomeAttLuca(char Step){}
+
+#endif
 
 
 // #### NATIONAL INSTRUMENTS USB-6229 ####
