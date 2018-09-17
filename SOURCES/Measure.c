@@ -2137,7 +2137,8 @@ void SpcReset(char Status, char Clear, char Stop){
 	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, ON);
 	P.Spc.Trash=FALSE;
 	}
-	
+
+
 
 /* DATA SET TIME */
 void SpcTime(float Time){ 
