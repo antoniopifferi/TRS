@@ -26,3 +26,25 @@ system\.cfg
 LucaHandle\.log
 
 laser\.cfg
+
+INI/before pranav/
+
+INI/gain_3_4/
+
+INI/Ham_PMT_NIR/spc131_G4_giuseppe\.ini
+
+*.ini
+
+TDC/
+
+POS/old_pos/
+
+POS/bfre 20-11/
+
+POS/
+
+INI/INIs/
+
+INI/material/
+
+INI/

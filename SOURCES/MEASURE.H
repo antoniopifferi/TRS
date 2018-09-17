@@ -1,11 +1,11 @@
 /* ########################   CONSTANTS   ################################# */
 
 // CONDITIONAL COMPILE
-#define _NIRS	// Enable NIRS compilation, load also NIRS_DLL_v2.lib
-#define _LUCA	// Enable LUCA compilation, load also LUCA_TRS.lib
+//#define _NIRS	// Enable NIRS compilation, load also NIRS_DLL_v2.lib
+//#define _LUCA	// Enable LUCA compilation, load also LUCA_TRS.lib
 
 // VERSION
-#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 17.0\nDate: May 2018"
+#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 17.1\nDate: September 2018"
 
 // TYPE OF DATA
 // USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards.

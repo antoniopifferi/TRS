@@ -1,6 +1,6 @@
 /* ######################################################################## */
 /* 									   										*/
-/* 		TRSInterface.C	Time-Resolved Spectroscopy   Release 15.0  November 2017  */
+/* 		TRSInterface.C	Time-Resolved Spectroscopy   Release 17.1  September 2018  */
 /* 									   										*/
 /* ######################################################################## */
 
