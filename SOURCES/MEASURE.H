@@ -825,7 +825,7 @@
 /***/
 #define OMA_NONE					-1
 #define OMA_IP_ADDRESS_FILE			"c:\\Programs\\ControlloOMA\\ipAddress.txt"    
-										/* file contenente l'indirizzo IP del PC su cui è lanciato il programma dell'OMA */
+										/* file contenente l'indirizzo IP del PC su cui ï¿½ lanciato il programma dell'OMA */
 #define OMA_PORT					10000				   /* porta del programma dell'OMA */
 #define OMA_ADDRESS_LENGHT			20					   /* lunghezza dell'array contenetne l'indirizzo IP */
 #define OMA_BUFFER_LENGHT			256					   /* lunghezza buffer */
