@@ -5,7 +5,7 @@
 //#define _LUCA	// Enable LUCA compilation, load also LUCA_TRS.lib
 
 // VERSION
-#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 17.1\nDate: September 2018"
+#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 17.2\nDate: September 2018"
 
 // TYPE OF DATA
 // USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards.
@@ -79,7 +79,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1170
+#define MAX_TABLE		1180
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -458,6 +458,12 @@
 #define FIBER_II     0
 #define FIBER_X      1
 
+#define SWITCH_LEONI_BAUDRATE	57600	
+#define SWITCH_LEONI_PARITY		0		
+#define SWITCH_LEONI_DATABITS	8
+#define SWITCH_LEONI_STOPBITS	1
+
+
 // SYNC CONSTANT
 #define SYNC_INPUT   1
 #define SYNC_OUTPUT  2
@@ -517,6 +523,7 @@
 #define SHUTTER 	 4
 #define SWITCH_EOL2x2 5
 #define SWITCH_LUCA  6
+#define SWITCH_LEONI 7
 
 #define LPT			 1
 #define NEWP	 	 2
@@ -1325,6 +1332,7 @@ struct SwitchS {
 	int Control;
 	char  Device;
 	char  Type;
+	int Com;
 	char  Line0;  
 	char Port[2];
 	int Board;
@@ -2203,6 +2211,8 @@ void InitSwitch2X2EOL(char Switch);
 void MoveSwitch2X2EOL(long Goal,char Switch);
 void InitSwitchLuca(char Switch);
 void MoveSwitchLuca(long Goal,char Switch);
+void InitSwitchLeoni(char Switch);
+void MoveSwitchLeoni(long Goal,char Switch);
 
 
 

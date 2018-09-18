@@ -1,6 +1,6 @@
 /* ######################################################################## */
 /* 									   										*/
-/* 		TRSInterface.C	Time-Resolved Spectroscopy   Release 17.1  September 2018  */
+/* 		TRSInterface.C	Time-Resolved Spectroscopy   Release 17.2  September 2018  */
 /* 									   										*/
 /* ######################################################################## */
 
@@ -485,11 +485,12 @@ void CreateTable(void){
 		AddTab(CE,TCHAR,STEP,STEP_SORT_1+is,"StepSort",is+1,0,&P.Step[is].Sort);
 		}
   
-  	// 9*10
+  	// 10*10
 	for(is=0;is<MAX_SWITCH;is++){
 		AddTab(CE,TCHAR,SWITCH,SWITCH_SWITCH_1+is,"SwitchSwitch",is+1,0,&P.Switch[is].Switch);   
 		AddTab(CE,TCHAR,SWITCH,SWITCH_DEVICE_1+is,"SwitchDevice",is+1,0,&P.Switch[is].Device);
 		AddTab(CE,TCHAR,SWITCH,SWITCH_TYPE_1+is,"SwitchType",is+1,0,&P.Switch[is].Type);
+		AddTab(CE,TINT,SWITCH,SWITCH_COM_1+is,"SwitchCom",is+1,0,&P.Switch[is].Com);
 		AddTab(CE,TINT,SWITCH,SWITCH_BOARD_1+is,"SwitchBoard",is+1,0,&P.Switch[is].Board);
 		AddTab(CE,TSTRING,SWITCH,SWITCH_PORT_1+is,"SwitchPort",is+1,0,&P.Switch[is].Port);
 		AddTab(CE,TCHAR,SWITCH,SWITCH_LINE0_1+is,"SwitchLine0",is+1,0,&P.Switch[is].Line0);

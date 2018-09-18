@@ -1,6 +1,6 @@
 /* ######################################################################## */
 /* 									   														*/
-/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 17.1  September  2018   */
+/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 17.2  September  2018   */
 /* 									   														*/
 /* ######################################################################## */
 
@@ -26,6 +26,7 @@
 // NIRS Box
 // New TRIM
 // LUCA Box
+// SWITCH Leoni
 
 /* ########################   HELP   ################################## */
 // Board = Physical TCSPC Board
@@ -4334,6 +4335,7 @@ void InitSwitch(char Switch){
 		case SWITCH1X9:     if((P.Switch[Switch].Type==TIO)||(P.Switch[Switch].Type==NI_6602)) InitSwitch1X9(Switch); break;
 		case SWITCH_EOL2x2: if((P.Switch[Switch].Type==LPT) || (P.Switch[Switch].Type==COM)) InitSwitch2X2EOL(Switch); break;                                  //Reb
 		case SWITCH_LUCA:	InitSwitchLuca(Switch); break;
+		case SWITCH_LEONI:	InitSwitchLeoni(Switch); break;
 		default:break; 
 		}
 }
@@ -4354,6 +4356,7 @@ void CloseSwitch(char Switch){
 								default:break;
 								}
 		case SWITCH_LUCA:	break;
+		case SWITCH_LEONI:	break;
 		default:break; 
 		}
 }
@@ -4370,6 +4373,7 @@ void MoveSwitch(long Goal, char Switch){
 		case SWITCH1X9:    if((P.Switch[Switch].Type==TIO)||(P.Switch[Switch].Type==NI_6602)) MoveSwitch1X9(Goal,Switch); break;
 		case SWITCH_EOL2x2: if((P.Switch[Switch].Type==LPT)||(P.Switch[Switch].Type==COM))  MoveSwitch2X2EOL(Goal,Switch); break; 
 		case SWITCH_LUCA:	MoveSwitchLuca(Goal,Switch); break;
+		case SWITCH_LEONI:	MoveSwitchLeoni(Goal,Switch); break;
 		default:break; 
 		}
 	}
@@ -4436,19 +4440,12 @@ void InitPosSwitch(char Switch){
  }
  
  
-// SWITCH 2X2
+/* ########################   SWITCH 2x2   ######################## */
  
 	
 /* INITIALIZE SWITCH 2X2 */
 void InitSwitch2X2(char Switch){
-    //char line0=P.Switch[Switch].Line0;
     SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Initializing PC-TIO Board for Switch2X2");
-	/*P.Switch[Switch].Tio.Board = STEP_TIO_BOARD1;
-	strcpy(P.Switch[Switch].Tio.sPort,STEP_TIO_PORT1);
-    P.Switch[Switch].Tio.lSwitch0 = line0;
-    P.Switch[Switch].Tio.lSwitch1 = line0+1;
-	WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort,P.Switch[Switch].Tio.lSwitch0,8,0,LOW_LEVEL);
-	WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort,P.Switch[Switch].Tio.lSwitch1,8,0,LOW_LEVEL);*/
     WriteToDigitalLine (P.Switch[Switch].Board,P.Switch[Switch].Port,P.Switch[Switch].Line0,8,0,P.Switch[Switch].Home);
     SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
 	}
@@ -4456,15 +4453,10 @@ void InitSwitch2X2(char Switch){
 
 /*MOVE SWITCH2X2 */  
 void MoveSwitch2X2(long Goal,char Switch){
-	 /*short line =((Goal==0)?P.Switch[Switch].Tio.lSwitch1:P.Switch[Switch].Tio.lSwitch0);
-     WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort,line,8,0,HIGH_LEVEL);
-     Delay(0.1);
-     WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort,line,8,0,LOW_LEVEL);*/
      WriteToDigitalLine (P.Switch[Switch].Board,P.Switch[Switch].Port,P.Switch[Switch].Line0,8,0,Goal);
-     //**Delay(0.1);
      }
 
- // SWITCH 1X4
+/* ########################   SWITCH 1x4   ######################## */
 	
 /* INITIALIZE SWITCH 1X4 */
 void InitSwitch1X4(char Switch){
@@ -4555,10 +4547,6 @@ void InitSwitch1X9(char Switch) {
 					 WriteToDigitalLine (2, "1", 5, 8, 0, value[1]);
 					 WriteToDigitalLine (2, "1", 6, 8, 0, value[2]);
 					 WriteToDigitalLine (2, "1", 7, 8, 0, value[3]);
-//	         		 WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort, P.Switch[Switch].Tio.lSwitch0, 8, 0, value[0]);
-//	                 WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort, P.Switch[Switch].Tio.lSwitch1, 8, 0, value[1]);
-//	                 WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort, P.Switch[Switch].Tio.lSwitch2, 8, 0, value[2]);
-//	                 WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort, P.Switch[Switch].Tio.lSwitch3, 8, 0, value[3]);
 	    			 break;
 	    case NI_6602:SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Initializing NI-6602 Board for Switch 1X9");
 	                 P.Switch[Switch].Nidaq.Board = board;
@@ -4598,11 +4586,6 @@ void MoveSwitch1X9(long Goal,char Switch){
 					 WriteToDigitalLine (2, "1", 5, 8, 0, value[1]);
 					 WriteToDigitalLine (2, "1", 6, 8, 0, value[2]);
 					 WriteToDigitalLine (2, "1", 7, 8, 0, value[3]);
-		
-//				     WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort, P.Switch[Switch].Tio.lSwitch0, 32, 0, value[0]);
-//	                 WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort, P.Switch[Switch].Tio.lSwitch1, 32, 0, value[1]);
-//	                 WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort, P.Switch[Switch].Tio.lSwitch2, 32, 0, value[2]);
-//	                 WriteToDigitalLine (P.Switch[Switch].Tio.Board,P.Switch[Switch].Tio.sPort, P.Switch[Switch].Tio.lSwitch3, 32, 0, value[3]);
 	    			 break;
 	    case NI_6602:WriteToDigitalLine (P.Switch[Switch].Nidaq.Board,P.Switch[Switch].Nidaq.sPort, P.Switch[Switch].Nidaq.lSwitch0, 32, 0, value[0]);
 	                 WriteToDigitalLine (P.Switch[Switch].Nidaq.Board,P.Switch[Switch].Nidaq.sPort, P.Switch[Switch].Nidaq.lSwitch1, 32, 0, value[1]);
@@ -4636,52 +4619,6 @@ void MoveSwitch1X4_old(long Goal,char Switch){
 		default:	 break;
 	    }
 	 } 
-
-/*MOVE SWITCH 1X4 _ MODIFICA */  
-/*void MoveSwitch1X4(long Goal,char Switch){
-     uInt8 value[3]={0, 0, 0};
-	 int32 status,written;
-	 
-	// NOTE: IMPLEMENTED USING NIDAQmx (e.g. NIDAQmx)
-	TaskHandle taskswitch0 = 0;
-	TaskHandle taskswitch1 = 0;
-	TaskHandle taskswitch2 = 0;	
-	 
-	status = DAQmxCreateTask ("Taskswitch0", &taskswitch0);
-	status = DAQmxCreateTask ("Taskswitch1", &taskswitch1); 
-	status = DAQmxCreateTask ("Taskswitch2", &taskswitch2); 	  
-	 
-	status = DAQmxCreateDOChan (taskswitch0, "Dev1/port1/line2", "SWITCH_0", DAQmx_Val_ChanForAllLines);
-	status = DAQmxCreateDOChan (taskswitch1, "Dev1/port1/line3", "SWITCH_1", DAQmx_Val_ChanForAllLines);      
-	status = DAQmxCreateDOChan (taskswitch2, "Dev1/port1/line4", "SWITCH_2", DAQmx_Val_ChanForAllLines);    
-	 
-	status = DAQmxStartTask (taskswitch0);
-	status = DAQmxStartTask (taskswitch1);
-	status = DAQmxStartTask (taskswitch2);
-	 
-    switch (Goal) {
-		case FIBER_OFF: break;
-		case FIBER_1: value[0]=1;value[1]=0;value[2]=0; break; 
-		case FIBER_2: value[0]=0;value[1]=1;value[2]=0; break; 
-		case FIBER_3: value[0]=1;value[1]=1;value[2]=0; break; 
-		case FIBER_4: value[0]=0;value[1]=0;value[2]=1; break; 
-		default: break;
-		}
-
-	status = DAQmxWriteDigitalLines (taskswitch0, 1, 1, 10.0, DAQmx_Val_GroupByChannel, &value[0], &written, NULL);
-	status = DAQmxWriteDigitalLines(taskswitch1,1,1,10.0,DAQmx_Val_GroupByChannel,&value[1],&written,NULL); 
-	status = DAQmxWriteDigitalLines(taskswitch2,1,1,10.0,DAQmx_Val_GroupByChannel,&value[2],&written,NULL); 
-
-	status = DAQmxStopTask (taskswitch0);     
-	status = DAQmxStopTask (taskswitch1);     
-	status = DAQmxStopTask (taskswitch2);     
-
-	status = DAQmxClearTask (taskswitch0);  
-	status = DAQmxClearTask (taskswitch1);  
-	status = DAQmxClearTask (taskswitch2);  
-
-}  
-*/
 
 
 /*MOVE SWITCH 1X4 _ MODIFICA */  
@@ -4739,7 +4676,7 @@ void MoveSwitch1X4(long Goal,char Switch){
 }  
 
 
-// SWITCH 2X2EOL    
+/* ########################   SWITCH 2X2EOL   ######################## */
 	
 /* INITIALIZE SWITCH 2X2EOL */
 void InitSwitch2X2EOL(char Switch){
@@ -4808,7 +4745,6 @@ void MoveSwitch2X2EOL (long Goal, char Switch) {
 										}
    						pstatus = outpw(LPT1, data);
      					Delay (0.006);
-						//SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "Switch Moved -----> Ready\n");   
 						break;
 						}
 						
@@ -4838,7 +4774,6 @@ void MoveSwitch2X2EOL (long Goal, char Switch) {
 										}
      					write=ComWrt(com,a,6);
      					Delay (0.006);
-						//SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "Switch Moved -----> Ready\n"); 
 						break;
 						}
 						
@@ -4850,11 +4785,8 @@ void MoveSwitch2X2EOL (long Goal, char Switch) {
 										}
      					write=ComWrt(com,a,6);
      					Delay (0.006);
-						//SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "Switch Moved -----> Ready\n"); 
 						break;   
 						}
-							
-							
 	     	default:break;
 								}   
 	
@@ -4894,6 +4826,33 @@ void InitSwitchLuca(char Switch){}
 void MoveSwitchLuca(long Goal,char Switch){}
 
 #endif
+
+
+/* ########################    SWITCH LEONI  ####################### */
+
+/* INITIALIZE SWITCH LEONI */
+void InitSwitchLeoni(char Switch){
+	int ret;
+	int com=P.Switch[Switch].Com;
+	char message[STRLEN];
+	sprintf(message,"Initializing Switch #%d LEONI on COM%d, Max Freq=30Hz higher damage",Switch+1,com);
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+	ret=OpenComConfig(P.Switch[Switch].Com,NULL,SWITCH_LEONI_BAUDRATE,SWITCH_LEONI_PARITY,SWITCH_LEONI_DATABITS,SWITCH_LEONI_STOPBITS,0,-1);
+	if(ret<0) Failure("Failure to open serial port communication for Switch Leoni"); else Passed();
+	FlushInQ (com);
+	FlushOutQ (com);
+	}
+
+
+/* MOVE SWITCH LEONI */  
+void MoveSwitchLeoni(long Goal,char Switch){
+	int ret;
+	char command[STRLEN];
+	sprintf(command,"ch%d\r\n",Goal);
+	ret=ComWrt(P.Switch[Switch].Com,command,strlen(command));
+	if(ret<0) Failure("Error MoveSwitchLeoni TIMEOUT on Communication");
+	}
+
 
 /* ########################   SYNC PROCEDURES   ########################### */ 
 
