@@ -705,15 +705,15 @@
 #define MILLISEC_2_SEC	1/1000 // conversion factor for millisecond to second
 
 /* SC1000 CONSTANTS */
-#define SC1000_TYPE unsigned long			// data type of hystogram SC1000 data (non-lin)
+#define SC1000_TYPE unsigned short			// data type of hystogram SC1000 data (non-lin)
 #define SC1000_TIME_INFINITY 1000000       // sec
-#define SC1000_BINDEPTH BS32					// max size of the bin (BS32=unsigned int)
+#define SC1000_BINDEPTH BS16					// max size of the bin (BS32=unsigned int)
 #define SC1000_LINEARISE  1					// 1 = use background file to linearise time scale, 0 = do not linearise
 #define SC1000_HARDREFOLD  5					// hardware refolding using SC and Modulo
 #define SC1000_NODATAOPERATION -1
 #define SC1000_MAXBIN	40800		// max number of channels (bin) in SC1000 // 10 mhz
 #define SC1000_REBIN 32
-#define SC1000_MAX_COUNT_RATE 30000000
+#define SC1000_MAX_COUNT_RATE 25000000
 #define SC1000_MIN_COUNT_RATE 7000
 
 /* SPADLAB CONSTANTS */
@@ -1655,6 +1655,14 @@ struct BlockObjS{
 	int Param3[MAX_ROW_PRES_BLOCK];
 	};
 
+struct NIBoardS{
+	TaskHandle DigitalOutputTask;
+	TaskHandle PulseTrainTask;
+	TaskHandle CounterTask;
+	uInt32 *CounterData;
+	int32 ReadSamples;
+};
+
 struct ValueS{
 	char Roi;
 	};
@@ -1906,6 +1914,7 @@ struct ParmS {
 	struct TSequenceS TSequence;
 	struct TPartitionS TPartition;
 	struct BlockObjS BlockObj[MAX_ROW_PRES_BLOCK];
+	struct NIBoardS NIBoard;
 	};
 
 // Data Structures
@@ -2003,7 +2012,7 @@ char DCR_files[MAX_BOARD][MAX_DET][STRLEN];
 double *LinArray;
 FILE *FID;
 SC1000_TYPE *NonLinArray;
-SC1000_TYPE *DCR_raw_count;
+unsigned long *DCR_raw_count;
 double *DCR_raw_time;
 SC1000_TYPE *IRF_raw_count;
 double *IRF_raw_time;
@@ -2383,6 +2392,15 @@ void SetFreqNI_USB6229(char Step,long Goal);
 void SetVoltNI_USB6229(char Step,long Goal);
 void SetVoltNI_USB6221(char Step,long Goal);
 
+// #### NATIONAL INSTRUMENTS USB-6229
+void CreateTaskUSB6229_Mammot(TaskHandle *DigitalOutputTask,TaskHandle *PulseTrainTask,TaskHandle *CounterTask);
+void StartTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask);
+void StopTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask);
+void ClearTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask);
+void ReadCounterINUSB6229_Mammot(TaskHandle CounterTask,int32 SamplesToRead,uInt32 *CounterData,int32 *ReadSamples);
+void WriteDigitalOutputUSB6229_Mammot(TaskHandle DigitalOutputTask,uInt8 DataToWrite);
+void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle);
+
 // #### NKT COMMUNICATION
 void InitNKTLambda(char Step);
 void InitNKTPow(char Step);
@@ -2497,6 +2515,7 @@ T_DATA ***DAlloc3D(int Num1, int Num2, int Num3);
 SC1000_TYPE ***DAlloc3D_SC1000(int Num1, int Num2, int Num3);
 T_SUB **SAlloc2D(int Num1, int Num2);
 SC1000_TYPE *SC1000Alloc1D(int Num1);
+unsigned long *ulongAlloc1D(int Num1);
 double *doubleAlloc1D(int Num1);
 double ***doubleAlloc3D(int Num1, int Num2, int Num3);
 void DFree1D(T_DATA *D);
@@ -2507,6 +2526,7 @@ void SFree2D(T_SUB **D, int Num1);
 void SC1000Free1D(SC1000_TYPE *D);
 void doubleFree1D(double *D);
 void doubleFree3D(double ***D, int Num1, int Num2);
+void ulongFree1D(unsigned long *D);
 
 
 

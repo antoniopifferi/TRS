@@ -6,6 +6,7 @@
 
 
 /* ########################   HEADINGS   ################################## */
+#include <NIDAQmx.h>
 #include <formatio.h>
 #include <cvirte.h>		/* Needed if linking in external compiler; harmless otherwise */
 #include <userint.h>

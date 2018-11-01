@@ -57,7 +57,7 @@
 #include "hhlib.h"
 #include "th260lib.h"
 #include "errorcodes.h"
-
+#include <NIDAQmx.h>
 #include <windows.h>
 #include "MercLib210.h" //PI Driver header file
 
@@ -85,7 +85,7 @@
 //#include "thlibc.h"
 //#include "thdefin.h"
 #include "W32nii3eMOD.h"
-#include <NIDAQmx.h>
+
 
 //#include <DAQmxIOctrl.h>
 
@@ -641,6 +641,10 @@ void DecideAction(void){
 		P.Action.DataSave=P.Action.StopMamm;
 		P.Frame.Dir = REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0?+1:-1;
 		P.Action.ReadUIR=P.Command.ReadUIR&&new[P.Mamm.Loop[Y]];
+		if (P.Action.StopMamm)
+			for(is=0;is<MAX_STEP;is++)
+   		  		P.Action.WaitCont[is]=0;
+  		
 	}
 	
 	// Surface Concept TDC operation					//EDO
@@ -2907,7 +2911,7 @@ void InitSC1000(int Board){			   //EDO
 	if(Board==0){
 		char root_DCR_name[STRLEN];char trash_file[STRLEN];
 		strcpy(root_DCR_name,"TDC\\"); strcat(root_DCR_name,P.Spc.TdcDcrFileRoot);
-		SC1000_TYPE *trash_counts; double *trash_time; int file_lenght[P.Num.Det]; int max_file_lenght = 0;
+		unsigned long *trash_counts; double *trash_time; int file_lenght[P.Num.Det]; int max_file_lenght = 0;
 		for(int ib=0;ib<P.Num.Board;ib++){
 			for(id=0;id<P.Num.Det;id++){
 				sprintf(DCR_files[ib][id],"%s_ch%d.txt",root_DCR_name,id);
@@ -2922,7 +2926,8 @@ void InitSC1000(int Board){			   //EDO
 		}
 		LinArray = doubleAlloc1D(P.Chann.Num);// Only 1 item is needed for all the boards
 		NonLinDt = doubleAlloc3D(P.Num.Board,P.Num.Det,max_file_lenght); //P.Spc.ScNumBins should be the max number of entries  in the file. +500 is to take into account of possible mismatch between files
-		DCR_raw_count = SC1000Alloc1D(max_file_lenght);  				 //controllare
+		DCR_raw_count= ulongAlloc1D(max_file_lenght);
+		//DCR_raw_count = SC1000Alloc1D(max_file_lenght);  				 //controllare
 		DCR_raw_time = doubleAlloc1D(max_file_lenght);
 		//BufferTDC = doubleAlloc1D(SC1000_REBIN*P.Spc.ScNumBin);
 		//BufferTDC2 = doubleAlloc1D(SC1000_REBIN*P.Spc.ScNumBin);
@@ -2959,12 +2964,18 @@ void CloseSC1000(void){	   //EDO
 			P.Spc.ScDeinit=TRUE;
 			
 			if(P.Mamm.IsTop&&P.Mamm.Shrink[Y]){
+				long blast = P.Loop[P.Mamm.Loop[Y]].Last;
+				long bnum = P.Loop[P.Mamm.Loop[Y]].Num;
 				rewind(P.File.File);
 				P.Loop[P.Mamm.Loop[Y]].Last = P.Loop[P.Mamm.Loop[Y]].First+P.Loop[P.Mamm.Loop[Y]].Delta*D.Head.LoopLast[P.Mamm.Loop[Y]-2];
 				P.Loop[P.Mamm.Loop[Y]].Num=abs((P.Loop[P.Mamm.Loop[Y]].Last-P.Loop[P.Mamm.Loop[Y]].First)/P.Loop[P.Mamm.Loop[Y]].Delta)+1;
 				CompileHeader();
 				while(fwrite(&D.Head,sizeof(D.Head),1,P.File.File)<1);
 				fflush(P.File.File);
+				P.Loop[P.Mamm.Loop[Y]].Last = blast;
+				P.Loop[P.Mamm.Loop[Y]].Num = bnum;
+				CompleteParmS();
+				UpdatePanel();
 			}
 			
 		}
@@ -2984,7 +2995,7 @@ void CloseSC1000(void){	   //EDO
 	//doubleFree1D(BufferTDC);
 	//doubleFree1D(BufferTDC2);
 	doubleFree3D(NonLinDt,P.Num.Board,P.Num.Det);
-	SC1000Free1D(DCR_raw_count);
+	ulongFree1D(DCR_raw_count);
 	doubleFree1D(DCR_raw_time);
 } 
 
@@ -3044,7 +3055,8 @@ void GetDataSC1000(void){						  //EDO
 		if(P.Mamm.NumAcq.Actual>=P.Mamm.NumAcq.Tot){
 			P.Action.StopMamm = 1;
 			P.Action.DataSave = 1;
-			SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "OverMaxMeasNum\n");}
+			//SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "OverMaxMeasNum\n");
+		}
 	}
 }
 
@@ -7138,6 +7150,89 @@ void SetVoltNI_USB6229(char Step,long Goal){
 	DAQmxClearTask (taskmodpower);
 }
 
+void InitUSB6229_Mammot(){
+	TaskHandle CounterTask = 0;
+	TaskHandle DigitalOutputTask = 0;
+	TaskHandle PulseTrainTask = 0;
+	char *ChanCounterName = "Dev2/ctr1";			   //controllare il primo /
+	char *ChanPulseTrainCounterName ="Dev2/ctr0"; 
+	uInt32 InitialCounts = 0;
+	char *ClockSource = "Dev2/ctr0InternalOutput";
+	char *DigitalOutputSource ="Dev2/port1/line6";
+	char *PulseTrainSource = "/Dev2/PFI6";
+	char *CounterSource = "/Dev2/PFI6";	//ho aggiunto la source per il counter (la stessa del train, così c'è sincronismo tra train e counter)
+	float64 SamplingRate = 1e9;
+	static int32 SamplesToRead = 1000000;		  //If sampleMode is DAQmx_Val_ContSamps, NI-DAQmx uses this value to determine the buffer size
+	static uInt32 *CounterData=NULL; 
+	float64 PulseTrainFrequency = 1/P.Spc.TimeM;
+	float64 DutyCycle = 0.2;
+	uInt64  sampsPerChan = 1e6;
+	
+	if( (CounterData=malloc(SamplesToRead*sizeof(uInt32)))==NULL ) {
+			SetCtrlVal (hDisplay, DISPLAY_MESSAGE,"Not enough memory\n");
+			return -1;
+		}
+	CreateTaskUSB6229_Mammot(&P.NIBoard.DigitalOutputTask,&P.NIBoard.PulseTrainTask,&P.NIBoard.CounterTask);
+	
+	DAQmxCreateCICountEdgesChan(CounterTask,ChanCounterName,"CounterIN",DAQmx_Val_Rising,InitialCounts,DAQmx_Val_CountUp);
+	DAQmxSetTrigAttribute(CounterTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
+	DAQmxSetTrigAttribute(CounterTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
+	DAQmxSetTrigAttribute (CounterTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
+	DAQmxCfgSampClkTiming(CounterTask,ClockSource,SamplingRate,DAQmx_Val_Rising,DAQmx_Val_ContSamps,SamplesToRead);
+	//DAQmxRegisterDoneEvent(CounterTask,0,DoneCallback,NULL)
+	
+	DAQmxCreateCOPulseChanFreq(PulseTrainTask,ChanPulseTrainCounterName,"PulseGenerator",DAQmx_Val_Hz,DAQmx_Val_Low,0.0,PulseTrainFrequency,DutyCycle);
+	DAQmxCfgDigEdgeStartTrig(PulseTrainTask,PulseTrainSource,DAQmx_Val_Rising);
+	DAQmxCfgImplicitTiming(PulseTrainTask,DAQmx_Val_ContSamps,sampsPerChan);
+	//DAQmxRegisterDoneEvent(PulseTrainTask,0,DoneCallback,NULL);
+	
+	DAQmxCreateDOChan(DigitalOutputTask,DigitalOutputSource,"TriggerForPulseGeneration",DAQmx_Val_ChanForAllLines);
+
+	StartTasksUSB6229_Mammot(DigitalOutputTask,PulseTrainTask,CounterTask);
+	
+}
+
+void CreateTaskUSB6229_Mammot(TaskHandle *DigitalOutputTask,TaskHandle *PulseTrainTask,TaskHandle *CounterTask){
+	DAQmxCreateTask("CounterTask",&CounterTask);
+	DAQmxCreateTask("DigitalOutputTask",&DigitalOutputTask);
+	DAQmxCreateTask("PulseTrainTask",&PulseTrainTask);
+}
+void StartTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask){
+	DAQmxStartTask(DigitalOutputTask);
+	DAQmxStartTask(PulseTrainTask);
+	DAQmxStartTask(CounterTask);
+}
+void StopTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask){
+	DAQmxStopTask(DigitalOutputTask);
+	DAQmxStopTask(PulseTrainTask);
+	DAQmxStopTask(CounterTask);
+}
+void ClearTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask){
+	DAQmxClearTask(DigitalOutputTask);
+	DAQmxClearTask(PulseTrainTask);
+	DAQmxClearTask(CounterTask);
+}
+void ReadCounterINUSB6229_Mammot(TaskHandle CounterTask,int32 SamplesToRead,uInt32 *CounterData,int32 *ReadSamples){
+	int32 numSampsPerChan = -1;
+	float64 Timeout = 10.0;
+	DAQmxReadCounterU32(CounterTask,numSampsPerChan,Timeout,CounterData,SamplesToRead,&ReadSamples,NULL);
+}
+void WriteDigitalOutputUSB6229_Mammot(TaskHandle DigitalOutputTask,uInt8 DataToWrite){
+	float64 Timeout = 10.0;
+	DAQmxWriteDigitalLines(DigitalOutputTask,1,0,Timeout,DAQmx_Val_GroupByChannel,DataToWrite,NULL,NULL);
+}
+void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle){
+	char errBuff[2048]={'\0'};
+	if( DAQmxFailed(error) )
+		DAQmxGetExtendedErrorInfo(errBuff,2048);
+	if( taskHandle!=0 ) {
+		DAQmxStopTask(taskHandle);
+		DAQmxClearTask(taskHandle);
+	}
+	if( DAQmxFailed(error) )
+		MessagePopup("DAQmx Error",errBuff);
+	return 0;
+}
 
 // #### NATIONAL INSTRUMENTS USB-6221 #### 
 
@@ -8751,6 +8846,13 @@ SC1000_TYPE *SC1000Alloc1D(int Num1){
 	if(!d) ErrHandler(ERR_MEM,0,"Allocation Failure of 1D SC1000");
 	return d;
 	}
+// Allocate 1D Array of unsigned long
+unsigned long *ulongAlloc1D(int Num1){
+	unsigned long *d;
+	d=(unsigned long*)calloc(Num1, sizeof(unsigned long));
+	if(!d) ErrHandler(ERR_MEM,0,"Allocation Failure of 1D SC1000");
+	return d;
+	}
 
 // Allocate 1D Array of double
 double *doubleAlloc1D(int Num1){
@@ -8845,6 +8947,10 @@ void DFree1D(T_DATA *D){
 
 // Free 1D Array of SC1000
 void SC1000Free1D(SC1000_TYPE *D){
+	free((char*) (D));
+	}
+// Free 1D Array of unsigned long
+void ulongFree1D(unsigned long *D){
 	free((char*) (D));
 	}
 
@@ -9332,9 +9438,10 @@ void AnalysisMamm_new(void){
 	if(Cond1&&Cond2) P.Mamm.OverTreshold = TRUE;
 	else{
 		Cond1 = Target1 <= P.Mamm.NegativeTreshold;
-		Cond2 = TRUE;
+		//Cond2 = TRUE;
+		Cond2 = FALSE;
 		for(iframe=0;iframe<FirstNeighb;iframe++)
-			Cond2=Cond2&&(Derivatives[iframe]<=-0.5?1:0);
+			//Cond2=Cond2&&(Derivatives[iframe]<=-0.5?1:0);
 		if(Cond1||Cond2) P.Mamm.OverTreshold = TRUE;
 			else P.Mamm.OverTreshold = FALSE; 
 	}
@@ -9434,14 +9541,14 @@ void StopMammot(void){	  //EDO
 	StopStep(P.Mamm.Step[X]);
 	double stop;
 	int ib,ifr,ip;
-	for(ib=0;ib<P.Num.Board;ib++) FlushSC1000(ib);
-	
 	if(P.Mamm.CorrShift) ShiftCorrection();
 	if(P.Mamm.ShiftBack) BackShift();
 	if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
 		P.Frame.Last = P.Frame.Actual;
 	else
 		P.Frame.First = P.Frame.Actual;
+	
+	for(ib=0;ib<P.Num.Board;ib++) FlushSC1000(ib);
 	P.Spc.Started=FALSE;
 	P.Frame.Dir = 0;
 	P.Mamm.NumAcq.Active = FALSE;
