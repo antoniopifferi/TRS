@@ -1197,6 +1197,10 @@ struct ActionS{
 	char CheckMamm;         //EDO
 	char StopMamm;		    //EDO
 	char DoJumpMamm;		//EDO
+	char StartUSB6229_Mammot; //EDO
+	char StopUSB6229_Mammot; //EDO
+	char InitUSB6229_Mammot; //EDO
+	char CheckDataUSB6229_Mammot;
 	struct ScReinitS ScReInit;			//EDO
 	};
 
@@ -1472,7 +1476,7 @@ struct LucaSpcS{
 	int	InitializedBox;
 	int InitializedLaser;
 	};
-struct SurfaceConceptS{
+struct SurfaceConceptS{		//to do: use this struct for SC operations instead of P.Spc
 	int	 Refolding; //EDO
 	int	 ScBoard[MAX_BOARD];	 //EDO
 	int  ScBoardInitialized[MAX_BOARD];   //EDO
@@ -1548,6 +1552,7 @@ struct SpcS {
 	int ScLastBin;			//EDO
 	int ScDeinit;		   //EDO
 	char ScWait;			//EDO
+	int ScStopLoop;			//EDO
 	int	 Pipe[MAX_BOARD][MAX_DET];//EDO
 	unsigned int ScNumBin; //EDO
 	struct SurfaceConceptS SC;   //EDO
@@ -1661,6 +1666,7 @@ struct NIBoardS{
 	TaskHandle CounterTask;
 	uInt32 *CounterData;
 	int32 ReadSamples;
+	char Active;
 };
 
 struct ValueS{
@@ -2393,13 +2399,18 @@ void SetVoltNI_USB6229(char Step,long Goal);
 void SetVoltNI_USB6221(char Step,long Goal);
 
 // #### NATIONAL INSTRUMENTS USB-6229
-void CreateTaskUSB6229_Mammot(TaskHandle *DigitalOutputTask,TaskHandle *PulseTrainTask,TaskHandle *CounterTask);
-void StartTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask);
-void StopTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask);
-void ClearTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask);
+void CreateTasksUSB6229_Mammot(void);
+void StartTasksUSB6229_Mammot(void);
+void StopTasksUSB6229_Mammot(void);
+void ClearTasksUSB6229_Mammot(void);
 void ReadCounterINUSB6229_Mammot(TaskHandle CounterTask,int32 SamplesToRead,uInt32 *CounterData,int32 *ReadSamples);
 void WriteDigitalOutputUSB6229_Mammot(TaskHandle DigitalOutputTask,uInt8 DataToWrite);
 void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle);
+void InitUSB6229_Mammot(void);
+void StartUSB6229_Mammot(void);
+void GetDataUSB6229_Mammot(void);
+void CheckDataUSB6229_Mammot(void);
+void StopUSB6229_Mammot(void);
 
 // #### NKT COMMUNICATION
 void InitNKTLambda(char Step);

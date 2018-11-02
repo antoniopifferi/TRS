@@ -240,7 +240,8 @@ void KernelGen(){
 						if(P.Action.ScReInit.Measure) ReInitSC1000('M');  
 						if(P.Action.StartOma) StartOma();
 						if(P.Action.Ophir) GetOphir();
-						if(P.Action.InitMamm) {if(P.Command.Abort) break; InitMammot();}	   
+						if(P.Action.InitMamm) {if(P.Command.Abort) break; InitMammot();}
+						if(P.Action.InitUSB6229_Mammot) InitUSB6229_Mammot();
 						if(P.Action.StartMamm) StartMammot();
 						if(P.Action.WaitChrono) WaitChrono();
 						if(P.Action.StartAdc) {StartAdc(); P.Time.Start=clock();}		 // se ï¿½ attivo ADC e power
@@ -249,7 +250,8 @@ void KernelGen(){
 							SpcReset(P.Action.Status,P.Meas.Clear,P.Meas.Stop);
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.StartCont[is])
-								StartCont(is,P.Action.Status);		 
+								StartCont(is,P.Action.Status);
+						if(P.Action.StartUSB6229_Mammot) StartUSB6229_Mammot();
 						if(P.Action.WaitEnd) WaitEnd(P.Spc.TimeM,P.Wait.Pos,P.Wait.Type,P.Wait.Step);
 						if(P.Action.StopSync) StopSync();
 						if(P.Action.SpcStop) SpcStop(P.Action.Status);
@@ -257,10 +259,12 @@ void KernelGen(){
 		    		    //if(P.Action.StopAdc) StopAdc();		 // mi da errore...Andrea F
 						if(P.Action.StopOma) StopOma();
 						if(P.Action.SpcOut) SpcOut(P.Action.Status);
+						if(P.Action.CheckDataUSB6229_Mammot) CheckDataUSB6229_Mammot();
 						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
 						if(P.Action.DisplayRoi) DisplayRoi();
-						if(P.Action.StopMamm) StopMammot();  
+						if(P.Action.StopMamm) StopMammot();
+						if(P.Action.StopUSB6229_Mammot) StopUSB6229_Mammot();
 						if(P.Action.DataSave) DataSave();	 
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.WaitCont[is]) WaitCont(is,P.Action.Status);
@@ -635,9 +639,18 @@ void DecideAction(void){
 		P.Action.InitMamm=first[P.Mamm.Loop[Y]];
 		P.Action.MoveStep[P.Mamm.Step[X]]=first[P.Mamm.Loop[Y]]?0:P.Action.MoveStep[P.Mamm.Loop[X]];
 		P.Action.StartMamm=new[P.Mamm.Loop[Y]];
+		P.Action.StartUSB6229_Mammot = new[P.Mamm.Loop[Y]]&&P.NIBoard.Active;
+		P.Action.InitUSB6229_Mammot = new[P.Mamm.Loop[Y]]&&P.NIBoard.Active;
+		P.Action.CheckDataUSB6229_Mammot = TRUE&&P.NIBoard.Active;
+		P.Action.StopUSB6229_Mammot = FALSE&&P.NIBoard.Active;
 		P.Action.CheckMamm=is_checkmamm;
 		P.Action.StopMamm=last[P.Mamm.Loop[X]];
 		P.Action.StopMamm=P.Action.StopMamm||(new[P.Mamm.Loop[Y]]?0:(P.Frame.Actual==P.Frame.Min||P.Frame.Actual==(P.Frame.Max-1)));//controllare
+		if(P.Spc.ScStopLoop!=0) P.Action.CheckDataUSB6229_Mammot = FALSE;
+		if ((P.Loop[P.Mamm.Loop[X]].Actual==P.Spc.ScStopLoop)&&(!first[P.Mamm.Loop[X]])&&P.NIBoard.Active){
+			P.Action.StopMamm = TRUE;
+			P.Action.StopUSB6229_Mammot = TRUE;
+		}
 		P.Action.DataSave=P.Action.StopMamm;
 		P.Frame.Dir = REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0?+1:-1;
 		P.Action.ReadUIR=P.Command.ReadUIR&&new[P.Mamm.Loop[Y]];
@@ -645,6 +658,12 @@ void DecideAction(void){
 			for(is=0;is<MAX_STEP;is++)
    		  		P.Action.WaitCont[is]=0;
   		
+	}
+	else{
+		P.Action.CheckDataUSB6229_Mammot = FALSE;
+		P.Action.InitUSB6229_Mammot = FALSE;
+		P.Action.StartUSB6229_Mammot = FALSE;
+		P.Action.StopUSB6229_Mammot = FALSE;
 	}
 	
 	// Surface Concept TDC operation					//EDO
@@ -7150,10 +7169,7 @@ void SetVoltNI_USB6229(char Step,long Goal){
 	DAQmxClearTask (taskmodpower);
 }
 
-void InitUSB6229_Mammot(){
-	TaskHandle CounterTask = 0;
-	TaskHandle DigitalOutputTask = 0;
-	TaskHandle PulseTrainTask = 0;
+void InitUSB6229_Mammot(void){
 	char *ChanCounterName = "Dev2/ctr1";			   //controllare il primo /
 	char *ChanPulseTrainCounterName ="Dev2/ctr0"; 
 	uInt32 InitialCounts = 0;
@@ -7162,55 +7178,58 @@ void InitUSB6229_Mammot(){
 	char *PulseTrainSource = "/Dev2/PFI6";
 	char *CounterSource = "/Dev2/PFI6";	//ho aggiunto la source per il counter (la stessa del train, così c'è sincronismo tra train e counter)
 	float64 SamplingRate = 1e9;
-	static int32 SamplesToRead = 1000000;		  //If sampleMode is DAQmx_Val_ContSamps, NI-DAQmx uses this value to determine the buffer size
-	static uInt32 *CounterData=NULL; 
+	int32 SamplesToRead = 1e6;		  //If sampleMode is DAQmx_Val_ContSamps, NI-DAQmx uses this value to determine the buffer size
+	//static uInt32 *CounterData=NULL;
+	P.NIBoard.CounterData = NULL;
 	float64 PulseTrainFrequency = 1/P.Spc.TimeM;
 	float64 DutyCycle = 0.2;
 	uInt64  sampsPerChan = 1e6;
 	
-	if( (CounterData=malloc(SamplesToRead*sizeof(uInt32)))==NULL ) {
+	if( (P.NIBoard.CounterData=malloc(SamplesToRead*sizeof(uInt32)))==NULL ) {
 			SetCtrlVal (hDisplay, DISPLAY_MESSAGE,"Not enough memory\n");
 			return -1;
 		}
-	CreateTaskUSB6229_Mammot(&P.NIBoard.DigitalOutputTask,&P.NIBoard.PulseTrainTask,&P.NIBoard.CounterTask);
+	CreateTasksUSB6229_Mammot();
 	
-	DAQmxCreateCICountEdgesChan(CounterTask,ChanCounterName,"CounterIN",DAQmx_Val_Rising,InitialCounts,DAQmx_Val_CountUp);
-	DAQmxSetTrigAttribute(CounterTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
-	DAQmxSetTrigAttribute(CounterTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
-	DAQmxSetTrigAttribute (CounterTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
-	DAQmxCfgSampClkTiming(CounterTask,ClockSource,SamplingRate,DAQmx_Val_Rising,DAQmx_Val_ContSamps,SamplesToRead);
-	//DAQmxRegisterDoneEvent(CounterTask,0,DoneCallback,NULL)
+	DAQmxCreateCICountEdgesChan(P.NIBoard.CounterTask,ChanCounterName,"CounterIN",DAQmx_Val_Rising,InitialCounts,DAQmx_Val_CountUp);
+	DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
+	DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
+	DAQmxSetTrigAttribute (P.NIBoard.CounterTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
+	DAQmxCfgSampClkTiming(P.NIBoard.CounterTask,ClockSource,SamplingRate,DAQmx_Val_Rising,DAQmx_Val_ContSamps,SamplesToRead);
 	
-	DAQmxCreateCOPulseChanFreq(PulseTrainTask,ChanPulseTrainCounterName,"PulseGenerator",DAQmx_Val_Hz,DAQmx_Val_Low,0.0,PulseTrainFrequency,DutyCycle);
-	DAQmxCfgDigEdgeStartTrig(PulseTrainTask,PulseTrainSource,DAQmx_Val_Rising);
-	DAQmxCfgImplicitTiming(PulseTrainTask,DAQmx_Val_ContSamps,sampsPerChan);
-	//DAQmxRegisterDoneEvent(PulseTrainTask,0,DoneCallback,NULL);
+	DAQmxCreateCOPulseChanFreq(P.NIBoard.PulseTrainTask,ChanPulseTrainCounterName,"PulseGenerator",DAQmx_Val_Hz,DAQmx_Val_Low,0.0,PulseTrainFrequency,DutyCycle);
+	DAQmxCfgDigEdgeStartTrig(P.NIBoard.PulseTrainTask,PulseTrainSource,DAQmx_Val_Rising);
+	DAQmxCfgImplicitTiming(P.NIBoard.PulseTrainTask,DAQmx_Val_ContSamps,sampsPerChan);
 	
-	DAQmxCreateDOChan(DigitalOutputTask,DigitalOutputSource,"TriggerForPulseGeneration",DAQmx_Val_ChanForAllLines);
+	DAQmxCreateDOChan(P.NIBoard.DigitalOutputTask,DigitalOutputSource,"TriggerForPulseGeneration",DAQmx_Val_ChanForAllLines);
 
-	StartTasksUSB6229_Mammot(DigitalOutputTask,PulseTrainTask,CounterTask);
+	StartTasksUSB6229_Mammot();
 	
 }
 
-void CreateTaskUSB6229_Mammot(TaskHandle *DigitalOutputTask,TaskHandle *PulseTrainTask,TaskHandle *CounterTask){
-	DAQmxCreateTask("CounterTask",&CounterTask);
-	DAQmxCreateTask("DigitalOutputTask",&DigitalOutputTask);
-	DAQmxCreateTask("PulseTrainTask",&PulseTrainTask);
+void CreateTasksUSB6229_Mammot(void){
+	int ret_id;
+	ret_id = DAQmxCreateTask("CounterTask",&P.NIBoard.CounterTask);
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.CounterTask); 	
+	DAQmxCreateTask("DigitalOutputTask",&P.NIBoard.DigitalOutputTask);
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask);
+	DAQmxCreateTask("PulseTrainTask",&P.NIBoard.PulseTrainTask);
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.PulseTrainTask);
 }
-void StartTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask){
-	DAQmxStartTask(DigitalOutputTask);
-	DAQmxStartTask(PulseTrainTask);
-	DAQmxStartTask(CounterTask);
+void StartTasksUSB6229_Mammot(void){
+	DAQmxStartTask(P.NIBoard.DigitalOutputTask);
+	DAQmxStartTask(P.NIBoard.PulseTrainTask);
+	DAQmxStartTask(P.NIBoard.CounterTask);
 }
-void StopTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask){
-	DAQmxStopTask(DigitalOutputTask);
-	DAQmxStopTask(PulseTrainTask);
-	DAQmxStopTask(CounterTask);
+void StopTasksUSB6229_Mammot(void){
+	DAQmxStopTask(P.NIBoard.DigitalOutputTask);
+	DAQmxStopTask(P.NIBoard.PulseTrainTask);
+	DAQmxStopTask(P.NIBoard.CounterTask);
 }
-void ClearTasksUSB6229_Mammot(TaskHandle DigitalOutputTask,TaskHandle PulseTrainTask,TaskHandle CounterTask){
-	DAQmxClearTask(DigitalOutputTask);
-	DAQmxClearTask(PulseTrainTask);
-	DAQmxClearTask(CounterTask);
+void ClearTasksUSB6229_Mammot(void){
+	DAQmxClearTask(P.NIBoard.DigitalOutputTask);
+	DAQmxClearTask(P.NIBoard.PulseTrainTask);
+	DAQmxClearTask(P.NIBoard.CounterTask);
 }
 void ReadCounterINUSB6229_Mammot(TaskHandle CounterTask,int32 SamplesToRead,uInt32 *CounterData,int32 *ReadSamples){
 	int32 numSampsPerChan = -1;
@@ -7219,7 +7238,8 @@ void ReadCounterINUSB6229_Mammot(TaskHandle CounterTask,int32 SamplesToRead,uInt
 }
 void WriteDigitalOutputUSB6229_Mammot(TaskHandle DigitalOutputTask,uInt8 DataToWrite){
 	float64 Timeout = 10.0;
-	DAQmxWriteDigitalLines(DigitalOutputTask,1,0,Timeout,DAQmx_Val_GroupByChannel,DataToWrite,NULL,NULL);
+	int ret_id = DAQmxWriteDigitalLines(DigitalOutputTask,1,0,Timeout,DAQmx_Val_GroupByChannel,DataToWrite,NULL,NULL);
+	if (ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask);
 }
 void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle){
 	char errBuff[2048]={'\0'};
@@ -7229,9 +7249,34 @@ void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle){
 		DAQmxStopTask(taskHandle);
 		DAQmxClearTask(taskHandle);
 	}
+	if( P.NIBoard.CounterData ) {
+		free(P.NIBoard.CounterData);
+		P.NIBoard.CounterData = NULL;
+	}
 	if( DAQmxFailed(error) )
 		MessagePopup("DAQmx Error",errBuff);
 	return 0;
+}
+void StartUSB6229_Mammot(void){
+	int DataToWrite = ON;
+	WriteDigitalOutputUSB6229_Mammot(P.NIBoard.DigitalOutputTask,DataToWrite);	
+}
+void GetDataUSB6229_Mammot(void){
+	long SamplesToRead = 1e6;		
+	ReadCounterINUSB6229_Mammot(P.NIBoard.CounterTask,SamplesToRead,P.NIBoard.CounterData,&P.NIBoard.ReadSamples);
+}
+void CheckDataUSB6229_Mammot(void){
+	int rs = 0;
+	for (rs =0;rs<P.NIBoard.ReadSamples;rs++)
+		if((P.NIBoard.CounterData[rs]/P.Spc.TimeM)>SC1000_MAX_COUNT_RATE){
+			StopStep(P.Mamm.Step[X]);
+			P.Spc.ScStopLoop = P.Loop[P.Mamm.Loop[X]].Actual+rs;
+			return;
+		}
+}
+void StopUSB6229_Mammot(void){
+	StopTasksUSB6229_Mammot();
+	ClearTasksUSB6229_Mammot();
 }
 
 // #### NATIONAL INSTRUMENTS USB-6221 #### 
@@ -9551,6 +9596,7 @@ void StopMammot(void){	  //EDO
 	for(ib=0;ib<P.Num.Board;ib++) FlushSC1000(ib);
 	P.Spc.Started=FALSE;
 	P.Frame.Dir = 0;
+	P.Spc.ScStopLoop = 0;
 	P.Mamm.NumAcq.Active = FALSE;
 	P.Mamm.IgnoreTrash=FALSE;
 }
