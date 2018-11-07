@@ -5,7 +5,7 @@
 //#define _LUCA	// Enable LUCA compilation, load also LUCA_TRS.lib
 
 // VERSION
-#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 17.2\nDate: September 2018"
+#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 17.3\nDate: November 2018"
 
 // TYPE OF DATA
 // USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards.

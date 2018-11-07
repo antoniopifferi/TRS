@@ -1,6 +1,6 @@
 /* ######################################################################## */
 /* 									   														*/
-/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 17.2  September  2018   */
+/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 17.3  November  2018   */
 /* 									   														*/
 /* ######################################################################## */
 
@@ -4042,7 +4042,7 @@ void AutoTrim(int Trim){
 	long goalstep;
 	char isfirst,islast;
 	long loop_index;
-	char loop=P.Step[si].Loop;
+	char loop=P.Trim[Trim].Loop;
 	char is_any_SPC = ((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==SPC_SC1000));
 	short page;
 	
