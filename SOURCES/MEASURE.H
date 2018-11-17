@@ -1658,7 +1658,6 @@ struct NIBoardS{
 	TaskHandle PulseTrainTask;
 	TaskHandle CounterTask;
 	uInt32 *CounterData;
-	uInt32 *BuffCounterData;
 	uInt32 CounterDataBuffer;
 	int32 ReadSamples;
 	int32 BuffReadSamples;
@@ -2409,6 +2408,7 @@ void StartUSB6229_Mammot(void);
 void GetDataUSB6229_Mammot(void);
 void CheckDataUSB6229_Mammot(void);
 void StopUSB6229_Mammot(void);
+void InitUSB6229_SoftwareTrigger_Mammot(void);
 
 // #### NKT COMMUNICATION
 void InitNKTLambda(char Step);

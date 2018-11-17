@@ -3039,22 +3039,9 @@ int PipeRead(int Board,int Det,int Timeout){			 //EDO
 
 /* TRANSFER DATA FROM SC1000 */	
 void GetDataSC1000(void){						  //EDO
-	//if(P.Action.StartCont[P.Mamm.Step[X]]&&P.Mamm.Status) P.Num.Acq=0;
 	int Timeout = -1;
 	int ib,id,ic,ret,icc,status;
 	int linearise=(SC1000_LINEARISE&&(P.Spc.Refolding<SC1000_HARDREFOLD)&&(P.Spc.Refolding!=SC1000_NODATAOPERATION));
-	/*if(P.Spc.ScWait){
-		int icount=0; char Cond = FALSE;
-		//do{
-		//	Cond = TRUE;
-			for(id=0;id<P.Num.Det;id++)
-				do{ret = PipeRead(ib,id,-1);}while(ret<0);
-			//{ret=PipeRead(ib,id,1000); Cond = Cond && ret>=0?1:0;};
-			//Delay(MILLISEC_2_SEC*10*P.Spc.TimeSC1000);
-		//	icount++;
-		//}while(Cond==FALSE||icount<4);
-	fprintf(FID,"RetNeg\t%d\t%d\t%d\t%d\t%d\t%d\n",P.Frame.Actual,P.Frame.First,P.Frame.Last,ret,id,icount);
-	}*/
 	for(ib=0;ib<P.Num.Board;ib++){
 		for(id=0;id<P.Num.Det;id++){
 			ret=PipeRead(ib,id,Timeout);  
@@ -7189,47 +7176,30 @@ void InitUSB6229_Mammot(void){
 	char *CounterSource = "/Dev2/PFI0";	//ho aggiunto la source per il counter (la stessa del train, così c'è sincronismo tra train e counter)
 	float64 SamplingRate = 1e7;
 	int32 SamplesToRead = 1e7;		  //If sampleMode is DAQmx_Val_ContSamps, NI-DAQmx uses this value to determine the buffer size
-	//static uInt32 *CounterData=NULL;
-	/*if(P.NIBoard.CounterData) {
-		free(P.NIBoard.CounterData); P.NIBoard.CounterData = NULL;
-	}*/
+
 	P.NIBoard.ReadSamples = 0;
 	P.NIBoard.CounterDataBuffer = 0;
 	float64 PulseTrainFrequency = 1/P.Spc.TimeM;
 	float64 DutyCycle = 0.2;
 	uInt64  sampsPerChan = 1000;
 	
-	/*if( (P.NIBoard.CounterData=malloc(SamplesToRead*sizeof(uInt32)))==NULL ) {
-			SetCtrlVal (hDisplay, DISPLAY_MESSAGE,"Not enough memory\n");
-			return -1;
-		}*/
-	
-	/*if(P.NIBoard.BuffCounterData) {
-		free(P.NIBoard.BuffCounterData); P.NIBoard.BuffCounterData = NULL;
-	} 
-	P.NIBoard.BuffCounterData = malloc(SamplesToRead*sizeof(uInt32));*/
 	CreateTasksUSB6229_Mammot();
-	int ret_id = 0;
-	ret_id = DAQmxCreateCICountEdgesChan(P.NIBoard.CounterTask,ChanCounterName,"",DAQmx_Val_Rising,InitialCounts,DAQmx_Val_CountUp);
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
-	ret_id = DAQmxSetTrigAttribute (P.NIBoard.CounterTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
-	ret_id = DAQmxCfgSampClkTiming(P.NIBoard.CounterTask,ClockSource,SamplingRate,DAQmx_Val_Rising,DAQmx_Val_ContSamps,SamplesToRead);
-	ret_id = DAQmxTaskControl(P.NIBoard.CounterTask,DAQmx_Val_Task_Commit); 
+	DAQmxCreateCICountEdgesChan(P.NIBoard.CounterTask,ChanCounterName,"",DAQmx_Val_Rising,InitialCounts,DAQmx_Val_CountUp);
+	DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
+	DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
+	DAQmxSetTrigAttribute (P.NIBoard.CounterTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
+	DAQmxCfgSampClkTiming(P.NIBoard.CounterTask,ClockSource,SamplingRate,DAQmx_Val_Rising,DAQmx_Val_ContSamps,SamplesToRead);
+	DAQmxTaskControl(P.NIBoard.CounterTask,DAQmx_Val_Task_Commit); 
 	
-	ret_id = DAQmxCreateCOPulseChanFreq(P.NIBoard.PulseTrainTask,ChanPulseTrainCounterName,"",DAQmx_Val_Hz,DAQmx_Val_Low,0.0,PulseTrainFrequency,DutyCycle);
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
-	ret_id = DAQmxSetTrigAttribute (P.NIBoard.PulseTrainTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
-	ret_id = DAQmxCfgDigEdgeStartTrig(P.NIBoard.PulseTrainTask,PulseTrainSource,DAQmx_Val_Rising);
-	ret_id = DAQmxCfgImplicitTiming(P.NIBoard.PulseTrainTask,DAQmx_Val_ContSamps,sampsPerChan);
-	ret_id = DAQmxTaskControl(P.NIBoard.PulseTrainTask,DAQmx_Val_Task_Commit);
+	DAQmxCreateCOPulseChanFreq(P.NIBoard.PulseTrainTask,ChanPulseTrainCounterName,"",DAQmx_Val_Hz,DAQmx_Val_Low,0.0,PulseTrainFrequency,DutyCycle);
+	DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
+	DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
+	DAQmxSetTrigAttribute (P.NIBoard.PulseTrainTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
+	DAQmxCfgDigEdgeStartTrig(P.NIBoard.PulseTrainTask,PulseTrainSource,DAQmx_Val_Rising);
+	DAQmxCfgImplicitTiming(P.NIBoard.PulseTrainTask,DAQmx_Val_ContSamps,sampsPerChan);
+	DAQmxTaskControl(P.NIBoard.PulseTrainTask,DAQmx_Val_Task_Commit);
 	
-	ret_id = DAQmxCreateDOChan(P.NIBoard.DigitalOutputTask,DigitalOutputSource,"",DAQmx_Val_ChanForAllLines);
-	FID = fopen("CheckMamm.txt","w+");
-	fprintf(FID,"Area\tCountRate\tbho\tbho1\trs\tP.NIBoard.ReadSamples\n");
-	fclose(FID);
-
+	DAQmxCreateDOChan(P.NIBoard.DigitalOutputTask,DigitalOutputSource,"",DAQmx_Val_ChanForAllLines);
 }
 
 void CreateTasksUSB6229_Mammot(void){
@@ -7249,10 +7219,6 @@ void StartTasksUSB6229_Mammot(void){
 	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask);
 	ret_id = DAQmxStartTask(P.NIBoard.PulseTrainTask);
 	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.PulseTrainTask);
-	FID = fopen("CheckMamm.txt","a+");
-	fprintf(FID,"START TASKS\n");
-	fclose(FID);
-	
 }
 void StopTasksUSB6229_Mammot(void){
 	int ret_id;
@@ -7262,9 +7228,6 @@ void StopTasksUSB6229_Mammot(void){
 	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask);
 	ret_id = DAQmxStopTask(P.NIBoard.PulseTrainTask);
 	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.PulseTrainTask);
-	FID = fopen("CheckMamm.txt","a+");
-	fprintf(FID,"STOP TASKS\n");
-	fclose(FID);
 }
 void ClearTasksUSB6229_Mammot(void){
 	DAQmxClearTask(P.NIBoard.DigitalOutputTask);
@@ -7301,8 +7264,6 @@ void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle){
 	return 0;
 }
 void StartUSB6229_Mammot(void){
-	//int DataToWrite = ON;
-	//WriteDigitalOutputUSB6229_Mammot(P.NIBoard.DigitalOutputTask,DataToWrite);
 	if(P.NIBoard.CounterData) {
 		free(P.NIBoard.CounterData); P.NIBoard.CounterData = NULL;
 	}
@@ -7314,12 +7275,6 @@ void StartUSB6229_Mammot(void){
 			SetCtrlVal (hDisplay, DISPLAY_MESSAGE,"Not enough memory\n");
 			return -1;
 		}
-	
-	if(P.NIBoard.BuffCounterData) {
-		free(P.NIBoard.BuffCounterData); P.NIBoard.BuffCounterData = NULL;
-	}
-	P.NIBoard.BuffCounterData = malloc(SamplesToRead*sizeof(uInt32));
-	
 	StartTasksUSB6229_Mammot();
 	
 }
@@ -7328,72 +7283,67 @@ void GetDataUSB6229_Mammot(void){
 	ReadCounterINUSB6229_Mammot(P.NIBoard.CounterTask,SamplesToRead,P.NIBoard.CounterData,&P.NIBoard.ReadSamples);
 }
 void CheckDataUSB6229_Mammot(void){
-	//for(int ist = 1;ist<1e7;ist++)
-	//	P.NIBoard.CounterData[ist] = 1;
 	while(P.NIBoard.ReadSamples==0) GetDataUSB6229_Mammot();
-	FID = fopen("CheckMamm.txt","a+");
 	int rs = 0;
-	//memcpy(P.NIBoard.BuffCounterData+P.NIBoard.BuffReadSamples,P.NIBoard.CounterData,P.NIBoard.ReadSamples*sizeof(uInt32));
-	D.Curve = D.Data[P.Frame.Actual][MAMM_SOUTH_DET];
-	long Area=CalcArea(P.Chann.First,P.Chann.Last);
-	long CountRate = Area/P.Spc.TimeM;
 	for (rs=P.NIBoard.ReadSamples-1;rs>=0;rs--)
 		P.NIBoard.CounterData[rs+1]=P.NIBoard.CounterData[rs];
 	P.NIBoard.CounterData[0] = P.NIBoard.CounterDataBuffer;
-	long bho; 
-	long bho1;
 	int cond1; int cond2;
 	for (rs =1;rs<=P.NIBoard.ReadSamples;rs++){
-		P.NIBoard.BuffReadSamples++;//P.NIBoard.ReadSamples;
-		bho = (P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1]);
-		bho1 = bho/P.Spc.TimeM;
-		//long bho2 = (SC1000_MAX_COUNT_RATE/P.Num.Det);
+		P.NIBoard.BuffReadSamples++;
 		cond1 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)>(SC1000_MAX_COUNT_RATE/P.Num.Det);
-		long prova = (((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea));
-		double counts = prova /((double) P.NIBoard.RefMeasArea);
-		cond2 = counts <= P.Mamm.NegativeTreshold;
-		//if(((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM))<=SC1000_MIN_COUNT_RATE/P.Num.Det)
-		//	P.Mamm.ExtraFrame.IsActiveOnLoopYNum = P.Loop[P.Mamm.Loop[Y]].Idx+2;
-		fprintf(FID,"%lu\t%lu\t%lu\t%lu\t%d\t%d\t%lu\t%lu\t%lu\t%d\t%d\n",Area,CountRate,bho,bho1,rs,P.NIBoard.ReadSamples,P.Loop[P.Mamm.Loop[Y]].Idx,P.NIBoard.CounterData[rs],P.NIBoard.BuffReadSamples,P.Mamm.NumAcq.Actual,P.Action.CheckMamm);
+		cond2 = (((long) ((((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea))))/((double) P.NIBoard.RefMeasArea))<=P.Mamm.NegativeTreshold;
 		if (P.NIBoard.CounterData[rs]==0) cond2 = FALSE ;
-		if((cond1||cond2)&&(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition/2))){//P.Action.CheckMamm){
-		//if(0){
-		//if(((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)>(700000)){ 
+		if((cond1||cond2)&&(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition/2))){
 			StopStep(P.Mamm.Step[X]);
-			//D.Curve = D.Data[P.Frame.Actual][MAMM_SOUTH_DET];
-			// long Area=CalcArea(P.Chann.First,P.Chann.Last);
 			long ExtraFrames = P.NIBoard.BuffReadSamples-P.Mamm.NumAcq.Actual;
 			P.Spc.ScStopLoop = P.Loop[P.Mamm.Loop[X]].Idx+(ExtraFrames-1);
-			fprintf(FID,"%lu\t%lu\t%lu\t%lu\t%d\t%d\t%lu\t%d\t%d\tSTOP COUNTER\n",Area,CountRate,bho,bho1,rs,P.NIBoard.ReadSamples,P.Loop[P.Mamm.Loop[Y]].Idx,cond1,cond2);
 			P.NIBoard.NumberPreviousAcquisition = P.NIBoard.BuffReadSamples;
-			//if (rs == 1){
-			//	P.Action.StopMamm = TRUE; 
-			//	P.Action.DataSave = TRUE;
-			//	P.Mamm.OverTreshold = TRUE;
-			//	P.Action.StopUSB6229_Mammot = TRUE;
-			//}
-			
-			/*if ((P.Loop[P.Mamm.Loop[X]].Idx==P.Spc.ScStopLoop)&&(!first[P.Mamm.Loop[X]])&&P.NIBoard.Active){
-				P.Action.StopMamm = TRUE;
-				P.Action.DataSave = TRUE;
-				P.Mamm.OverTreshold = TRUE;
-				P.Action.StopUSB6229_Mammot = TRUE;
-			}*/
-			
 			P.Action.StopUSB6229_Mammot = TRUE;
-			fclose(FID);
 			return;
 		}
 	}
 	P.NIBoard.CounterDataBuffer = P.NIBoard.CounterData[P.NIBoard.ReadSamples];
 	P.NIBoard.ReadSamples = 0;
-	fclose(FID);
 }
 void StopUSB6229_Mammot(void){
 	StopTasksUSB6229_Mammot();
-	//ClearTasksUSB6229_Mammot();
 }
-
+void InitUSB6229_SoftwareTrigger_Mammot(void){
+char *ChanCounterName = "Dev2/ctr1";			   //controllare il primo /
+	char *ChanPulseTrainCounterName ="Dev2/ctr0"; 
+	uInt32 InitialCounts = 0;
+	char *ClockSource = "/Dev2/ctr0InternalOutput";
+	char *DigitalOutputSource ="Dev2/port1/line6";
+	char *PulseTrainSource = "/Dev2/PFI6";
+	char *CounterSource = "/Dev2/PFI6";	//ho aggiunto la source per il counter (la stessa del train, così c'è sincronismo tra train e counter)
+	float64 SamplingRate = 1e7;
+	int32 SamplesToRead = 1e7;		  //If sampleMode is DAQmx_Val_ContSamps, NI-DAQmx uses this value to determine the buffer size
+	P.NIBoard.ReadSamples = 0;
+	P.NIBoard.CounterDataBuffer = 0;
+	float64 PulseTrainFrequency = 1/P.Spc.TimeM;
+	float64 DutyCycle = 0.2;
+	uInt64  sampsPerChan = 1000;
+	
+	CreateTasksUSB6229_Mammot();
+	int ret_id = 0;
+	ret_id = DAQmxCreateCICountEdgesChan(P.NIBoard.CounterTask,ChanCounterName,"",DAQmx_Val_Rising,InitialCounts,DAQmx_Val_CountUp);
+	ret_id = DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
+	ret_id = DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
+	ret_id = DAQmxSetTrigAttribute (P.NIBoard.CounterTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
+	ret_id = DAQmxCfgSampClkTiming(P.NIBoard.CounterTask,ClockSource,SamplingRate,DAQmx_Val_Rising,DAQmx_Val_ContSamps,SamplesToRead);
+	ret_id = DAQmxTaskControl(P.NIBoard.CounterTask,DAQmx_Val_Task_Commit); 
+	
+	ret_id = DAQmxCreateCOPulseChanFreq(P.NIBoard.PulseTrainTask,ChanPulseTrainCounterName,"",DAQmx_Val_Hz,DAQmx_Val_Low,0.0,PulseTrainFrequency,DutyCycle);
+	ret_id = DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
+	ret_id = DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
+	ret_id = DAQmxSetTrigAttribute (P.NIBoard.PulseTrainTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
+	ret_id = DAQmxCfgDigEdgeStartTrig(P.NIBoard.PulseTrainTask,PulseTrainSource,DAQmx_Val_Rising);
+	ret_id = DAQmxCfgImplicitTiming(P.NIBoard.PulseTrainTask,DAQmx_Val_ContSamps,sampsPerChan);
+	ret_id = DAQmxTaskControl(P.NIBoard.PulseTrainTask,DAQmx_Val_Task_Commit);
+	
+	ret_id = DAQmxCreateDOChan(P.NIBoard.DigitalOutputTask,DigitalOutputSource,"",DAQmx_Val_ChanForAllLines);
+}
 // #### NATIONAL INSTRUMENTS USB-6221 #### 
 
 void SetVoltNI_USB6221(char Step,long Goal){
@@ -9567,13 +9517,13 @@ void AnalysisMamm(void){
 void AnalysisMamm_new(void){
 
 	int ib,id=0,ic;
-	long Area, MaxVal, MaxPos, First, Last, CountRate;
-	double Treshold, BaricentrePos, Width, Target1, Target2, Target3;
+	long Area, CountRate;
+	double Treshold, Target1, Target2, Target3;
 	char Cond1, Cond2, Cond3;
 	
 	P.Mamm.OverTreshold = FALSE; 
 	id = (P.Step[P.Mamm.Step[X]].Dir==1)?MAMM_SOUTH_DET:MAMM_SOUTH_DET;  //most right or most left detector according to step movement
-	if(P.Mamm.IsRefMeas){
+	/*if(P.Mamm.IsRefMeas){
 	int FirstNeighb = 1; int iframe;
 	long Frames[FirstNeighb+1]; long Areas[FirstNeighb+1]; double Derivatives[FirstNeighb];
 	for(iframe=0;iframe<(FirstNeighb+1);iframe++){
@@ -9622,18 +9572,18 @@ void AnalysisMamm_new(void){
 			P.Mamm.OverTreshold=P.Mamm.Rate.Actual[ib]>P.Mamm.Rate.High[ib]||P.Mamm.Rate.Actual[ib]<P.Mamm.Rate.Low[ib];
 	}
 	}
+	*/
 	D.Curve = D.Data[P.Frame.Actual][id];
 	Area = CalcArea(P.Chann.First,P.Chann.Last)*P.Num.Det;
-	CountRate=Area/P.Spc.TimeM;   
-	if(!P.Mamm.OverTreshold){
-		if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)>=SC1000_MAX_COUNT_RATE){ P.Mamm.OverTreshold = TRUE; 
-			FID = fopen("CheckMamm.txt","a+"); 
-			fprintf(FID,"%lu\t%lu\t%d\t%d\t%d\tTDC\n",Area,CountRate,Cond1,P.Mamm.ExtraFrame.IsActiveOnLoopYNum,P.Mamm.OverTreshold);
-			fclose(FID);		  
+	/*if(!P.Mamm.OverTreshold){
+		if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)>=SC1000_MAX_COUNT_RATE){
+			P.Mamm.OverTreshold = TRUE; 
 		}
-	}
-	if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)<=SC1000_MIN_COUNT_RATE)
+	}*/
+	if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)<=SC1000_MIN_COUNT_RATE){
 		P.Mamm.ExtraFrame.IsActiveOnLoopYNum = P.Loop[P.Mamm.Loop[Y]].Idx+2;
+		P.Mamm.OverTreshold = TRUE;
+	}
 
 	
 }
@@ -9651,45 +9601,11 @@ void InitMammot(void){	   //EDO
 	MoveStep(&P.Step[StepX].Actual,P.Step[StepX].Home,StepX,TRUE,P.Action.Status);
 	P.Spc.ScWait = FALSE;
 	ReInitSC1000('M');
-	//for(ib=0;ib<P.Num.Board;ib++) FlushSC1000(ib);
 	SpcOut(TRUE);
 	D.Curve = D.Data[P.Frame.Actual][id];
-	//P.Mamm.RefMeas.Area = CalcArea(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi])-CalcArea(P.Roi.First[P.Mamm.Roi]-10,P.Roi.First[P.Mamm.Roi]);
 	P.Mamm.RefMeas.Area = CalcArea(P.Chann.First,P.Chann.Last);
 	if(P.NIBoard.Active){
-	char *ChanCounterName = "Dev2/ctr1";			   //controllare il primo /
-	char *ChanPulseTrainCounterName ="Dev2/ctr0"; 
-	uInt32 InitialCounts = 0;
-	char *ClockSource = "/Dev2/ctr0InternalOutput";
-	char *DigitalOutputSource ="Dev2/port1/line6";
-	char *PulseTrainSource = "/Dev2/PFI6";
-	char *CounterSource = "/Dev2/PFI6";	//ho aggiunto la source per il counter (la stessa del train, così c'è sincronismo tra train e counter)
-	float64 SamplingRate = 1e7;
-	int32 SamplesToRead = 1e7;		  //If sampleMode is DAQmx_Val_ContSamps, NI-DAQmx uses this value to determine the buffer size
-	P.NIBoard.ReadSamples = 0;
-	P.NIBoard.CounterDataBuffer = 0;
-	float64 PulseTrainFrequency = 1/P.Spc.TimeM;
-	float64 DutyCycle = 0.2;
-	uInt64  sampsPerChan = 1000;
-	
-	CreateTasksUSB6229_Mammot();
-	int ret_id = 0;
-	ret_id = DAQmxCreateCICountEdgesChan(P.NIBoard.CounterTask,ChanCounterName,"",DAQmx_Val_Rising,InitialCounts,DAQmx_Val_CountUp);
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
-	ret_id = DAQmxSetTrigAttribute (P.NIBoard.CounterTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
-	ret_id = DAQmxCfgSampClkTiming(P.NIBoard.CounterTask,ClockSource,SamplingRate,DAQmx_Val_Rising,DAQmx_Val_ContSamps,SamplesToRead);
-	ret_id = DAQmxTaskControl(P.NIBoard.CounterTask,DAQmx_Val_Task_Commit); 
-	
-	ret_id = DAQmxCreateCOPulseChanFreq(P.NIBoard.PulseTrainTask,ChanPulseTrainCounterName,"",DAQmx_Val_Hz,DAQmx_Val_Low,0.0,PulseTrainFrequency,DutyCycle);
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
-	ret_id = DAQmxSetTrigAttribute (P.NIBoard.PulseTrainTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
-	ret_id = DAQmxCfgDigEdgeStartTrig(P.NIBoard.PulseTrainTask,PulseTrainSource,DAQmx_Val_Rising);
-	ret_id = DAQmxCfgImplicitTiming(P.NIBoard.PulseTrainTask,DAQmx_Val_ContSamps,sampsPerChan);
-	ret_id = DAQmxTaskControl(P.NIBoard.PulseTrainTask,DAQmx_Val_Task_Commit);
-	
-	ret_id = DAQmxCreateDOChan(P.NIBoard.DigitalOutputTask,DigitalOutputSource,"",DAQmx_Val_ChanForAllLines);
+	InitUSB6229_SoftwareTrigger_Mammot();
 	StartUSB6229_Mammot();
 	uInt32 Data2Write = 0xFFFFFFFE;
 	WriteDigitalOutputUSB6229_Mammot(P.NIBoard.DigitalOutputTask,Data2Write);
@@ -9698,10 +9614,12 @@ void InitMammot(void){	   //EDO
 	WriteDigitalOutputUSB6229_Mammot(P.NIBoard.DigitalOutputTask,Data2Write);
 	StopTasksUSB6229_Mammot();
 	ClearTasksUSB6229_Mammot();
+	
 	P.NIBoard.RefMeasArea=P.NIBoard.CounterData[0];
 	
 	InitUSB6229_Mammot();
 	StartUSB6229_Mammot();
+	
 	int num_meas = 1,il;
 	for(il=P.Step[StepX].Loop+1;il<MAX_LOOP;il++) num_meas*=P.Loop[il].Num;
 	double freq=fabs(P.Step[StepX].Delta)/(num_meas*P.Spc.TimeM*P.Loop[P.Step[StepX].Loop].Num);
@@ -9711,16 +9629,13 @@ void InitMammot(void){	   //EDO
 	int MaxMeas = abs(P.Loop[LoopX].First/P.Loop[LoopX].Delta); //abs(P.Step[StepX].Start[0]/P.Step[StepX].Factor);
 	while(cond1==0&&cond2==0&&P.NIBoard.BuffReadSamples<MaxMeas){
 	while(P.NIBoard.ReadSamples==0) GetDataUSB6229_Mammot();
-	//GetDataUSB6229_Mammot();
 	for (rs=P.NIBoard.ReadSamples-1;rs>=0;rs--)
 		P.NIBoard.CounterData[rs+1]=P.NIBoard.CounterData[rs];
 	P.NIBoard.CounterData[0] = P.NIBoard.CounterDataBuffer;
 	for (rs =1;rs<=P.NIBoard.ReadSamples;rs++){
-		P.NIBoard.BuffReadSamples++;//P.NIBoard.ReadSamples;
+		P.NIBoard.BuffReadSamples++;
 		cond1 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)>(SC1000_MAX_COUNT_RATE/P.Num.Det);
-		prova = (((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea));
-		counts = prova /((double) P.NIBoard.RefMeasArea);
-		cond2 = counts <= P.Mamm.NegativeTreshold;
+		cond2 = (((long) ((((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea))))/((double) P.NIBoard.RefMeasArea))<=P.Mamm.NegativeTreshold;
 		if (P.NIBoard.CounterData[rs]==0) cond2 = FALSE ;
 		if(cond1||cond2){
 			StopStep(StepX);
