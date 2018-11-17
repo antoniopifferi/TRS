@@ -714,7 +714,7 @@
 #define SC1000_MAXBIN	40800		// max number of channels (bin) in SC1000 // 10 mhz
 #define SC1000_REBIN 32
 #define SC1000_MAX_COUNT_RATE 25000000
-#define SC1000_MIN_COUNT_RATE 7000
+#define SC1000_MIN_COUNT_RATE 10000
 
 /* SPADLAB CONSTANTS */
 #define SPADLAB_TDC_WRITE  "\\\\localhost\\MyProcess\\tdc-write"
@@ -1103,14 +1103,7 @@ struct MammAttS{
 	};
 
 struct MammRefMeaS{	   //EDO
-	double Width;
-	double BaricentrePos;
-	long MaxPos;
-	long MaxVal;
 	long Area;
-	long First;
-	long Last;
-	double Treshold;
 };
 struct ScReinitS{  //EDO
 	int Measure;
@@ -1200,6 +1193,7 @@ struct ActionS{
 	char StartUSB6229_Mammot; //EDO
 	char StopUSB6229_Mammot; //EDO
 	char InitUSB6229_Mammot; //EDO
+	char GetDataUSB6229_Mammot; //EDO
 	char CheckDataUSB6229_Mammot;
 	struct ScReinitS ScReInit;			//EDO
 	};
@@ -1328,7 +1322,6 @@ struct StepS {
 	char  FPath[STRLEN];
 	struct Delay_GateS Delay_Gate;
 	struct Standa2S Standa2;
-	long StopGoal; // EDO
 	};
 
 struct SwitchS {
@@ -1665,8 +1658,13 @@ struct NIBoardS{
 	TaskHandle PulseTrainTask;
 	TaskHandle CounterTask;
 	uInt32 *CounterData;
+	uInt32 *BuffCounterData;
+	uInt32 CounterDataBuffer;
 	int32 ReadSamples;
+	int32 BuffReadSamples;
+	int32 NumberPreviousAcquisition;
 	char Active;
+	long RefMeasArea;
 };
 
 struct ValueS{
@@ -2404,7 +2402,7 @@ void StartTasksUSB6229_Mammot(void);
 void StopTasksUSB6229_Mammot(void);
 void ClearTasksUSB6229_Mammot(void);
 void ReadCounterINUSB6229_Mammot(TaskHandle CounterTask,int32 SamplesToRead,uInt32 *CounterData,int32 *ReadSamples);
-void WriteDigitalOutputUSB6229_Mammot(TaskHandle DigitalOutputTask,uInt8 DataToWrite);
+void WriteDigitalOutputUSB6229_Mammot(TaskHandle DigitalOutputTask,uInt32 DataToWrite);
 void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle);
 void InitUSB6229_Mammot(void);
 void StartUSB6229_Mammot(void);
