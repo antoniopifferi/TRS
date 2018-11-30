@@ -632,13 +632,14 @@ void DecideAction(void){
 		}
 		P.Action.DoJumpMamm=(P.Mamm.OverTreshold||P.Mamm.IsTop||P.Action.StopMamm);
 		P.Action.ScReInit.InitMammot = first[P.Mamm.Loop[Y]];
-		if(new[P.Mamm.Loop[Y]]) {P.Mamm.OverTreshold = FALSE; P.Action.DoJumpMamm = P.Mamm.IsTop;}
+		if(new[P.Mamm.Loop[Y]]) {P.Mamm.OverTreshold = FALSE; P.Action.DoJumpMamm = P.Mamm.IsTop;P.Spc.ScStopLoop=0;}
 		if(P.Mamm.IsTop&&(!new[P.Mamm.Loop[Y]])&&P.Mamm.Shrink[Y])
 			D.Head.LoopLast[P.Mamm.Loop[Y]-2] = P.Loop[P.Mamm.Loop[Y]].Actual;
 		P.Action.InitMamm=first[P.Mamm.Loop[Y]];
 		P.Action.MoveStep[P.Mamm.Step[X]]=first[P.Mamm.Loop[Y]]?0:P.Action.MoveStep[P.Mamm.Loop[X]];
 		P.Action.StartMamm=new[P.Mamm.Loop[Y]];
 		P.NIBoard.Active = TRUE;
+		if(new[P.Mamm.Loop[Y]]) P.NIBoard.NumberPreviousAcquisition = P.NIBoard.BuffReadSamples;
 		P.Action.StartUSB6229_Mammot = new[P.Mamm.Loop[Y]]&&P.NIBoard.Active;
 		P.Action.InitUSB6229_Mammot = first[P.Mamm.Loop[Y]]&&P.NIBoard.Active;
 		P.Action.CheckDataUSB6229_Mammot = TRUE&&P.NIBoard.Active;
@@ -661,6 +662,7 @@ void DecideAction(void){
 			//else P.Action.StopUSB6229_Mammot = FALSE&&P.NIBoard.Active;
 		if(new[P.Mamm.Loop[Y]]) P.Action.StopUSB6229_Mammot = FALSE;
 		P.Frame.Dir = REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0?+1:-1;
+		//if(P.Mamm.IsTop){P.Action.StartUSB6229_Mammot = FALSE; P.Action.StopUSB6229_Mammot = FALSE;}
 		P.Action.ReadUIR=P.Command.ReadUIR&&new[P.Mamm.Loop[Y]];
 		//if (P.Action.StopMamm)
 			for(is=0;is<MAX_STEP;is++)
@@ -2964,7 +2966,8 @@ void InitSC1000(int Board){			   //EDO
 	if(linearise) CalcNonlinSC1000(); // load BACKGROUND curve and derives coefficients for non-lin correction
 	
 	SpcTime(P.Spc.TimeO);
-	
+	FID = fopen("checkmammot.txt","w+");  
+	fclose(FID);
 	// start acquisition
 	P.Spc.ScAcqTime=StartSC1000(Board,SC1000_TIME_INFINITY);
 	P.Spc.Started = TRUE;
@@ -2978,6 +2981,9 @@ float StartSC1000(int Board,float AcqTime){   //EDO
 	int ret=sc_tdc_start_measure2(P.Spc.ScBoard[Board],Time);
 	if(ret<0) {ErrHandler(ERR_SC1000,ret,"StartSC1000"); Failure("Error in starting acquisition"); return -1;}
 	P.Mamm.NumAcq.Tot = ceil(Time/P.Spc.TimeSC1000);
+	FID = fopen("checkmammot.txt","a+");
+	fprintf(FID,"%f\t%d\t%d\t%d\tstartsc\n", P.Mamm.NumAcq.Tot,  Time,P.Spc.TimeSC1000,P.Loop[P.Mamm.Loop[Y]].Idx);
+	fclose(FID);
 	return AcqTime;
 }
 
@@ -3071,6 +3077,7 @@ void GetDataSC1000(void){						  //EDO
 			P.Action.StopMamm = 1;
 			P.Action.DataSave = 1;
 			P.Action.StopUSB6229_Mammot = 1;
+			P.Mamm.OverTreshold = 1;
 			SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "OverMaxMeasNum\n");
 		}
 	}
@@ -5257,7 +5264,10 @@ void StartCont(char Step, char Status){
 		P.Wait.Pos=start[iloop]+(imeas*delta/num_meas);
 		}
 	
-	MoveStep(&P.Step[Step].Actual,stopgoal,Step,FALSE,Status);	
+	MoveStep(&P.Step[Step].Actual,stopgoal,Step,FALSE,Status);
+	FID = fopen("checkmammot.txt","a+");
+	fprintf(FID,"%ld\t%ld\tmovestep\n",stopgoal,P.Step[Step].Actual);
+	fclose(FID);
 }
 
 
@@ -7276,6 +7286,9 @@ void StartUSB6229_Mammot(void){
 			return -1;
 		}
 	StartTasksUSB6229_Mammot();
+	FID = fopen("checkmammot.txt","a+");
+	fprintf(FID,"startusb\n");
+	fclose(FID);
 	
 }
 void GetDataUSB6229_Mammot(void){
@@ -7294,10 +7307,10 @@ void CheckDataUSB6229_Mammot(void){
 		cond1 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)>(SC1000_MAX_COUNT_RATE/P.Num.Det);
 		cond2 = (((long) ((((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea))))/((double) P.NIBoard.RefMeasArea))<=P.Mamm.NegativeTreshold;
 		if (P.NIBoard.CounterData[rs]==0) cond2 = FALSE ;
-		if((cond1||cond2)&&(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition/2))){
+		if((cond1||cond2)&&(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition/2)||(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition+P.Mamm.ExtraFrame.Num)))){
 			StopStep(P.Mamm.Step[X]);
 			long ExtraFrames = P.NIBoard.BuffReadSamples-P.Mamm.NumAcq.Actual;
-			P.Spc.ScStopLoop = P.Loop[P.Mamm.Loop[X]].Idx+(ExtraFrames-1);
+			P.Spc.ScStopLoop = P.Loop[P.Mamm.Loop[X]].Idx+(ExtraFrames);
 			P.NIBoard.NumberPreviousAcquisition = P.NIBoard.BuffReadSamples;
 			P.Action.StopUSB6229_Mammot = TRUE;
 			return;
@@ -7326,23 +7339,23 @@ char *ChanCounterName = "Dev2/ctr1";			   //controllare il primo /
 	uInt64  sampsPerChan = 1000;
 	
 	CreateTasksUSB6229_Mammot();
-	int ret_id = 0;
-	ret_id = DAQmxCreateCICountEdgesChan(P.NIBoard.CounterTask,ChanCounterName,"",DAQmx_Val_Rising,InitialCounts,DAQmx_Val_CountUp);
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
-	ret_id = DAQmxSetTrigAttribute (P.NIBoard.CounterTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
-	ret_id = DAQmxCfgSampClkTiming(P.NIBoard.CounterTask,ClockSource,SamplingRate,DAQmx_Val_Rising,DAQmx_Val_ContSamps,SamplesToRead);
-	ret_id = DAQmxTaskControl(P.NIBoard.CounterTask,DAQmx_Val_Task_Commit); 
 	
-	ret_id = DAQmxCreateCOPulseChanFreq(P.NIBoard.PulseTrainTask,ChanPulseTrainCounterName,"",DAQmx_Val_Hz,DAQmx_Val_Low,0.0,PulseTrainFrequency,DutyCycle);
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
-	ret_id = DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
-	ret_id = DAQmxSetTrigAttribute (P.NIBoard.PulseTrainTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
-	ret_id = DAQmxCfgDigEdgeStartTrig(P.NIBoard.PulseTrainTask,PulseTrainSource,DAQmx_Val_Rising);
-	ret_id = DAQmxCfgImplicitTiming(P.NIBoard.PulseTrainTask,DAQmx_Val_ContSamps,sampsPerChan);
-	ret_id = DAQmxTaskControl(P.NIBoard.PulseTrainTask,DAQmx_Val_Task_Commit);
+	DAQmxCreateCICountEdgesChan(P.NIBoard.CounterTask,ChanCounterName,"",DAQmx_Val_Rising,InitialCounts,DAQmx_Val_CountUp);
+	DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
+	DAQmxSetTrigAttribute(P.NIBoard.CounterTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
+	DAQmxSetTrigAttribute (P.NIBoard.CounterTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
+	DAQmxCfgSampClkTiming(P.NIBoard.CounterTask,ClockSource,SamplingRate,DAQmx_Val_Rising,DAQmx_Val_ContSamps,SamplesToRead);
+	DAQmxTaskControl(P.NIBoard.CounterTask,DAQmx_Val_Task_Commit); 
 	
-	ret_id = DAQmxCreateDOChan(P.NIBoard.DigitalOutputTask,DigitalOutputSource,"",DAQmx_Val_ChanForAllLines);
+	DAQmxCreateCOPulseChanFreq(P.NIBoard.PulseTrainTask,ChanPulseTrainCounterName,"",DAQmx_Val_Hz,DAQmx_Val_Low,0.0,PulseTrainFrequency,DutyCycle);
+	DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_ArmStartTrig_Type,DAQmx_Val_DigEdge);			   	// righe aggiunte per sincronismo
+	DAQmxSetTrigAttribute(P.NIBoard.PulseTrainTask,DAQmx_DigEdge_ArmStartTrig_Src,CounterSource);			// tra counter
+	DAQmxSetTrigAttribute (P.NIBoard.PulseTrainTask, DAQmx_DigEdge_ArmStartTrig_Edge,DAQmx_Val_Rising);	// e pulsetrain
+	DAQmxCfgDigEdgeStartTrig(P.NIBoard.PulseTrainTask,PulseTrainSource,DAQmx_Val_Rising);
+	DAQmxCfgImplicitTiming(P.NIBoard.PulseTrainTask,DAQmx_Val_ContSamps,sampsPerChan);
+	DAQmxTaskControl(P.NIBoard.PulseTrainTask,DAQmx_Val_Task_Commit);
+	
+	DAQmxCreateDOChan(P.NIBoard.DigitalOutputTask,DigitalOutputSource,"",DAQmx_Val_ChanForAllLines);
 }
 // #### NATIONAL INSTRUMENTS USB-6221 #### 
 
@@ -9521,8 +9534,23 @@ void AnalysisMamm_new(void){
 	double Treshold, Target1, Target2, Target3;
 	char Cond1, Cond2, Cond3;
 	
-	P.Mamm.OverTreshold = FALSE; 
+	//P.Mamm.OverTreshold = FALSE; 
 	id = (P.Step[P.Mamm.Step[X]].Dir==1)?MAMM_SOUTH_DET:MAMM_SOUTH_DET;  //most right or most left detector according to step movement
+	
+	D.Curve = D.Data[P.Frame.Actual][id];
+	Area=CalcArea(P.Chann.First,P.Chann.Last);
+	Target1 = (Area-P.Mamm.RefMeas.Area)/((double) P.Mamm.RefMeas.Area);
+	Cond1 = Target1 <= P.Mamm.NegativeTreshold;
+	if(Cond1){}
+	//	P.Mamm.OverTreshold = TRUE;
+	Area *= P.Num.Det;
+	if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)>=SC1000_MAX_COUNT_RATE){}
+	//	P.Mamm.OverTreshold = TRUE; 
+	if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)<=SC1000_MIN_COUNT_RATE){
+	//	P.Mamm.ExtraFrame.IsActiveOnLoopYNum = P.Loop[P.Mamm.Loop[Y]].Idx+2;
+	//	P.Mamm.OverTreshold = TRUE;
+	}
+	
 	/*if(P.Mamm.IsRefMeas){
 	int FirstNeighb = 1; int iframe;
 	long Frames[FirstNeighb+1]; long Areas[FirstNeighb+1]; double Derivatives[FirstNeighb];
@@ -9573,17 +9601,17 @@ void AnalysisMamm_new(void){
 	}
 	}
 	*/
-	D.Curve = D.Data[P.Frame.Actual][id];
-	Area = CalcArea(P.Chann.First,P.Chann.Last)*P.Num.Det;
+	//D.Curve = D.Data[P.Frame.Actual][id];
+	//Area = CalcArea(P.Chann.First,P.Chann.Last)*P.Num.Det;
 	/*if(!P.Mamm.OverTreshold){
 		if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)>=SC1000_MAX_COUNT_RATE){
 			P.Mamm.OverTreshold = TRUE; 
 		}
 	}*/
-	if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)<=SC1000_MIN_COUNT_RATE){
-		P.Mamm.ExtraFrame.IsActiveOnLoopYNum = P.Loop[P.Mamm.Loop[Y]].Idx+2;
-		P.Mamm.OverTreshold = TRUE;
-	}
+	//if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)<=SC1000_MIN_COUNT_RATE){
+	//	P.Mamm.ExtraFrame.IsActiveOnLoopYNum = P.Loop[P.Mamm.Loop[Y]].Idx+2;
+	//	P.Mamm.OverTreshold = TRUE;
+	//}
 
 	
 }
@@ -9665,6 +9693,9 @@ void InitMammot(void){	   //EDO
 /* RESUME MAMMOT PROCEDURE */
 void StartMammot(void){
 	// Clear DATA
+	FID = fopen("checkmammot.txt","a+");
+	fprintf(FID,"pre startmammot\n");
+	fclose(FID);
 	int ifr,ip,ib;
 	for(ifr=0; ifr<P.Frame.Num;ifr++)
 		for(ip=0; ip<P.Num.Page;ip++)
@@ -9675,6 +9706,9 @@ void StartMammot(void){
 			CompileSub(P.Ram.Actual, ifr, ip);
 	
 	float AcqTime = min((P.Frame.Last-P.Frame.First)+(P.Mamm.ExtraFrame.Num)/abs(P.Loop[P.Mamm.Loop[X]].Delta),P.Frame.Num)*P.Spc.TimeM; //controllare  //20 � in mm
+	FID = fopen("checkmammot.txt","a+");
+	fprintf(FID,"%f\t%d\t%d\t%d\t%d\tpost startmammot\n", AcqTime,  P.Mamm.ExtraFrame.Num,P.Frame.Last,P.Frame.First,P.Loop[P.Mamm.Loop[Y]].Idx);
+	fclose(FID);
 	if(!P.Spc.Started)
 		for(ib=0;ib<P.Num.Board;ib++)
 			P.Spc.ScAcqTime=StartSC1000(ib,AcqTime);
@@ -9721,6 +9755,7 @@ void ShiftCorrection(void){
 		StopGoal = P.Step[StepX].Stop[P.Frame.Actual]; // controllare il +1
 	else
 		StopGoal = P.Step[StepX].Start[P.Frame.Actual]; // controllare il +1
+	//if(abs(StopGoal)>abs(PosX)) StopGoal = PosX;
 	MoveStep(&PosX,StopGoal,StepX,TRUE,P.Action.Status);
 
 }

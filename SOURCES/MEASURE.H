@@ -713,8 +713,8 @@
 #define SC1000_NODATAOPERATION -1
 #define SC1000_MAXBIN	40800		// max number of channels (bin) in SC1000 // 10 mhz
 #define SC1000_REBIN 32
-#define SC1000_MAX_COUNT_RATE 25000000
-#define SC1000_MIN_COUNT_RATE 10000
+#define SC1000_MAX_COUNT_RATE 30000000
+#define SC1000_MIN_COUNT_RATE 400000
 
 /* SPADLAB CONSTANTS */
 #define SPADLAB_TDC_WRITE  "\\\\localhost\\MyProcess\\tdc-write"
