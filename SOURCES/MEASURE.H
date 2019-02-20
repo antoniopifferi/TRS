@@ -713,8 +713,8 @@
 #define SC1000_NODATAOPERATION -1
 #define SC1000_MAXBIN	40800		// max number of channels (bin) in SC1000 // 10 mhz
 #define SC1000_REBIN 32
-#define SC1000_MAX_COUNT_RATE 30000000
-#define SC1000_MIN_COUNT_RATE 400000
+#define SC1000_MAX_COUNT_RATE 28000000
+#define SC1000_MIN_COUNT_RATE 750000
 
 /* SPADLAB CONSTANTS */
 #define SPADLAB_TDC_WRITE  "\\\\localhost\\MyProcess\\tdc-write"
@@ -1316,6 +1316,7 @@ struct StepS {
 	double FreqActual;
 	double FreqDelta;
 	double Freq;
+	char IsInitialized;
 	long Start[MAXPOS];
 	long Stop[MAXPOS];
 	char  FName[STRLEN];
@@ -1501,6 +1502,7 @@ struct SurfaceConceptS{		//to do: use this struct for SC operations instead of P
 	double Binsize;								// temporal width of the mean bin
 	double Period;									// period between two IRF peaks (used in rebinning)
 	double Rebin;
+	char ReinitMeas;
 };
 struct SpcS {
 	char   Type;
@@ -1664,6 +1666,7 @@ struct NIBoardS{
 	int32 NumberPreviousAcquisition;
 	char Active;
 	long RefMeasArea;
+	char TasksStarted;
 };
 
 struct ValueS{
@@ -2402,7 +2405,7 @@ void StopTasksUSB6229_Mammot(void);
 void ClearTasksUSB6229_Mammot(void);
 void ReadCounterINUSB6229_Mammot(TaskHandle CounterTask,int32 SamplesToRead,uInt32 *CounterData,int32 *ReadSamples);
 void WriteDigitalOutputUSB6229_Mammot(TaskHandle DigitalOutputTask,uInt32 DataToWrite);
-void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle);
+void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle,char *TaskName);
 void InitUSB6229_Mammot(void);
 void StartUSB6229_Mammot(void);
 void GetDataUSB6229_Mammot(void);

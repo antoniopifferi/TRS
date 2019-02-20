@@ -138,6 +138,7 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 		InitOma();
 		InitOphir();
 		SpcInit();
+		InitLegend();
 		switch (P.Info.Appl){
 			case APPL_MAMM: 
 				break;
@@ -328,6 +329,16 @@ void Oscilloscope(void){
 	P.Command.Continue=FALSE;
 	P.Contest.Function = CONTEST_OSC;
 	SpcTime(P.Spc.TimeO);
+	// Needed for "OFF-OSC" hold selection mode
+	char IsInitStep[MAX_STEP];
+	for(int is=0;is<MAX_STEP;is++) 
+		if(P.Step[is].Hold==3&&P.Step[is].IsInitialized){
+    		CloseStep(is);
+			IsInitStep[is]=TRUE;
+		}
+		else
+			IsInitStep[is] = FALSE;
+	
 	while(!P.Command.Continue && !P.Command.Abort){
 		GetUserEvent (0, &panel, &control);
 		SpcReset(status,P.Meas.Clear,P.Meas.Stop);
@@ -354,6 +365,10 @@ void Oscilloscope(void){
 	SpcTime(P.Spc.TimeM);
 	P.Spc.Trash=TRUE;
 	P.Contest.Function = CONTEST_MEAS;
+	for(is=0;is<MAX_STEP;is++)
+		if(P.Step[is].Hold==3&&IsInitStep[is])
+			InitMicro(is);
+	
 	}		
 
 
@@ -604,7 +619,7 @@ void DecideAction(void){
 		if(P.Mamm.FindTop){
 			P.Mamm.Roi = 2; P.Mamm.Fract = 0.4;
 			if(first[P.Mamm.Loop[Y]]) {
-				P.Mamm.TopLim=5;
+				P.Mamm.TopLim=15;
 				P.Frame.Min = 0; P.Frame.Max = P.Frame.Num;
 				P.Frame.First = 0; P.Frame.Last = P.Frame.Max -1;
 				P.Mamm.OverTreshold = FALSE; P.Mamm.IsTop = FALSE;
@@ -630,6 +645,7 @@ void DecideAction(void){
 				P.Mamm.ExtraFrame.IsActiveOnLoopYNum = FALSE;
 			}
 		}
+		if(P.NIBoard.NumberPreviousAcquisition<=(P.Mamm.TopLim) && !first[P.Mamm.Loop[Y]]) P.Mamm.IsTop = TRUE;
 		P.Action.DoJumpMamm=(P.Mamm.OverTreshold||P.Mamm.IsTop||P.Action.StopMamm);
 		P.Action.ScReInit.InitMammot = first[P.Mamm.Loop[Y]];
 		if(new[P.Mamm.Loop[Y]]) {P.Mamm.OverTreshold = FALSE; P.Action.DoJumpMamm = P.Mamm.IsTop;P.Spc.ScStopLoop=0;}
@@ -639,7 +655,7 @@ void DecideAction(void){
 		P.Action.MoveStep[P.Mamm.Step[X]]=first[P.Mamm.Loop[Y]]?0:P.Action.MoveStep[P.Mamm.Loop[X]];
 		P.Action.StartMamm=new[P.Mamm.Loop[Y]];
 		P.NIBoard.Active = TRUE;
-		if(new[P.Mamm.Loop[Y]]) P.NIBoard.NumberPreviousAcquisition = P.NIBoard.BuffReadSamples;
+	
 		P.Action.StartUSB6229_Mammot = new[P.Mamm.Loop[Y]]&&P.NIBoard.Active;
 		P.Action.InitUSB6229_Mammot = first[P.Mamm.Loop[Y]]&&P.NIBoard.Active;
 		P.Action.CheckDataUSB6229_Mammot = TRUE&&P.NIBoard.Active;
@@ -651,7 +667,7 @@ void DecideAction(void){
 			P.Action.CheckDataUSB6229_Mammot = FALSE;
 			P.Action.StopUSB6229_Mammot = FALSE;
 		}
-		if ((P.Loop[P.Mamm.Loop[X]].Idx==P.Spc.ScStopLoop)&&(!first[P.Mamm.Loop[X]])&&P.NIBoard.Active){
+		if ((P.Loop[P.Mamm.Loop[X]].Idx==P.Spc.ScStopLoop)&&(!new[P.Mamm.Loop[Y]])&&P.NIBoard.Active){
 			P.Action.StopMamm = TRUE;
 			//P.Action.StopUSB6229_Mammot = TRUE;
 			P.Mamm.OverTreshold = TRUE;
@@ -2966,13 +2982,11 @@ void InitSC1000(int Board){			   //EDO
 	if(linearise) CalcNonlinSC1000(); // load BACKGROUND curve and derives coefficients for non-lin correction
 	
 	SpcTime(P.Spc.TimeO);
-	FID = fopen("checkmammot.txt","w+");  
-	fclose(FID);
 	// start acquisition
 	P.Spc.ScAcqTime=StartSC1000(Board,SC1000_TIME_INFINITY);
 	P.Spc.Started = TRUE;
 	Passed();
-	
+									
 } 
 
 /* START ACQUISITION */
@@ -2981,9 +2995,6 @@ float StartSC1000(int Board,float AcqTime){   //EDO
 	int ret=sc_tdc_start_measure2(P.Spc.ScBoard[Board],Time);
 	if(ret<0) {ErrHandler(ERR_SC1000,ret,"StartSC1000"); Failure("Error in starting acquisition"); return -1;}
 	P.Mamm.NumAcq.Tot = ceil(Time/P.Spc.TimeSC1000);
-	FID = fopen("checkmammot.txt","a+");
-	fprintf(FID,"%f\t%d\t%d\t%d\tstartsc\n", P.Mamm.NumAcq.Tot,  Time,P.Spc.TimeSC1000,P.Loop[P.Mamm.Loop[Y]].Idx);
-	fclose(FID);
 	return AcqTime;
 }
 
@@ -2995,8 +3006,13 @@ void CloseSC1000(void){	   //EDO
 			for(id=0;id<P.Num.Det;id++) ret=sc_pipe_close2(P.Spc.ScBoard[ib],P.Spc.Pipe[ib][id]);
 			P.Spc.ScPipeClose=FALSE;
 			P.Spc.ScDeinit=TRUE;
-			
-			if(P.Mamm.IsTop&&P.Mamm.Shrink[Y]){
+		}
+		else{
+			ret=sc_tdc_interrupt2(P.Spc.ScBoard[ib]);
+			P.Spc.ScPipeClose=TRUE;
+			P.Spc.ScDeinit=FALSE;
+		}
+		if(P.Mamm.IsTop&&P.Mamm.Shrink[Y]){
 				long blast = P.Loop[P.Mamm.Loop[Y]].Last;
 				long bnum = P.Loop[P.Mamm.Loop[Y]].Num;
 				rewind(P.File.File);
@@ -3009,13 +3025,6 @@ void CloseSC1000(void){	   //EDO
 				P.Loop[P.Mamm.Loop[Y]].Num = bnum;
 				CompleteParmS();
 				UpdatePanel();
-			}
-			
-		}
-		else{
-			ret=sc_tdc_interrupt2(P.Spc.ScBoard[ib]);
-			P.Spc.ScPipeClose=TRUE;
-			P.Spc.ScDeinit=FALSE;
 		}
 		P.Spc.ScTimeElapsed=Timer();
 		P.Spc.Started = FALSE;
@@ -3055,6 +3064,8 @@ void GetDataSC1000(void){						  //EDO
 				if(P.Mamm.Status&&P.Contest.Function==CONTEST_MEAS){
 					P.Action.StopMamm=1;
 					P.Action.DataSave=1;
+					P.Action.StopUSB6229_Mammot = 1;
+					P.Mamm.OverTreshold = TRUE;
 					ErrHandler(ERR_SC1000,ret,"Sync");
 					return;}
 				else SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Error in pipe reading. Measure will attempt to continue");
@@ -3071,6 +3082,20 @@ void GetDataSC1000(void){						  //EDO
 			if(ret<0) ErrHandler(ERR_SC1000,ret,"GetDataSC1000");
 		}
 	}
+	// needed for long time measurements 
+	/*if(P.Mamm.Mamm==0&&P.Contest.Function==CONTEST_MEAS){
+		long AreaT =0;
+	 	for(ic=0;ic<P.Chann.Num;ic++) AreaT +=  LinArray[ic];
+		if(AreaT/P.Spc.TimeM < 40000 && P.Spc.SC.ReinitMeas == 0){
+			P.Spc.SC.ReinitMeas = 1;
+		SpcClose();
+		SpcInit();
+		P.Action.ScReInit.AnyOper = TRUE;	
+		ReInitSC1000('M');
+		P.Action.ScReInit.AnyOper = FALSE;
+		}
+		if(AreaT/P.Spc.TimeM < 40000) P.Spc.SC.ReinitMeas = 0;
+	}*/
 	if(P.Mamm.NumAcq.Active){
 		P.Mamm.NumAcq.Actual++;
 		if(P.Mamm.NumAcq.Actual>=P.Mamm.NumAcq.Tot){
@@ -3130,7 +3155,7 @@ void CalcNonlinSC1000(void){	   //EDO
 			icc=0;
 			while(fscanf(pfile,"%lf\t%d",&DCR_raw_time[icc],&DCR_raw_count[icc])!=EOF) icc++;
 			fclose(pfile);
-			int LengthDCRFile = icc-350;  //to remove the effects of the non linear time scale at the end of the acquisition
+			int LengthDCRFile = icc-1500;  //to remove the effects of the non linear time scale at the end of the acquisition
 			meanDCR=0;
 			for(icc=0;icc<LengthDCRFile;icc++) meanDCR+=DCR_raw_count[icc]; // icc = channel (bin) on the original non-lin TDC data
 			meanDCR/=LengthDCRFile;
@@ -5265,9 +5290,6 @@ void StartCont(char Step, char Status){
 		}
 	
 	MoveStep(&P.Step[Step].Actual,stopgoal,Step,FALSE,Status);
-	FID = fopen("checkmammot.txt","a+");
-	fprintf(FID,"%ld\t%ld\tmovestep\n",stopgoal,P.Step[Step].Actual);
-	fclose(FID);
 }
 
 
@@ -5330,7 +5352,8 @@ void InitStep(char Step){
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
 	else SetVel(Step, P.Step[Step].Freq);
-	
+	P.Step[Step].IsInitialized = TRUE;
+    
 	}
 
 
@@ -5363,6 +5386,7 @@ void CloseStep(char Step){
 		case ATT_LUCA:	CloseAttLuca(Step); break;
 		case NONE: break;
 		}
+	P.Step[Step].IsInitialized = FALSE;
 	}
 
 
@@ -6175,7 +6199,9 @@ void InitMicro(char Step){
 	FlushOutQ (com);
     
     TalkMicro(Step,MICRO_LCD,P.Step[Step].Lcd,&ret);
-    TalkMicro(Step,MICRO_HOLD,P.Step[Step].Hold,&ret);
+	char HoldVal = P.Step[Step].Hold;
+	if (P.Step[Step].Hold == 3) HoldVal = 2; //needed for "OFF-OSC" selection mode
+    TalkMicro(Step,MICRO_HOLD,HoldVal,&ret);
     TalkMicro(Step,MICRO_FMIN,P.Step[Step].FreqMin,&ret);
 	TalkMicro(Step,MICRO_VEL,(int) P.Step[Step].Freq,&ret);
 	TalkMicro(Step,MICRO_FDELTA,P.Step[Step].FreqDelta,&ret);
@@ -7215,62 +7241,72 @@ void InitUSB6229_Mammot(void){
 void CreateTasksUSB6229_Mammot(void){
 	int ret_id;
 	ret_id = DAQmxCreateTask("contatore",&P.NIBoard.CounterTask);
-	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.CounterTask); 	
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.CounterTask,"CreateCounter"); 	
 	ret_id = DAQmxCreateTask("dio",&P.NIBoard.DigitalOutputTask);
-	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask);
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask,"CreateDio");
 	ret_id = DAQmxCreateTask("treno",&P.NIBoard.PulseTrainTask);
-	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.PulseTrainTask);
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.PulseTrainTask,"CreateTrain");
 }
 void StartTasksUSB6229_Mammot(void){
 	int ret_id;
 	ret_id = DAQmxStartTask(P.NIBoard.CounterTask);
-	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.CounterTask); 
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.CounterTask,"StartCounter"); 
 	ret_id = DAQmxStartTask(P.NIBoard.DigitalOutputTask);
-	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask);
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask,"StartDio");
 	ret_id = DAQmxStartTask(P.NIBoard.PulseTrainTask);
-	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.PulseTrainTask);
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.PulseTrainTask,"StartTrain");
 }
 void StopTasksUSB6229_Mammot(void){
 	int ret_id;
 	ret_id = DAQmxStopTask(P.NIBoard.CounterTask);
-	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.CounterTask);
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.CounterTask,"StopCounter");
 	ret_id = DAQmxStopTask(P.NIBoard.DigitalOutputTask);
-	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask);
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask,"StopDio");
 	ret_id = DAQmxStopTask(P.NIBoard.PulseTrainTask);
-	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.PulseTrainTask);
+	if(ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.PulseTrainTask,"StopTrain");
+	P.NIBoard.TasksStarted = FALSE;
 }
 void ClearTasksUSB6229_Mammot(void){
 	DAQmxClearTask(P.NIBoard.DigitalOutputTask);
 	DAQmxClearTask(P.NIBoard.PulseTrainTask);
 	DAQmxClearTask(P.NIBoard.CounterTask);
+	P.NIBoard.TasksStarted = FALSE;
 }
 void ReadCounterINUSB6229_Mammot(TaskHandle CounterTask,int32 SamplesToRead,uInt32 *CounterData,int32 *ReadSamples){
 	int32 numSampsPerChan = -1;
-	float64 Timeout = 10.0;
+	float64 Timeout = 5.0;
 	int ret_id = DAQmxReadCounterU32(CounterTask,numSampsPerChan,Timeout,CounterData,SamplesToRead,ReadSamples,0);
-	if (ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.CounterTask);
+	if (ret_id<0){
+		char message[STRLEN];
+		sprintf(message,"Error in reading the counter (%d)\n",ret_id);
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+		//ErrorUSB6229_Mammot(ret_id,P.NIBoard.CounterTask,"ReadCounter");
+	}
 }
 void WriteDigitalOutputUSB6229_Mammot(TaskHandle DigitalOutputTask,uInt32 DataToWrite){
 	float64 Timeout = 10.0;
 	//int ret_id = DAQmxWriteDigitalLines(DigitalOutputTask,1,1,Timeout,DAQmx_Val_GroupByChannel,DataToWrite,NULL,NULL);
 	int32 written;
 	int ret_id = DAQmxWriteDigitalU32(DigitalOutputTask,1,1,10.0,DAQmx_Val_GroupByChannel,&DataToWrite,&written,NULL);
-	if (ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask);
+	if (ret_id<0) ErrorUSB6229_Mammot(ret_id,P.NIBoard.DigitalOutputTask,"WriteDio");
 }
-void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle){
+void ErrorUSB6229_Mammot(int error,TaskHandle taskHandle,char *TaskName){
 	char errBuff[2048]={'\0'};
 	if( DAQmxFailed(error) )
 		DAQmxGetExtendedErrorInfo(errBuff,2048);
 	if( taskHandle!=0 ) {
-		DAQmxStopTask(taskHandle);
-		DAQmxClearTask(taskHandle);
+		//DAQmxStopTask(taskHandle);
+		//DAQmxClearTask(taskHandle);
 	}
 	if( P.NIBoard.CounterData ) {
-		free(P.NIBoard.CounterData);
-		P.NIBoard.CounterData = NULL;
+		//free(P.NIBoard.CounterData);
+		//P.NIBoard.CounterData = NULL;
 	}
+	char FinalString[100];
+	strcpy(FinalString,TaskName);
 	if( DAQmxFailed(error) )
-		MessagePopup("DAQmx Error",errBuff);
+		MessagePopup(strcat(FinalString," - DAQmx Error"),errBuff);
+	
 	return 0;
 }
 void StartUSB6229_Mammot(void){
@@ -7280,19 +7316,22 @@ void StartUSB6229_Mammot(void){
 	P.NIBoard.ReadSamples = 0;
 	P.NIBoard.CounterDataBuffer = 0;
 	P.NIBoard.BuffReadSamples = 0;
-	int32 SamplesToRead = 1e7;
+	int32 SamplesToRead = 1e8;
 	if( (P.NIBoard.CounterData=malloc(SamplesToRead*sizeof(uInt32)))==NULL ) {
 			SetCtrlVal (hDisplay, DISPLAY_MESSAGE,"Not enough memory\n");
 			return -1;
 		}
 	StartTasksUSB6229_Mammot();
-	FID = fopen("checkmammot.txt","a+");
-	fprintf(FID,"startusb\n");
-	fclose(FID);
-	
+	P.NIBoard.TasksStarted = TRUE;
 }
 void GetDataUSB6229_Mammot(void){
-	int32 SamplesToRead = 1e7;		
+	int32 SamplesToRead = 1e8;
+	if (P.NIBoard.TasksStarted==FALSE){
+		FID = fopen("EnnesimoFallimento.txt","a+");
+		fprintf(FID,"Tasks not started\t%d\t%d\n",P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual);
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Tasks not started!\n");
+		fclose(FID);
+	}
 	ReadCounterINUSB6229_Mammot(P.NIBoard.CounterTask,SamplesToRead,P.NIBoard.CounterData,&P.NIBoard.ReadSamples);
 }
 void CheckDataUSB6229_Mammot(void){
@@ -7301,17 +7340,23 @@ void CheckDataUSB6229_Mammot(void){
 	for (rs=P.NIBoard.ReadSamples-1;rs>=0;rs--)
 		P.NIBoard.CounterData[rs+1]=P.NIBoard.CounterData[rs];
 	P.NIBoard.CounterData[0] = P.NIBoard.CounterDataBuffer;
-	int cond1; int cond2;
+	int cond1; int cond2; int cond3;
 	for (rs =1;rs<=P.NIBoard.ReadSamples;rs++){
 		P.NIBoard.BuffReadSamples++;
 		cond1 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)>(SC1000_MAX_COUNT_RATE/P.Num.Det);
 		cond2 = (((long) ((((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea))))/((double) P.NIBoard.RefMeasArea))<=P.Mamm.NegativeTreshold;
-		if (P.NIBoard.CounterData[rs]==0) cond2 = FALSE ;
-		if((cond1||cond2)&&(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition/2)||(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition+P.Mamm.ExtraFrame.Num)))){
+		cond3 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(SC1000_MIN_COUNT_RATE/P.Num.Det);
+		if (P.NIBoard.CounterData[rs]==0) {cond2 = FALSE; cond3 = FALSE;}
+		if((cond1||cond2||cond3)&&(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition/2))){//||(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition+P.Mamm.ExtraFrame.Num)))){
 			StopStep(P.Mamm.Step[X]);
 			long ExtraFrames = P.NIBoard.BuffReadSamples-P.Mamm.NumAcq.Actual;
+			if(ExtraFrames<=0){
+				char message[STRLEN];
+				sprintf(message,"Counter slower than TDC: Extraframe counter: %d at loopY %d\nMeasure will stop\n",ExtraFrames,P.Loop[P.Mamm.Loop[Y]].Idx);
+				SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
+				ExtraFrames = 1;
+			}
 			P.Spc.ScStopLoop = P.Loop[P.Mamm.Loop[X]].Idx+(ExtraFrames);
-			P.NIBoard.NumberPreviousAcquisition = P.NIBoard.BuffReadSamples;
 			P.Action.StopUSB6229_Mammot = TRUE;
 			return;
 		}
@@ -9170,7 +9215,7 @@ void AddLabel(int IdName){
 	char *LabelContent=T.Addr[IdContent];
 	char Answer[LABEL_CONTENTLEN];
 
-	sprintf(Message,"%s\n\n press enter to confirm or edit to modify",LabelContent);
+	sprintf(Message,"Label: %s\nContent: %s\n press OK to confirm or edit to modify",LabelName,LabelContent);
 	PromptPopup (LabelName,Message,Answer,LABEL_CONTENTLEN-1);
 	if(strlen(Answer)>0) strcpy(LabelContent,Answer);
 	SetCtrlAttribute (hPanel[T.Panel[IdContent]],T.Ctrl[IdContent],ATTR_CTRL_VAL,LabelContent);
@@ -9183,7 +9228,7 @@ void AddThick(int ID){
 	double *actualValue=T.Addr[ID];
 	char Answer[STRLEN];
 
-	sprintf(Message,"Please Enter THICKNESS in cm, use . (dot)\n   Actual value is %f\n Press Enter to Confirm or Modify",*actualValue);
+	sprintf(Message,"Please Enter THICKNESS in cm, use . (dot)\n   Actual value is %f\n Press OK to Confirm or Modify",*actualValue);
 	PromptPopup ("THICKNESS",Message,Answer,LABEL_CONTENTLEN-1);
 	if(strlen(Answer)>0) Scan (Answer,"%f",actualValue);
 	SetCtrlAttribute (hPanel[T.Panel[ID]],T.Ctrl[ID],ATTR_CTRL_VAL,*actualValue);
@@ -9528,7 +9573,7 @@ void AnalysisMamm(void){
 
 /* IS OVERTHRESHODLS? */
 void AnalysisMamm_new(void){
-
+	return;
 	int ib,id=0,ic;
 	long Area, CountRate;
 	double Treshold, Target1, Target2, Target3;
@@ -9541,14 +9586,23 @@ void AnalysisMamm_new(void){
 	Area=CalcArea(P.Chann.First,P.Chann.Last);
 	Target1 = (Area-P.Mamm.RefMeas.Area)/((double) P.Mamm.RefMeas.Area);
 	Cond1 = Target1 <= P.Mamm.NegativeTreshold;
-	if(Cond1){}
+	if(Cond1){
+		char message[STRLEN];sprintf(message,"Cond TDC at loopY %d\n",P.Loop[P.Mamm.Loop[Y]].Idx);
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
+	}
 	//	P.Mamm.OverTreshold = TRUE;
 	Area *= P.Num.Det;
-	if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)>=SC1000_MAX_COUNT_RATE){}
+	if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)>=SC1000_MAX_COUNT_RATE){
+		char message[STRLEN];sprintf(message,"Max TDC at loopY %d\n",P.Loop[P.Mamm.Loop[Y]].Idx);
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
+	}
 	//	P.Mamm.OverTreshold = TRUE; 
 	if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)<=SC1000_MIN_COUNT_RATE){
+			char message[STRLEN];sprintf(message,"Min TDC at loopY %d\n",P.Loop[P.Mamm.Loop[Y]].Idx);
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
 	//	P.Mamm.ExtraFrame.IsActiveOnLoopYNum = P.Loop[P.Mamm.Loop[Y]].Idx+2;
 	//	P.Mamm.OverTreshold = TRUE;
+    //  P.NIBoard.BuffReadSamples=abs(P.Frame.Actual-P.Frame.Last);	
 	}
 	
 	/*if(P.Mamm.IsRefMeas){
@@ -9628,11 +9682,12 @@ void InitMammot(void){	   //EDO
 	TellPos(StepX,&P.Step[StepX].Actual);
 	MoveStep(&P.Step[StepX].Actual,P.Step[StepX].Home,StepX,TRUE,P.Action.Status);
 	P.Spc.ScWait = FALSE;
-	ReInitSC1000('M');
-	SpcOut(TRUE);
-	D.Curve = D.Data[P.Frame.Actual][id];
-	P.Mamm.RefMeas.Area = CalcArea(P.Chann.First,P.Chann.Last);
+	//ReInitSC1000('M');
+	//SpcOut(TRUE);
+	//D.Curve = D.Data[P.Frame.Actual][id];
+	//P.Mamm.RefMeas.Area = CalcArea(P.Chann.First,P.Chann.Last);
 	if(P.NIBoard.Active){
+	/*
 	InitUSB6229_SoftwareTrigger_Mammot();
 	StartUSB6229_Mammot();
 	uInt32 Data2Write = 0xFFFFFFFE;
@@ -9642,8 +9697,8 @@ void InitMammot(void){	   //EDO
 	WriteDigitalOutputUSB6229_Mammot(P.NIBoard.DigitalOutputTask,Data2Write);
 	StopTasksUSB6229_Mammot();
 	ClearTasksUSB6229_Mammot();
-	
-	P.NIBoard.RefMeasArea=P.NIBoard.CounterData[0];
+	*/
+	//P.NIBoard.RefMeasArea=P.NIBoard.CounterData[0];
 	
 	InitUSB6229_Mammot();
 	StartUSB6229_Mammot();
@@ -9653,10 +9708,25 @@ void InitMammot(void){	   //EDO
 	double freq=fabs(P.Step[StepX].Delta)/(num_meas*P.Spc.TimeM*P.Loop[P.Step[StepX].Loop].Num);
 	if(freq!=P.Step[StepX].FreqActual) SetVel(StepX,freq);
 	MoveStep(&P.Step[StepX].Actual,CalcGoal(StepX),StepX,FALSE,P.Action.Status);
-	int cond1=0,cond2=0,rs=0; long prova;double counts;
+	int cond1=0,cond2=0,cond3=0,rs=0; double counts;
 	int MaxMeas = abs(P.Loop[LoopX].First/P.Loop[LoopX].Delta); //abs(P.Step[StepX].Start[0]/P.Step[StepX].Factor);
-	while(cond1==0&&cond2==0&&P.NIBoard.BuffReadSamples<MaxMeas){
+	int firstacq = 1;
+	while(cond1==0&&cond2==0&&cond3==0&&P.NIBoard.BuffReadSamples<MaxMeas){
 	while(P.NIBoard.ReadSamples==0) GetDataUSB6229_Mammot();
+	if(firstacq){
+		for(rs = 0; rs<P.NIBoard.ReadSamples;rs++){
+		if (P.NIBoard.CounterData[rs]>=100){
+			P.NIBoard.RefMeasArea = P.NIBoard.CounterData[rs];
+			firstacq = 0;
+			char message[STRLEN];sprintf(message,"RefMeasCounts: %d\n",P.NIBoard.RefMeasArea);
+			SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
+			break;
+		}
+	}
+	}
+//	if(firstacq&&P.NIBoard.CounterData[0]!=0) {
+//		P.NIBoard.RefMeasArea = P.NIBoard.CounterData[0]; firstacq = 0;
+//	}
 	for (rs=P.NIBoard.ReadSamples-1;rs>=0;rs--)
 		P.NIBoard.CounterData[rs+1]=P.NIBoard.CounterData[rs];
 	P.NIBoard.CounterData[0] = P.NIBoard.CounterDataBuffer;
@@ -9664,8 +9734,9 @@ void InitMammot(void){	   //EDO
 		P.NIBoard.BuffReadSamples++;
 		cond1 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)>(SC1000_MAX_COUNT_RATE/P.Num.Det);
 		cond2 = (((long) ((((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea))))/((double) P.NIBoard.RefMeasArea))<=P.Mamm.NegativeTreshold;
-		if (P.NIBoard.CounterData[rs]==0) cond2 = FALSE ;
-		if(cond1||cond2){
+		cond3 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(SC1000_MIN_COUNT_RATE/P.Num.Det);
+		if (P.NIBoard.CounterData[rs]==0) {cond2 = FALSE; cond3 = FALSE;}
+		if(cond1||cond2||cond3){
 			StopStep(StepX);
 			break;
 		}
@@ -9681,6 +9752,12 @@ void InitMammot(void){	   //EDO
 	if(P.Frame.Actual<0) P.Frame.Actual = 0;
 	TellPos(StepX,&PosX);
 	MoveStep(&PosX,P.Step[StepX].Start[P.Frame.Actual],StepX,TRUE,P.Action.Status);
+	
+	TellPos(StepX,&PosX);
+	long StopGoal = P.Step[StepX].Start[P.Frame.Actual+P.Mamm.ShiftBack]; // controllare il +1
+	MoveStep(&PosX,StopGoal,StepX,TRUE,P.Action.Status);
+	P.Frame.Actual = P.Frame.Actual + P.Mamm.ShiftBack;
+	
 	P.NIBoard.NumberPreviousAcquisition = (P.Frame.Num-P.Frame.Actual);
 	}
 	}
@@ -9693,9 +9770,6 @@ void InitMammot(void){	   //EDO
 /* RESUME MAMMOT PROCEDURE */
 void StartMammot(void){
 	// Clear DATA
-	FID = fopen("checkmammot.txt","a+");
-	fprintf(FID,"pre startmammot\n");
-	fclose(FID);
 	int ifr,ip,ib;
 	for(ifr=0; ifr<P.Frame.Num;ifr++)
 		for(ip=0; ip<P.Num.Page;ip++)
@@ -9706,9 +9780,6 @@ void StartMammot(void){
 			CompileSub(P.Ram.Actual, ifr, ip);
 	
 	float AcqTime = min((P.Frame.Last-P.Frame.First)+(P.Mamm.ExtraFrame.Num)/abs(P.Loop[P.Mamm.Loop[X]].Delta),P.Frame.Num)*P.Spc.TimeM; //controllare  //20 � in mm
-	FID = fopen("checkmammot.txt","a+");
-	fprintf(FID,"%f\t%d\t%d\t%d\t%d\tpost startmammot\n", AcqTime,  P.Mamm.ExtraFrame.Num,P.Frame.Last,P.Frame.First,P.Loop[P.Mamm.Loop[Y]].Idx);
-	fclose(FID);
 	if(!P.Spc.Started)
 		for(ib=0;ib<P.Num.Board;ib++)
 			P.Spc.ScAcqTime=StartSC1000(ib,AcqTime);
@@ -9737,6 +9808,7 @@ void StopMammot(void){	  //EDO
 	P.Spc.ScStopLoop = 0;
 	P.Mamm.NumAcq.Active = FALSE;
 	P.Mamm.IgnoreTrash=FALSE;
+	P.NIBoard.NumberPreviousAcquisition = P.NIBoard.BuffReadSamples-P.Mamm.ShiftBack;
 }
 
 /* OVERTHRESHOLDS OPERATIONS */
@@ -9768,7 +9840,7 @@ void BackShift(void){
 	int ShiftBack=P.Mamm.ShiftBack,id,ib,ic,iframe;
 	
 	TellPos(P.Mamm.Step[X],&PosX);
-	long Frame = P.Frame.Actual-P.Frame.Dir*(P.Mamm.ShiftBack-1);
+	long Frame = P.Frame.Actual-P.Frame.Dir*(P.Mamm.ShiftBack);
 	if(Frame < 0) return;
 	if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
 		StopGoal = P.Step[StepX].Stop[Frame]; // controllare il +1
