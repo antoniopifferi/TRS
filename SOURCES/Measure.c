@@ -225,6 +225,7 @@ void KernelGen(){
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.WaitStep[is]) WaitStep(&P.Step[is].Actual,CalcGoal(is),is,P.Action.Status);
 						if(P.Action.ScReInit.TrimmerPreBreak) ReInitSC1000('T'); // EDO
+						if(P.Action.ThresholdMammot) GetRefValueMammot();
 						for(it=0;it<MAX_TRIM;it++)
 							if((P.Action.Trim[it])&&!P.Trim[it].Break)
 								AutoTrim(it);  // Trim BEFORE Break
@@ -232,7 +233,7 @@ void KernelGen(){
 						if(P.Action.ScReInit.Oscilloscope) ReInitSC1000('O');								  //EDO
 						for(il=0;il<MAX_LOOP;il++)
 							if(P.Action.Break[il]){Oscilloscope();if(P.Command.Abort) break;}
-						if(P.Action.ScReInit.TrimmerPostBreak) ReInitSC1000('T'); 							  
+						if(P.Action.ScReInit.TrimmerPostBreak) ReInitSC1000('T');
 						for(it=0;it<MAX_TRIM;it++)
 							if((P.Action.Trim[it])&&P.Trim[it].Break)
 								AutoTrim(it); // Trim AFTER Break
@@ -652,6 +653,7 @@ void DecideAction(void){
 		if(P.Mamm.IsTop&&(!new[P.Mamm.Loop[Y]])&&P.Mamm.Shrink[Y])
 			D.Head.LoopLast[P.Mamm.Loop[Y]-2] = P.Loop[P.Mamm.Loop[Y]].Actual;
 		P.Action.InitMamm=first[P.Mamm.Loop[Y]];
+		P.Action.ThresholdMammot=first[P.Mamm.Loop[Y]]; 
 		P.Action.MoveStep[P.Mamm.Step[X]]=first[P.Mamm.Loop[Y]]?0:P.Action.MoveStep[P.Mamm.Loop[X]];
 		P.Action.StartMamm=new[P.Mamm.Loop[Y]];
 		P.NIBoard.Active = TRUE;
@@ -7327,10 +7329,7 @@ void StartUSB6229_Mammot(void){
 void GetDataUSB6229_Mammot(void){
 	int32 SamplesToRead = 1e8;
 	if (P.NIBoard.TasksStarted==FALSE){
-		FID = fopen("EnnesimoFallimento.txt","a+");
-		fprintf(FID,"Tasks not started\t%d\t%d\n",P.Loop[P.Mamm.Loop[Y]].Idx,P.Frame.Actual);
 		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Tasks not started!\n");
-		fclose(FID);
 	}
 	ReadCounterINUSB6229_Mammot(P.NIBoard.CounterTask,SamplesToRead,P.NIBoard.CounterData,&P.NIBoard.ReadSamples);
 }
@@ -7344,10 +7343,15 @@ void CheckDataUSB6229_Mammot(void){
 	for (rs =1;rs<=P.NIBoard.ReadSamples;rs++){
 		P.NIBoard.BuffReadSamples++;
 		cond1 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)>(SC1000_MAX_COUNT_RATE/P.Num.Det);
-		cond2 = (((long) ((((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea))))/((double) P.NIBoard.RefMeasArea))<=P.Mamm.NegativeTreshold;
-		cond3 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(SC1000_MIN_COUNT_RATE/P.Num.Det);
+		//cond2 = (((long) ((((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea))))/((double) P.NIBoard.RefMeasArea))<=P.Mamm.NegativeTreshold;
+		//cond3 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(SC1000_MIN_COUNT_RATE/P.Num.Det);
+		cond3 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(P.Spc.SC.DarkCountRateValue);
+		cond2 = FALSE;
 		if (P.NIBoard.CounterData[rs]==0) {cond2 = FALSE; cond3 = FALSE;}
 		if((cond1||cond2||cond3)&&(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition/2))){//||(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition+P.Mamm.ExtraFrame.Num)))){
+			char message[STRLEN];
+			sprintf(message,"Stop for cond3: %d.Value %f\n",cond3,(P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM);
+    		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Tasks not started!\n");
 			StopStep(P.Mamm.Step[X]);
 			long ExtraFrames = P.NIBoard.BuffReadSamples-P.Mamm.NumAcq.Actual;
 			if(ExtraFrames<=0){
@@ -9718,7 +9722,7 @@ void InitMammot(void){	   //EDO
 		if (P.NIBoard.CounterData[rs]>=100){
 			P.NIBoard.RefMeasArea = P.NIBoard.CounterData[rs];
 			firstacq = 0;
-			char message[STRLEN];sprintf(message,"RefMeasCounts: %d\n",P.NIBoard.RefMeasArea);
+			char message[STRLEN];sprintf(message,"RefMeasCounts: %ld\n",P.Spc.SC.DarkCountRateValue);
 			SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);
 			break;
 		}
@@ -9767,6 +9771,14 @@ void InitMammot(void){	   //EDO
 	P.Mamm.IgnoreTrash = TRUE; P.Spc.ScWait = TRUE;
 }
 
+void GetRefValueMammot(void){
+	SpcOut(P.Action.Status);
+	int ic; long CountRate = 0;
+	for(ic=0;ic<P.Chann.Num;ic++) CountRate = CountRate + D.Data[P.Frame.Actual][0][ic];
+	CountRate = CountRate/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000);
+	if (CountRate >= 8e5) CountRate = SC1000_MIN_COUNT_RATE;
+	P.Spc.SC.DarkCountRateValue = CountRate;
+}
 /* RESUME MAMMOT PROCEDURE */
 void StartMammot(void){
 	// Clear DATA

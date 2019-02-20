@@ -1196,6 +1196,7 @@ struct ActionS{
 	char GetDataUSB6229_Mammot; //EDO
 	char CheckDataUSB6229_Mammot;
 	struct ScReinitS ScReInit;			//EDO
+	char ThresholdMammot;
 	};
 
 struct LoopS {
@@ -1503,6 +1504,7 @@ struct SurfaceConceptS{		//to do: use this struct for SC operations instead of P
 	double Period;									// period between two IRF peaks (used in rebinning)
 	double Rebin;
 	char ReinitMeas;
+	long DarkCountRateValue;
 };
 struct SpcS {
 	char   Type;
@@ -2557,6 +2559,7 @@ void InitLegend(void);
 void AddLabel(int IdName);
 void AddThick(int ID);
 void InitMammot(void);			//EDO
+void GetRefValueMammot(void);
 void StartMammot(void);			//EDO
 void StopMammot(void);			//EDO
 void CheckMammot(void);			//EDO
