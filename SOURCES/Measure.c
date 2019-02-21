@@ -7345,13 +7345,9 @@ void CheckDataUSB6229_Mammot(void){
 		cond1 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)>(SC1000_MAX_COUNT_RATE/P.Num.Det);
 		//cond2 = (((long) ((((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea))))/((double) P.NIBoard.RefMeasArea))<=P.Mamm.NegativeTreshold;
 		//cond3 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(SC1000_MIN_COUNT_RATE/P.Num.Det);
-		cond3 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(P.Spc.SC.DarkCountRateValue);
-		cond2 = FALSE;
-		if (P.NIBoard.CounterData[rs]==0) {cond2 = FALSE; cond3 = FALSE;}
-		if((cond1||cond2||cond3)&&(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition/2))){//||(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition+P.Mamm.ExtraFrame.Num)))){
-			char message[STRLEN];
-			sprintf(message,"Stop for cond3: %d.Value %f\n",cond3,(P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM);
-    		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Tasks not started!\n");
+		cond2 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(P.Spc.SC.DarkCountRateValue);
+		if (P.NIBoard.CounterData[rs]==0) {cond2 = FALSE;}
+		if((cond1||cond2)&&(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition/2))){//||(P.NIBoard.BuffReadSamples>=(P.NIBoard.NumberPreviousAcquisition+P.Mamm.ExtraFrame.Num)))){
 			StopStep(P.Mamm.Step[X]);
 			long ExtraFrames = P.NIBoard.BuffReadSamples-P.Mamm.NumAcq.Actual;
 			if(ExtraFrames<=0){
@@ -9715,9 +9711,9 @@ void InitMammot(void){	   //EDO
 	int cond1=0,cond2=0,cond3=0,rs=0; double counts;
 	int MaxMeas = abs(P.Loop[LoopX].First/P.Loop[LoopX].Delta); //abs(P.Step[StepX].Start[0]/P.Step[StepX].Factor);
 	int firstacq = 1;
-	while(cond1==0&&cond2==0&&cond3==0&&P.NIBoard.BuffReadSamples<MaxMeas){
+	while(cond1==0&&cond2==0&&P.NIBoard.BuffReadSamples<MaxMeas){
 	while(P.NIBoard.ReadSamples==0) GetDataUSB6229_Mammot();
-	if(firstacq){
+	/*if(firstacq){
 		for(rs = 0; rs<P.NIBoard.ReadSamples;rs++){
 		if (P.NIBoard.CounterData[rs]>=100){
 			P.NIBoard.RefMeasArea = P.NIBoard.CounterData[rs];
@@ -9727,7 +9723,7 @@ void InitMammot(void){	   //EDO
 			break;
 		}
 	}
-	}
+	}*/
 //	if(firstacq&&P.NIBoard.CounterData[0]!=0) {
 //		P.NIBoard.RefMeasArea = P.NIBoard.CounterData[0]; firstacq = 0;
 //	}
@@ -9737,10 +9733,11 @@ void InitMammot(void){	   //EDO
 	for (rs =1;rs<=P.NIBoard.ReadSamples;rs++){
 		P.NIBoard.BuffReadSamples++;
 		cond1 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)>(SC1000_MAX_COUNT_RATE/P.Num.Det);
-		cond2 = (((long) ((((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea))))/((double) P.NIBoard.RefMeasArea))<=P.Mamm.NegativeTreshold;
-		cond3 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(SC1000_MIN_COUNT_RATE/P.Num.Det);
-		if (P.NIBoard.CounterData[rs]==0) {cond2 = FALSE; cond3 = FALSE;}
-		if(cond1||cond2||cond3){
+		//cond2 = (((long) ((((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])-P.NIBoard.RefMeasArea))))/((double) P.NIBoard.RefMeasArea))<=P.Mamm.NegativeTreshold;
+		//cond3 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(SC1000_MIN_COUNT_RATE/P.Num.Det);
+		cond2 = ((P.NIBoard.CounterData[rs]-P.NIBoard.CounterData[rs-1])/P.Spc.TimeM)<=(P.Spc.SC.DarkCountRateValue);
+		if (P.NIBoard.CounterData[rs]==0) {cond2 = FALSE;}
+		if(cond1||cond2){
 			StopStep(StepX);
 			break;
 		}
