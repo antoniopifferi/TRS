@@ -567,6 +567,7 @@
 #define SPC_SPADLAB		 11
 #define SPC_NIRS		 12
 #define SPC_LUCA		 13
+#define MH150		14
 
 #define WAIT_DELAY	 0
 #define WAIT_TIME	 1
@@ -703,6 +704,9 @@
 #define TH260_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 #define SEC_2_MILLISEC	1000 // conversion factor for second to millisecond
 #define MILLISEC_2_SEC	1/1000 // conversion factor for millisecond to second
+
+/* MH150 CONSTANTS */
+#define MH_USE_GET_ALL_HIST_FUN 0
 
 /* SC1000 CONSTANTS */
 #define SC1000_TYPE unsigned long			// data type of hystogram SC1000 data (non-lin)
@@ -912,6 +916,7 @@
 #define ERR_TH260		3
 #define ERR_SC1000	4
 #define ERR_GENERIC	5
+#define ERR_MH150 6
 
 
 /* GEOMETRY CONSTANTS */													//ALE
@@ -1522,7 +1527,9 @@ struct SpcS {
 	double TimeM;
 	int	   TimeHydra;
 	int	   TimeTH260;
+	int    TimeMH150;
 	int	   TH260HistLen;
+	int    MH150HistLen;
 	int	   TimeSC1000;
 	long   Count;
 	char   TdcDcrFileRoot[260];
@@ -2127,6 +2134,11 @@ void LinRefoldSC1000(int Refold,int Board,int Det,SC1000_TYPE *NonLinArray, doub
 void FlushSC1000(int Board);
 int PipeRead(int Board,int Det,int Timeout);
 
+/* ####################### MH150 FUNCTIONS ##########################*/
+void InitMH150(int Board);
+void CloseMH150();
+void GetDataMH150();
+void ClearMH150();
 
 /* ########################   SPADLAB FUNCTIONS   ####################### */
 void InitSpad(int Board);

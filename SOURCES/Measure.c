@@ -77,6 +77,8 @@
 #include "trs.h" 
 #include "mbc32.h" 
 #include "scTDCmod.h"	 // it must be placed BEFORE spcm_def.h
+#include "mhlib.h"
+#include "mhdefin.h"	
 #include "spcm_def.h"
 #include "spc_isa_def.h"
 #include "ximc2.h" // Standa2 driver re-saved as ximic2.h since the ximc.h had a truncated line
@@ -342,6 +344,7 @@ void Oscilloscope(void){
 			case SPC130: 
 			case HYDRA: 
 			case TH260:
+			case MH150:
 				SyncWait (P.Spc.TimeInit, SPC_TIMEDELAY); 
 				break;
 			default: break;
@@ -883,6 +886,7 @@ void CompleteParmS(void){
 		case SPC130:P.Spc.Calib=CALIB_SPC130;break;
 		case HYDRA:break;
 		case TH260:break;
+		case MH150: break;
 		case TEST:P.Spc.Calib=TEST_CALIB; break;
 		case DEMO:P.Spc.Calib=TEST_CALIB; break;
 		case SPC_NIRS:P.Spc.Calib=NIRS_DT; break;
@@ -932,9 +936,9 @@ void CompleteParmS(void){
 
 	P.Spc.Started=FALSE;
 	P.Spc.Trash=TRUE;
-	if((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260))
+	if((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==MH150))
 		P.Meas.Stop=TRUE;
-	if((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==TEST)||(P.Spc.Type==DEMO))
+	if((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==MH150)||(P.Spc.Type==TEST)||(P.Spc.Type==DEMO))
 		P.Spc.Format=SPC_SHORT;
 	else
 		P.Spc.Format=SPC_LONG;
@@ -1998,6 +2002,7 @@ void SpcInit(void){
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) InitSpcm(ib);break;
 		case HYDRA: for(ib=0;ib<P.Num.Board;ib++) InitHydra(ib);break;
 		case TH260: for(ib=0;ib<P.Num.Board;ib++) InitTH260(ib);break;
+		case MH150: for(ib=0;ib<P.Num.Board;ib++) InitMH150(ib);break;
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++) InitSC1000(ib);break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) InitSpad(ib);break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) InitNirs(ib);break;
@@ -2021,6 +2026,7 @@ void SpcClose(void){
 		case SPC130: CloseSpcm(); break;
 		case HYDRA: CloseHydra(); break;
 		case TH260: CloseTH260(); break;
+		case MH150: CloseMH150(); break;
 		case SPC_SC1000: CloseSC1000(); break;
 		case SPC_SPADLAB: CloseSpad(); break;
 		case SPC_NIRS: CloseNirs(); break;
@@ -2044,6 +2050,7 @@ void SpcPause(void){
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_pause_measurement(ib); break;
 		case HYDRA: HH_StopMeas(HYDRA_DEV0); break;
 		case TH260: TH260_StopMeas(TH260_DEV0); break;
+		case MH150: for(ib=0;ib<P.Num.Board;ib++) MH_StopMeas(ib); break;
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++) sc_tdc_interrupt2(P.Spc.ScBoard[ib]); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) PauseSpad(ib); break;
 		case TEST: break;
@@ -2068,6 +2075,7 @@ void SpcClear(void){
 		case SPC130: ClearSpcm(); break;
 		case HYDRA: ClearHydra(); break;
 		case TH260: ClearTH260(); break;
+		case MH150: ClearMH150(); break;
 		case SPC_SPADLAB: ClearSpad(); break;
 		case SPC_SC1000: ClearSC1000(); break; 
 		case TEST: break;
@@ -2093,6 +2101,7 @@ void SpcIn(){
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_start_measurement(ib); break;
 		case HYDRA: HH_StartMeas(HYDRA_DEV0,P.Spc.TimeHydra); break;
 		case TH260: TH260_StartMeas(TH260_DEV0,P.Spc.TimeTH260); break;
+		case MH150: for(ib=0;ib<P.Num.Board;ib++) MH_StartMeas(ib,P.Spc.TimeMH150); break;
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++){} break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
@@ -2118,6 +2127,7 @@ void SpcRestart(void){  //TODO: check
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_restart_measurement(ib); break;
 		case HYDRA: HH_StartMeas(HYDRA_DEV0,P.Spc.TimeHydra); break;
 		case TH260: TH260_StartMeas(TH260_DEV0,P.Spc.TimeHydra); break;
+		case MH150: for(ib=0;ib<P.Num.Board;ib++) MH_StartMeas(ib,P.Spc.TimeMH150); break; 
 		case SPC_SC1000: break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
@@ -2155,6 +2165,7 @@ void SpcTime(float Time){
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_set_parameter(ib,COLLECT_TIME,Time); break;
 		case HYDRA: P.Spc.TimeHydra = (int) (Time*SEC_2_MILLISEC); break;
 		case TH260: P.Spc.TimeTH260 = (int) (Time*SEC_2_MILLISEC); break;
+		case MH150: P.Spc.TimeMH150 = (int) (Time*SEC_2_MILLISEC); break;
 		case SPC_SC1000: P.Spc.TimeSC1000 = (int) (Time*SEC_2_MILLISEC); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) TimeSpad(ib,Time); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) TimeNirs(ib,Time); break;
@@ -2179,6 +2190,7 @@ void SpcStop(char Status){
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_stop_measurement(ib);break;
 		case HYDRA: HH_StopMeas(HYDRA_DEV0); break;
 		case TH260: TH260_StopMeas(TH260_DEV0); break;
+		case MH150: for(ib=0;ib<P.Num.Board;ib++) MH_StopMeas(ib); break;
 		case SPC_SC1000: break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StopSpad(ib);break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StopNirs(ib);break;
@@ -2218,6 +2230,9 @@ void SpcWait(void){
 		case TH260: for(ib=0;ib<P.Num.Board;ib++)
     					do TH260_CTCStatus(TH260_DEV0,&mod_state2);
 						while(mod_state2==0);break;
+		case MH150: for(ib=0;ib<P.Num.Board;ib++)
+						do MH_CTCStatus(ib,&mod_state2);
+						while(mod_state2==0);break;
 		case SPC_SC1000: //if(P.Spc.ScWait) Delay(MILLISEC_2_SEC*(P.Spc.TimeSC1000*10));
 						/*for(ib=0;ib<P.Num.Board;ib++)
     					do  sc_tdc_get_status2(P.Spc.ScBoard[ib],&mod_state2);
@@ -2243,6 +2258,7 @@ void SpcGet(void){
 		case SPC130: GetDataSpcm();break;
 		case HYDRA: GetDataHydra();break;
 		case TH260: GetDataTH260();break;
+		case MH150: GetDataMH150();break;
 		case SPC_SC1000: GetDataSC1000();break;
 		case SPC_SPADLAB: GetDataSpad();break;
 		case SPC_NIRS: GetDataNirs();break;
@@ -2314,6 +2330,12 @@ void CalcTime(void){
 		case TH260:
 			TH260_GetElapsedMeasTime(TH260_DEV0,&elapsed_time);
 			for(ib=0;ib<P.Num.Board;ib++) P.Spc.EffTime[ib] = elapsed_time;
+			break;
+		case MH150:
+			for(ib=0;ib<P.Num.Board;ib++) {
+				MH_GetElapsedMeasTime(ib,&elapsed_time);
+				P.Spc.EffTime[ib] = elapsed_time;
+			}
 			break;
 		case SPC_NIRS:
 			for(ib=0;ib<P.Num.Board;ib++)
@@ -3227,6 +3249,137 @@ void LinRefoldSC1000(int Refold,int Board,int Det,SC1000_TYPE *NonLinArray, doub
 		break;
 	}
 }
+/* ######################## MultiHarp 150 FUNCTIONS ######################################  */
+/* INIT MH150 */
+void InitMH150(int Board){
+	char message[STRLEN];
+	int ret,id;
+	char HW_Serial[16];
+  	double Resolution;
+	int SyncDivider, SyncTriggerLevel,SyncTiggerEdge, SyncChannelOffset,InputTriggerLevel,InputTriggerEdge,ChannelOffset,ChannelEnable,Binning,Offset,MeasType,StartEdge,StopEdge;
+	char line[STRLEN];
+	FILE *pfile;
+	
+	
+	sprintf (message, "Initializing MH150, Module #%d, ...", Board);
+	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
+	
+	// read settings
+	pfile = fopen (P.Spc.Settings[Board], "r");
+	if(pfile==NULL) {Failure("Error Initializing MH150: cannot find IniFile for settings"); return;}
+	fgets(line,STRLEN,pfile); // First Line TITLE
+	fgets(line,STRLEN,pfile); // Second Line WARNINGS
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&SyncDivider);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&SyncTriggerLevel);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&SyncTiggerEdge);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&SyncChannelOffset);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&InputTriggerLevel);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&InputTriggerEdge);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&ChannelOffset);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&ChannelEnable);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&Binning);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&Offset);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&MeasType);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&StartEdge);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&StopEdge);
+	fclose(pfile);
+
+	// initialize
+	ret=MH_OpenDevice(Board,HW_Serial); // Check for Serial Number of Device = 0 (NOTE: Many TH260Harp Devices can be controlled)
+	if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_OpenDevice");
+	else{
+		sprintf (message, "...Serial Number = %s", HW_Serial); 
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message);  
+		}
+	ret=MH_Initialize(Board,MODE_HIST,REFSRC_INTERNAL); if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_Initialize");
+	
+	// set ini parameters
+	ret=MH_SetSyncDiv(Board,SyncDivider); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetSyncDiv");
+	ret=MH_SetSyncEdgeTrg(Board, SyncTriggerLevel, SyncTiggerEdge); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetSyncEdgeTrg");
+	ret=MH_SetSyncChannelOffset(Board,SyncChannelOffset);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetSyncChannelOffset");	
+	for(id=0;id<P.Num.Det;id++){
+		ret=MH_SetInputEdgeTrg(Board,id,InputTriggerLevel,InputTriggerEdge);
+		ret=MH_SetInputChannelOffset(Board,id,ChannelOffset);
+		ret=MH_SetInputChannelEnable(Board,id,ChannelEnable);
+	}
+	ret=MH_SetHistoLen(Board,MAXLENCODE,&P.Spc.MH150HistLen);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetHistoLen");	
+	ret=MH_SetBinning(Board,Binning); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetBinning");
+	ret=MH_SetOffset(Board,Offset); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetOffset");
+	ret=MH_GetResolution(Board,&Resolution); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_GetResolution");
+	ret=MH_SetMeasControl(Board,MeasType,StartEdge,StopEdge);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetMeasControl");  
+	
+	P.Spc.Calib = Resolution;
+    P.Spc.Factor = P.Spc.Calib;
+
+	P.Spc.TimeInit=TimerN();   // era Timer() 
+
+	Passed();
+
+	
+}
+
+/* CLOSE MH150 */	
+void CloseMH150(){
+	short ret;
+	for(int ib = 0;ib<MAXDEVNUM;ib++)
+		ret=MH_CloseDevice(ib);
+	}
+	
+/* TRANSFER DATA FROM MH150 */	
+void GetDataMH150(){
+	//short state;
+	int id;
+	int ic;
+	int ib;
+	int ret=0;
+
+	if(MH_USE_GET_ALL_HIST_FUN){
+	 int i1;
+	unsigned int **DataMH150;
+	DataMH150=(unsigned int**)calloc(1,sizeof(DataMH150));
+	if(!DataMH150) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 1");
+	for(id=0;id<P.Num.Det;id++){
+		DataMH150[id]=(unsigned int*)calloc(P.Num.Det,sizeof(unsigned int));
+		if(!DataMH150[id]) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 2");
+	}
+	P.Spc.Overflow=FALSE;
+	for(ib=0;ib<P.Num.Board;ib++){
+		ret=MH_GetAllHistograms(ib,DataMH150);
+		for(id=0;id<P.Num.Det;id++)
+			for(ic=0;ic<P.Chann.Num;ic++) 
+				D.Buffer[ib][id*P.Chann.Num+ic] = (unsigned short) DataMH150[id][ic]; 
+	}
+	}
+	else{
+		unsigned int *DataMH150;
+		DataMH150=calloc(P.Spc.MH150HistLen,sizeof(*DataMH150));
+		P.Spc.Overflow=FALSE;
+		for(ib=0;ib<P.Num.Board;ib++){ 
+			for(id=0;ib<P.Num.Det;id++){
+				ret=MH_GetHistogram(ib,DataMH150,id); if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_GetHistogram");
+				for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[ib][id*P.Chann.Num+ic] = (unsigned short) DataMH150[ic]; 
+				}
+		}
+	}
+	}
+
+/* CLEAR MH150 */	
+void ClearMH150(){
+	short ret;
+	int HistLen;
+	int i_trial=0;
+	for(int ib=0;ib<P.Num.Board;ib++){
+	do{
+		ret=MH_ClearHistMem(ib); 
+		if(ret<0){
+			i_trial++;
+			ret=MH_SetHistoLen(ib,MAXLENCODE,&HistLen); if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_SetHistoLen");
+			}
+		}
+	while((ret<0)&&(i_trial<10));
+	if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_ClearHistMem");
+	}
+	}
 
 /* ########################   DEIB SPADLAB TDC FUNCTIONS (SPADLAB)  ####################### */
 
@@ -8720,6 +8873,10 @@ void ErrHandler(int Device, int Code, char* Function){
 			TH260_GetErrorString(serror, Code);
 			strcpy (sdevice, "TH260");
 			break;
+		case ERR_MH150:
+			MH_GetErrorString(serror, Code);
+			strcpy (sdevice, "MH150");
+			break;			
 		case ERR_SC1000:
 			sc_get_err_msg(Code, serror); 
 			strcpy (sdevice, "SC1000");
