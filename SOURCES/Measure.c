@@ -2026,7 +2026,7 @@ void SpcClose(void){
 		case SPC130: CloseSpcm(); break;
 		case HYDRA: CloseHydra(); break;
 		case TH260: CloseTH260(); break;
-		case MH150: CloseMH150(); break;
+		//case MH150: CloseMH150(); break;
 		case SPC_SC1000: CloseSC1000(); break;
 		case SPC_SPADLAB: CloseSpad(); break;
 		case SPC_NIRS: CloseNirs(); break;
@@ -2635,7 +2635,7 @@ void GetDataHydra(void){
 	P.Spc.Overflow=FALSE;
 	for(ib=0;ib<P.Num.Board;ib++){
 		ret=HH_GetHistogram(HYDRA_DEV0,DataHydra,ib,0); if(ret<0) ErrHandler(ERR_HYDRA,ret,"HH_GetHistogram");
-		for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[ib][ic] = (unsigned short) DataHydra[ic]; 
+		for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[ib][ic] = (T_DATA) DataHydra[ic]; 
 		}
 	}
 
@@ -2739,7 +2739,7 @@ void GetDataTH260(void){
 	P.Spc.Overflow=FALSE;
 	for(ib=0;ib<P.Num.Board;ib++){
 		ret=TH260_GetHistogram(TH260_DEV0,DataTH260,ib,0); if(ret<0) ErrHandler(ERR_TH260,ret,"TH260_GetHistogram");
-		for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[ib][ic] = (unsigned short) DataTH260[ic]; 
+		for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[ib][ic] = (T_DATA) DataTH260[ic]; 
 		}
 	}
 
@@ -3252,11 +3252,12 @@ void LinRefoldSC1000(int Refold,int Board,int Det,SC1000_TYPE *NonLinArray, doub
 /* ######################## MultiHarp 150 FUNCTIONS ######################################  */
 /* INIT MH150 */
 void InitMH150(int Board){
+	if(P.Spc.MH150_Initialized) return;
 	char message[STRLEN];
 	int ret,id;
 	char HW_Serial[16];
   	double Resolution;
-	int SyncDivider, SyncTriggerLevel,SyncTiggerEdge, SyncChannelOffset,InputTriggerLevel,InputTriggerEdge,ChannelOffset,ChannelEnable,Binning,Offset,MeasType,StartEdge,StopEdge;
+	int SyncDivider, SyncTriggerLevel,SyncTiggerEdge, SyncChannelOffset,InputTriggerLevel[MAXINPCHAN],InputTriggerEdge,ChannelOffset,ChannelEnable[MAXINPCHAN],Binning,HistLenCodeUser,Offset,MeasType,StartEdge,StopEdge;
 	char line[STRLEN];
 	FILE *pfile;
 	
@@ -3273,11 +3274,16 @@ void InitMH150(int Board){
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&SyncTriggerLevel);
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&SyncTiggerEdge);
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&SyncChannelOffset);
-	fgets(line,STRLEN,pfile); sscanf(line,"%d",&InputTriggerLevel);
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&InputTriggerEdge);
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&ChannelOffset);
-	fgets(line,STRLEN,pfile); sscanf(line,"%d",&ChannelEnable);
+	for(id=0;id<MAXINPCHAN;id++){
+		fgets(line,STRLEN,pfile); sscanf(line,"%d",&InputTriggerLevel[id]);
+	}
+	for(id=0;id<MAXINPCHAN;id++){
+		fgets(line,STRLEN,pfile); sscanf(line,"%d",&ChannelEnable[id]);
+	}
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&Binning);
+	fgets(line,STRLEN,pfile); sscanf(line,"%d",&HistLenCodeUser);
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&Offset);
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&MeasType);
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&StartEdge);
@@ -3298,11 +3304,12 @@ void InitMH150(int Board){
 	ret=MH_SetSyncEdgeTrg(Board, SyncTriggerLevel, SyncTiggerEdge); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetSyncEdgeTrg");
 	ret=MH_SetSyncChannelOffset(Board,SyncChannelOffset);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetSyncChannelOffset");	
 	for(id=0;id<P.Num.Det;id++){
-		ret=MH_SetInputEdgeTrg(Board,id,InputTriggerLevel,InputTriggerEdge);
+		ret=MH_SetInputEdgeTrg(Board,id,InputTriggerLevel[id],InputTriggerEdge);
 		ret=MH_SetInputChannelOffset(Board,id,ChannelOffset);
-		ret=MH_SetInputChannelEnable(Board,id,ChannelEnable);
+		ret=MH_SetInputChannelEnable(Board,id,ChannelEnable[id]);
 	}
-	ret=MH_SetHistoLen(Board,MAXLENCODE,&P.Spc.MH150HistLen);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetHistoLen");	
+	P.Spc.MH150HistLenCodeUser = HistLenCodeUser;
+	ret=MH_SetHistoLen(Board,HistLenCodeUser,&P.Spc.MH150HistLen);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetHistoLen");	
 	ret=MH_SetBinning(Board,Binning); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetBinning");
 	ret=MH_SetOffset(Board,Offset); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetOffset");
 	ret=MH_GetResolution(Board,&Resolution); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_GetResolution");
@@ -3314,6 +3321,7 @@ void InitMH150(int Board){
 	P.Spc.TimeInit=TimerN();   // era Timer() 
 
 	Passed();
+	P.Spc.MH150_Initialized = TRUE;
 
 	
 }
@@ -3323,6 +3331,7 @@ void CloseMH150(){
 	short ret;
 	for(int ib = 0;ib<MAXDEVNUM;ib++)
 		ret=MH_CloseDevice(ib);
+	P.Spc.MH150_Initialized = FALSE;
 	}
 	
 /* TRANSFER DATA FROM MH150 */	
@@ -3334,34 +3343,60 @@ void GetDataMH150(){
 	int ret=0;
 
 	if(MH_USE_GET_ALL_HIST_FUN){
-	 int i1;
+/*	 int i1;
 	unsigned int **DataMH150;
-	DataMH150=(unsigned int**)calloc(1,sizeof(DataMH150));
+	DataMH150=(unsigned int**)calloc(P.Num.Det,sizeof(DataMH150));
 	if(!DataMH150) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 1");
 	for(id=0;id<P.Num.Det;id++){
-		DataMH150[id]=(unsigned int*)calloc(P.Num.Det,sizeof(unsigned int));
+		DataMH150[id]=(unsigned int*)calloc(P.Spc.MH150HistLen,sizeof(unsigned int));
 		if(!DataMH150[id]) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 2");
-	}
+	}*/
+	
+	
+	unsigned int DataMH150[P.Num.Det*P.Spc.MH150HistLen];
+	if(P.Contest.Function==CONTEST_MEAS&&P.Frame.Actual==0){
+			P.Spc.MH150_Start = Timer();
+		}
 	P.Spc.Overflow=FALSE;
 	for(ib=0;ib<P.Num.Board;ib++){
 		ret=MH_GetAllHistograms(ib,DataMH150);
 		for(id=0;id<P.Num.Det;id++)
-			for(ic=0;ic<P.Chann.Num;ic++) 
-				D.Buffer[ib][id*P.Chann.Num+ic] = (unsigned short) DataMH150[id][ic]; 
+			for(ic=0;ic<P.Chann.Num;ic++){ 
+				if(ic<P.Chann.Num) D.Buffer[ib][id*P.Chann.Num+ic] = (T_DATA) DataMH150[id*P.Spc.MH150HistLen+ic]; 
+			}
 	}
-	}
-	else{
-		unsigned int *DataMH150;
-		DataMH150=calloc(P.Spc.MH150HistLen,sizeof(*DataMH150));
-		P.Spc.Overflow=FALSE;
-		for(ib=0;ib<P.Num.Board;ib++){ 
-			for(id=0;ib<P.Num.Det;id++){
-				ret=MH_GetHistogram(ib,DataMH150,id); if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_GetHistogram");
-				for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[ib][id*P.Chann.Num+ic] = (unsigned short) DataMH150[ic]; 
-				}
+	if(P.Contest.Function==CONTEST_MEAS&&P.Frame.Actual==P.Frame.Num-1){
+			double Elapsed = Timer()-P.Spc.MH150_Start;
+			char DebugFilePath[STRLEN];
+			sprintf(DebugFilePath, "%s\\%s.txt",P.File.Dir,P.File.Name);	
+			FID = fopen(DebugFilePath,"w+");
+			fprintf(FID,"Nominal: %f\t Elapsed %f.\tPer iter %f",P.Spc.TimeM*P.Acq.Tot,Elapsed,Elapsed/P.Acq.Tot);
+			fclose(FID);
 		}
 	}
+	else{
+		if(P.Contest.Function==CONTEST_MEAS&&P.Frame.Actual==0){
+			P.Spc.MH150_Start = Timer();
+		}
+		unsigned int DataMH150[P.Spc.MH150HistLen];
+		P.Spc.Overflow=FALSE;
+		for(ib=0;ib<P.Num.Board;ib++){ 
+			for(id=0;id<P.Num.Det;id++){
+				ret=MH_GetHistogram(ib,DataMH150,id); if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_GetHistogram");
+				for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[ib][id*P.Chann.Num+ic] = (T_DATA) DataMH150[ic]; 
+				}
+		}
+		if(P.Contest.Function==CONTEST_MEAS&&P.Frame.Actual==P.Frame.Num-1){
+			double Elapsed = Timer()-P.Spc.MH150_Start;
+			char DebugFilePath[STRLEN];
+			sprintf(DebugFilePath, "%s\\%s.txt",P.File.Dir,P.File.Name);	
+			FID = fopen(DebugFilePath,"w+");
+			fprintf(FID,"Nominal: %f\t Elapsed %f.\tPer iter %f",P.Spc.TimeM*P.Acq.Tot,Elapsed,Elapsed/P.Acq.Tot);
+			fclose(FID);
+		}
 	}
+}
+
 
 /* CLEAR MH150 */	
 void ClearMH150(){
@@ -3373,7 +3408,7 @@ void ClearMH150(){
 		ret=MH_ClearHistMem(ib); 
 		if(ret<0){
 			i_trial++;
-			ret=MH_SetHistoLen(ib,MAXLENCODE,&HistLen); if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_SetHistoLen");
+			ret=MH_SetHistoLen(ib,P.Spc.MH150HistLenCodeUser,&HistLen); if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_SetHistoLen");
 			}
 		}
 	while((ret<0)&&(i_trial<10));
@@ -3381,6 +3416,28 @@ void ClearMH150(){
 	}
 	}
 
+	
+	
+MH_DATA **MHAlloc2D(int Num1, int Num2){
+	int i1;
+	MH_DATA **d;
+	d=(MH_DATA**)calloc(Num1,sizeof(MH_DATA*));
+	if(!d) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 1");
+	for(i1=0;i1<Num1;i1++){
+		d[i1]=(MH_DATA*)calloc(Num2,sizeof(MH_DATA));
+		if(!d[i1]) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 2");
+		}
+	return d;
+	}	
+// Free 2D Array of T_DATA
+void MHFree2D(MH_DATA **D, int Num1){
+	int i1;
+	for(i1=Num1-1;i1>=0;i1--)
+		free((char*) (D[i1]));
+	free((char*) (D));
+	}	
+	
+	
 /* ########################   DEIB SPADLAB TDC FUNCTIONS (SPADLAB)  ####################### */
 
 /* INIT SPADLAB */	

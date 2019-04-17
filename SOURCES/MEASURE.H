@@ -10,6 +10,7 @@
 // TYPE OF DATA
 // USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards.
 #define T_DATA unsigned short
+#define MH_DATA unsigned int
 #define T_HEAD struct sHeader2
 #define T_SUB struct sSubHeader1
 
@@ -1530,6 +1531,7 @@ struct SpcS {
 	int    TimeMH150;
 	int	   TH260HistLen;
 	int    MH150HistLen;
+	int MH150HistLenCodeUser;
 	int	   TimeSC1000;
 	long   Count;
 	char   TdcDcrFileRoot[260];
@@ -1561,6 +1563,8 @@ struct SpcS {
 	struct SpadS Spad[MAX_BOARD];
 	struct NirsS Nirs[MAX_BOARD];
 	struct LucaSpcS Luca[MAX_BOARD];
+	double MH150_Start;
+	char MH150_Initialized;
 	};
 
 struct AcqS{
@@ -2139,6 +2143,8 @@ void InitMH150(int Board);
 void CloseMH150();
 void GetDataMH150();
 void ClearMH150();
+MH_DATA **MHAlloc2D(int Num1, int Num2);
+void MHFree2D(MH_DATA **D, int Num1);
 
 /* ########################   SPADLAB FUNCTIONS   ####################### */
 void InitSpad(int Board);
