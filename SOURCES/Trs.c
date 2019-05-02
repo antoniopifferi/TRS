@@ -199,7 +199,19 @@ void CVICALLBACK Quit (int menuBar, int menuItem, void *callbackData,int panel){
 	SaveSet(FILESET,NEG);
 	int ib;
 	for (ib=0;ib<P.Num.Board;ib++){P.Spc.ScDeinit=TRUE;CompleteClosureSC1000(ib);} //EDO	//controllare
-	if(P.Spc.Type==MH150) CloseMH150();
+	if(P.Spc.Type==MH150) {
+		if(P.Spc.MH150_Initialized==TRUE){
+		int button;
+    	char message[STRLEN];
+    	button = GenericMessagePopup ("Warning", "Sure you want to quit?", "YES", "NO", 0,0,
+								  0, 0, VAL_GENERIC_POPUP_BTN1,
+								  VAL_GENERIC_POPUP_BTN1,
+								  VAL_GENERIC_POPUP_BTN2);
+    	if(button==VAL_GENERIC_POPUP_BTN2) return; 
+		else exit(1);
+		CloseMH150();
+		}
+	}
 	QuitUserInterface (0);
 	}
 
@@ -344,6 +356,19 @@ void UpdatePanel(void){
 
 int CVICALLBACK ClosePanel (int panel, int event, void *callbackdata, int eventdata1, int eventdata2) {
 	if(event!=EVENT_CLOSE) return(0);
+	if(P.Spc.Type==MH150) {
+		if(P.Spc.MH150_Initialized==TRUE){
+		int button;
+    	char message[STRLEN];
+    	button = GenericMessagePopup ("Warning", "Sure you want to quit?", "YES", "NO", 0,0,
+								  0, 0, VAL_GENERIC_POPUP_BTN1,
+								  VAL_GENERIC_POPUP_BTN1,
+								  VAL_GENERIC_POPUP_BTN2);
+    	if(button==VAL_GENERIC_POPUP_BTN2) return(0); 
+		else exit(1);
+		CloseMH150();
+		}
+	}
     if(panel==hTrs) {SaveSet(FILESET,NEG);QuitUserInterface (0); return(0);}
     HidePanel(panel);
     return(0);
@@ -584,6 +609,8 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,DISPLAY,DISPLAY_GRAPH_TYPE,"GraphType",0,0,&P.Graph.Scale);
 	AddTab(CE,TINT,DISPLAY,DISPLAY_OSCILL_ZOOM_FIRST,"OscillZoomFirst",0,0,&P.Oscill.Zoom.First);
 	AddTab(CE,TINT,DISPLAY,DISPLAY_OSCILL_ZOOM_LAST,"OscillZoomLast",0,0,&P.Oscill.Zoom.Last);
+	AddTab(CE,TCHAR,DISPLAY,DISPLAY_GRAPH_LEFT_Y_L_LIMIT,"GraphYLowLimit",0,0,&P.Graph.LowLimit);
+	AddTab(CE,TCHAR,DISPLAY,DISPLAY_GRAPH_LEFT_Y_H_LIMIT,"GraphYHighLimit",0,0,&P.Graph.HighLimit);
 
 	// 1
 	AddTab(CE,TCHAR,LAYOUT,LAYOUT_ORDER,"LayoutOrder",0,0,&P.Layout.Order);	

@@ -9,7 +9,7 @@
 
 // TYPE OF DATA
 // USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards.
-#define T_DATA unsigned short
+#define T_DATA unsigned long
 #define MH_DATA unsigned int
 #define T_HEAD struct sHeader2
 #define T_SUB struct sSubHeader1
@@ -80,7 +80,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1180
+#define MAX_TABLE		1182
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -123,6 +123,8 @@
 #define TIME_TIOMAMM	1
 
 /* STEPPER CONSTANTS */
+#define STEP_HOLD_ON	2
+#define STEP_HOLD_OFF_OSC	3
 #define STEP_SIGN_POS	0
 #define STEP_SIGN_NEG	1
 #define WAIT_FALSE		0
@@ -707,7 +709,7 @@
 #define MILLISEC_2_SEC	1/1000 // conversion factor for millisecond to second
 
 /* MH150 CONSTANTS */
-#define MH_USE_GET_ALL_HIST_FUN 0
+#define MH_USE_GET_ALL_HIST_FUN 1
 
 /* SC1000 CONSTANTS */
 #define SC1000_TYPE unsigned long			// data type of hystogram SC1000 data (non-lin)
@@ -1165,6 +1167,7 @@ struct MammS {
 	struct ExtraFrameS ExtraFrame;             //EDO
 	int IsRefMeas;
 	double NegativeTreshold;
+	long DarkCountRateValue;
 	};
 
 struct ActionS{
@@ -1203,6 +1206,7 @@ struct ActionS{
 	char CheckMamm;         //EDO
 	char StopMamm;		    //EDO
 	char DoJumpMamm;		//EDO
+	char ThresholdMammot;
 	struct ScReinitS ScReInit;			//EDO
 	};
 
@@ -1308,6 +1312,7 @@ struct StepS {
 	char DiffHome;
 	char Lcd;
 	char Hold;
+	char Inizialized;
 	long Actual;
 	long Actual_mean_pow;
 	long Actual_std;
@@ -1532,6 +1537,9 @@ struct SpcS {
 	int	   TH260HistLen;
 	int    MH150HistLen;
 	int MH150HistLenCodeUser;
+	int MH150MeasType;
+	int MH150_WaitTrigger;
+	MH_DATA *DataMH150;
 	int	   TimeSC1000;
 	long   Count;
 	char   TdcDcrFileRoot[260];
@@ -1565,6 +1573,7 @@ struct SpcS {
 	struct LucaSpcS Luca[MAX_BOARD];
 	double MH150_Start;
 	char MH150_Initialized;
+	char MH150_Started;
 	};
 
 struct AcqS{
@@ -1624,6 +1633,8 @@ struct PlotS{
 struct GraphS{
 	char Type;
 	char Scale;
+	char HighLimit;
+	char LowLimit;
 	};
 
 struct TProtS{
@@ -2143,8 +2154,10 @@ void InitMH150(int Board);
 void CloseMH150();
 void GetDataMH150();
 void ClearMH150();
-MH_DATA **MHAlloc2D(int Num1, int Num2);
-void MHFree2D(MH_DATA **D, int Num1);
+MH_DATA *MHAlloc1D(int Num1);
+void MHFree1D(MH_DATA *D);
+void StartMH150(int Board,int Time);
+void StopMH150(int Board);
 
 /* ########################   SPADLAB FUNCTIONS   ####################### */
 void InitSpad(int Board);
@@ -2544,6 +2557,7 @@ void AddLabel(int IdName);
 void AddThick(int ID);
 void InitMammot(void);			//EDO
 void StartMammot(void);			//EDO
+void GetRefValueMammot(void);    //EDO
 void StopMammot(void);			//EDO
 void CheckMammot(void);			//EDO
 void AnalysisMamm_new(void);	//EDO

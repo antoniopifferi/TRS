@@ -327,6 +327,15 @@ void Oscilloscope(void){
 	P.Command.Continue=FALSE;
 	P.Contest.Function = CONTEST_OSC;
 	SpcTime(P.Spc.TimeO);
+	// Needed for "OFF-OSC" hold selection mode
+	char IsInitStep[MAX_STEP];
+	for(int is=0;is<MAX_STEP;is++) 
+		if(P.Step[is].Hold==STEP_HOLD_OFF_OSC&&P.Step[is].Inizialized){
+    		CloseStep(is);
+			IsInitStep[is]=TRUE;
+		}
+		else
+			IsInitStep[is] = FALSE;
 	while(!P.Command.Continue && !P.Command.Abort){
 		GetUserEvent (0, &panel, &control);
 		SpcReset(status,P.Meas.Clear,P.Meas.Stop);
@@ -354,6 +363,9 @@ void Oscilloscope(void){
 	SpcTime(P.Spc.TimeM);
 	P.Spc.Trash=TRUE;
 	P.Contest.Function = CONTEST_MEAS;
+	for(is=0;is<MAX_STEP;is++)
+		if(P.Step[is].Hold==STEP_HOLD_OFF_OSC&&IsInitStep[is])
+			InitMicro(is);
 	}		
 
 
@@ -655,10 +667,10 @@ void DecideAction(void){
 		for(it=0;it<MAX_TRIM;it++) if((P.Action.Trim[it])&&!P.Trim[it].Break) P.Action.ScReInit.TrimmerPreBreak = TRUE;  // Trim BEFORE Break	
 		for(it=0;it<MAX_TRIM;it++) if((P.Action.Trim[it])&&P.Trim[it].Break) P.Action.ScReInit.TrimmerPostBreak = TRUE;;  // Trim POST Break
 		for(il=0;il<MAX_LOOP;il++) if(P.Action.Break[il]) P.Action.ScReInit.Oscilloscope = TRUE;
-	}
 	P.Action.ScReInit.Measure = first[LOOP1];
 	P.Action.ScReInit.Measure = (!P.Action.ScReInit.InitMammot)&&(P.Action.ScReInit.Oscilloscope||P.Action.ScReInit.TrimmerPostBreak||P.Action.ScReInit.TrimmerPreBreak||P.Action.ScReInit.Measure);
 	P.Action.ScReInit.AnyOper = P.Action.ScReInit.InitMammot || P.Action.ScReInit.TrimmerPreBreak || P.Action.ScReInit.TrimmerPostBreak || P.Action.ScReInit.Oscilloscope || P.Action.ScReInit.Measure;
+	}
 	
 	//P.Action.ReadUIR=P.Command.ReadUIR;
 	if(P.Info.Appl==APPL_MAMM){
@@ -1742,7 +1754,7 @@ void GraphPlot(void){
 	int chan, minplot, maxplot, roipage;
 	
 /**/	minplot = 1e0;
-/**/	maxplot = 1e5;
+/**/	maxplot = 1e7;
 
 /*	for(ip=0;ip<MAX_PLOT;ip++){
 		red=COLOR_FULL*(1-COLOR_FRACT*(1-1.0/4*ip+1))-1;
@@ -1772,6 +1784,10 @@ void GraphPlot(void){
 	SetGraphType();
 	SetAxisScalingMode (hDisplay, DISPLAY_GRAPH_PLOT, VAL_XAXIS, VAL_MANUAL,
 						P.Oscill.Zoom.First,P.Oscill.Zoom.Last);
+
+	SetAxisScalingMode (hDisplay, DISPLAY_GRAPH_PLOT, VAL_LEFT_YAXIS , VAL_MANUAL,
+						pow(10,P.Graph.LowLimit),pow(10,P.Graph.HighLimit));
+
 	plot_num=(is_meas?P.Plot.NumM:P.Plot.NumO);
 //**	for(ip=0;ip<plot_num;ip++)
 //**		if(P.Plot.Plot[ip]){
@@ -2026,7 +2042,7 @@ void SpcClose(void){
 		case SPC130: CloseSpcm(); break;
 		case HYDRA: CloseHydra(); break;
 		case TH260: CloseTH260(); break;
-		//case MH150: CloseMH150(); break;
+		case MH150: CloseMH150(); break;
 		case SPC_SC1000: CloseSC1000(); break;
 		case SPC_SPADLAB: CloseSpad(); break;
 		case SPC_NIRS: CloseNirs(); break;
@@ -2101,7 +2117,7 @@ void SpcIn(){
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_start_measurement(ib); break;
 		case HYDRA: HH_StartMeas(HYDRA_DEV0,P.Spc.TimeHydra); break;
 		case TH260: TH260_StartMeas(TH260_DEV0,P.Spc.TimeTH260); break;
-		case MH150: for(ib=0;ib<P.Num.Board;ib++) MH_StartMeas(ib,P.Spc.TimeMH150); break;
+		case MH150: for(ib=0;ib<P.Num.Board;ib++) StartMH150(ib,P.Spc.TimeMH150); break;
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++){} break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
@@ -2190,7 +2206,7 @@ void SpcStop(char Status){
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_stop_measurement(ib);break;
 		case HYDRA: HH_StopMeas(HYDRA_DEV0); break;
 		case TH260: TH260_StopMeas(TH260_DEV0); break;
-		case MH150: for(ib=0;ib<P.Num.Board;ib++) MH_StopMeas(ib); break;
+		case MH150: for(ib=0;ib<P.Num.Board;ib++) StopMH150(ib); break;
 		case SPC_SC1000: break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StopSpad(ib);break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StopNirs(ib);break;
@@ -2432,7 +2448,7 @@ void InitSpc300(void){
 
 /* TRANSFER DATA FROM SPC*/	
 void GetDataSpc300(void){
-	SPCI_read_data_page(0,P.Num.Det-1,(unsigned short*)D.Buffer[0]);
+	SPCI_read_data_page(0,P.Num.Det-1,(T_DATA*)D.Buffer[0]);
 	}
 	
 
@@ -2528,7 +2544,7 @@ void GetDataSpcm(void){
 		ret=SPC_test_state(ib,&state);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_test_state");
 		P.Spc.Overflow|=(state&SPC_OVERFLOW);
-		ret=SPC_read_data_page(ib,0,0,(unsigned short*)D.Buffer[ib]);   
+		ret=SPC_read_data_page(ib,0,0,(T_DATA*)D.Buffer[ib]);   
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_read_data_page");
 		}
 	}
@@ -3253,6 +3269,7 @@ void LinRefoldSC1000(int Refold,int Board,int Det,SC1000_TYPE *NonLinArray, doub
 /* INIT MH150 */
 void InitMH150(int Board){
 	if(P.Spc.MH150_Initialized) return;
+	MessagePopup ("Warning", "Check SYNC input is off (if possible)");
 	char message[STRLEN];
 	int ret,id;
 	char HW_Serial[16];
@@ -3320,18 +3337,40 @@ void InitMH150(int Board){
 
 	P.Spc.TimeInit=TimerN();   // era Timer() 
 
+	P.Spc.DataMH150 = MHAlloc1D(MH_USE_GET_ALL_HIST_FUN?P.Spc.MH150HistLen*P.Num.Det:P.Spc.MH150HistLen);
+	
 	Passed();
 	P.Spc.MH150_Initialized = TRUE;
 
 	
 }
-
+void StartMH150(int Board,int Time){
+	if(P.Spc.MH150_Started) return;
+	int ret = MH_StartMeas(Board,Time);	
+	if(ret<0) {ErrHandler(ERR_MH150,ret,"MH_StartMeas"); return;}
+	if(P.Contest.Function==CONTEST_MEAS&&P.Frame.Actual==0){
+			P.Spc.MH150_Start = Timer();
+		}
+	P.Spc.MH150_Started = TRUE;
+}
+void StopMH150(int Board){ //This way the measure is not actually stopped
+	P.Spc.MH150_Started = FALSE;
+	return;
+	if(!P.Spc.MH150_Started) return;
+	int ret = MH_StopMeas(Board);	
+	if(ret<0) {ErrHandler(ERR_MH150,ret,"MH_StopMeas");  return;}
+	P.Spc.MH150_Started = FALSE;
+}
 /* CLOSE MH150 */	
 void CloseMH150(){
 	short ret;
-	for(int ib = 0;ib<MAXDEVNUM;ib++)
+	for(int ib = 0;ib<MAXDEVNUM;ib++){
 		ret=MH_CloseDevice(ib);
+		if(ret<0) ErrHandler(ERR_MH150,ret,"MH_CloseDevice");
+	}
+	MHFree1D(P.Spc.DataMH150);
 	P.Spc.MH150_Initialized = FALSE;
+	P.Spc.MH150_Started = FALSE;
 	}
 	
 /* TRANSFER DATA FROM MH150 */	
@@ -3343,56 +3382,23 @@ void GetDataMH150(){
 	int ret=0;
 
 	if(MH_USE_GET_ALL_HIST_FUN){
-/*	 int i1;
-	unsigned int **DataMH150;
-	DataMH150=(unsigned int**)calloc(P.Num.Det,sizeof(DataMH150));
-	if(!DataMH150) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 1");
-	for(id=0;id<P.Num.Det;id++){
-		DataMH150[id]=(unsigned int*)calloc(P.Spc.MH150HistLen,sizeof(unsigned int));
-		if(!DataMH150[id]) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 2");
-	}*/
 	
-	
-	unsigned int DataMH150[P.Num.Det*P.Spc.MH150HistLen];
-	if(P.Contest.Function==CONTEST_MEAS&&P.Frame.Actual==0){
-			P.Spc.MH150_Start = Timer();
-		}
 	P.Spc.Overflow=FALSE;
 	for(ib=0;ib<P.Num.Board;ib++){
-		ret=MH_GetAllHistograms(ib,DataMH150);
+		ret=MH_GetAllHistograms(ib,P.Spc.DataMH150);
 		for(id=0;id<P.Num.Det;id++)
 			for(ic=0;ic<P.Chann.Num;ic++){ 
-				if(ic<P.Chann.Num) D.Buffer[ib][id*P.Chann.Num+ic] = (T_DATA) DataMH150[id*P.Spc.MH150HistLen+ic]; 
+				D.Buffer[ib][id*P.Chann.Num+ic] = (T_DATA) P.Spc.DataMH150[id*P.Spc.MH150HistLen+ic]; 
 			}
-	}
-	if(P.Contest.Function==CONTEST_MEAS&&P.Frame.Actual==P.Frame.Num-1){
-			double Elapsed = Timer()-P.Spc.MH150_Start;
-			char DebugFilePath[STRLEN];
-			sprintf(DebugFilePath, "%s\\%s.txt",P.File.Dir,P.File.Name);	
-			FID = fopen(DebugFilePath,"w+");
-			fprintf(FID,"Nominal: %f\t Elapsed %f.\tPer iter %f",P.Spc.TimeM*P.Acq.Tot,Elapsed,Elapsed/P.Acq.Tot);
-			fclose(FID);
 		}
 	}
 	else{
-		if(P.Contest.Function==CONTEST_MEAS&&P.Frame.Actual==0){
-			P.Spc.MH150_Start = Timer();
-		}
-		unsigned int DataMH150[P.Spc.MH150HistLen];
 		P.Spc.Overflow=FALSE;
 		for(ib=0;ib<P.Num.Board;ib++){ 
 			for(id=0;id<P.Num.Det;id++){
-				ret=MH_GetHistogram(ib,DataMH150,id); if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_GetHistogram");
-				for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[ib][id*P.Chann.Num+ic] = (T_DATA) DataMH150[ic]; 
+				ret=MH_GetHistogram(ib,P.Spc.DataMH150,id); if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_GetHistogram");
+				for(ic=0;ic<P.Chann.Num;ic++) D.Buffer[ib][id*P.Chann.Num+ic] = (T_DATA) P.Spc.DataMH150[ic]; 
 				}
-		}
-		if(P.Contest.Function==CONTEST_MEAS&&P.Frame.Actual==P.Frame.Num-1){
-			double Elapsed = Timer()-P.Spc.MH150_Start;
-			char DebugFilePath[STRLEN];
-			sprintf(DebugFilePath, "%s\\%s.txt",P.File.Dir,P.File.Name);	
-			FID = fopen(DebugFilePath,"w+");
-			fprintf(FID,"Nominal: %f\t Elapsed %f.\tPer iter %f",P.Spc.TimeM*P.Acq.Tot,Elapsed,Elapsed/P.Acq.Tot);
-			fclose(FID);
 		}
 	}
 }
@@ -3418,22 +3424,14 @@ void ClearMH150(){
 
 	
 	
-MH_DATA **MHAlloc2D(int Num1, int Num2){
-	int i1;
-	MH_DATA **d;
-	d=(MH_DATA**)calloc(Num1,sizeof(MH_DATA*));
-	if(!d) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 1");
-	for(i1=0;i1<Num1;i1++){
-		d[i1]=(MH_DATA*)calloc(Num2,sizeof(MH_DATA));
-		if(!d[i1]) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 2");
-		}
+MH_DATA *MHAlloc1D(int Num1){
+	MH_DATA *d;
+	d=(MH_DATA*)calloc(Num1, sizeof(MH_DATA));
+	if(!d) ErrHandler(ERR_MEM,0,"Allocation Failure of 1D Data");
 	return d;
-	}	
+}	
 // Free 2D Array of T_DATA
-void MHFree2D(MH_DATA **D, int Num1){
-	int i1;
-	for(i1=Num1-1;i1>=0;i1--)
-		free((char*) (D[i1]));
+void MHFree1D(MH_DATA *D){
 	free((char*) (D));
 	}	
 	
@@ -4253,7 +4251,7 @@ void AutoTrim(int Trim){
 	char isfirst,islast;
 	long loop_index;
 	char loop=P.Trim[Trim].Loop;
-	char is_any_SPC = ((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==SPC_SC1000));
+	char is_any_SPC = ((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==MH150)||(P.Spc.Type==SPC_SC1000));
 	short page;
 	
 	// Actions for FileTrimmer
@@ -5502,7 +5500,7 @@ void InitStep(char Step){
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
 	else SetVel(Step, P.Step[Step].Freq);
-	
+	P.Step[Step].Inizialized = TRUE;
 	}
 
 
@@ -5535,6 +5533,7 @@ void CloseStep(char Step){
 		case ATT_LUCA:	CloseAttLuca(Step); break;
 		case NONE: break;
 		}
+	P.Step[Step].Inizialized = FALSE;
 	}
 
 
@@ -6347,7 +6346,7 @@ void InitMicro(char Step){
 	FlushOutQ (com);
     
     TalkMicro(Step,MICRO_LCD,P.Step[Step].Lcd,&ret);
-    TalkMicro(Step,MICRO_HOLD,P.Step[Step].Hold,&ret);
+    TalkMicro(Step,MICRO_HOLD,P.Step[Step].Hold==STEP_HOLD_OFF_OSC?STEP_HOLD_ON:P.Step[Step].Hold,&ret);
     TalkMicro(Step,MICRO_FMIN,P.Step[Step].FreqMin,&ret);
 	TalkMicro(Step,MICRO_VEL,(int) P.Step[Step].Freq,&ret);
 	TalkMicro(Step,MICRO_FDELTA,P.Step[Step].FreqDelta,&ret);

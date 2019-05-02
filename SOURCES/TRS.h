@@ -64,9 +64,11 @@
 #define  DISPLAY_GRAPH_PLOT               49      /* control type: graph, callback function: (none) */
 #define  DISPLAY_MESSAGE                  50      /* control type: textBox, callback function: (none) */
 #define  DISPLAY_ROI_WINDOW               51      /* control type: ring, callback function: Setting */
-#define  DISPLAY_OSCILL_ZOOM_FIRST        52      /* control type: numeric, callback function: Setting */
-#define  DISPLAY_OSCILL_ZOOM_LAST         53      /* control type: numeric, callback function: Setting */
-#define  DISPLAY_ZOOM                     54      /* control type: textMsg, callback function: (none) */
+#define  DISPLAY_GRAPH_LEFT_Y_L_LIMIT     52      /* control type: numeric, callback function: Setting */
+#define  DISPLAY_OSCILL_ZOOM_FIRST        53      /* control type: numeric, callback function: Setting */
+#define  DISPLAY_GRAPH_LEFT_Y_H_LIMIT     54      /* control type: numeric, callback function: Setting */
+#define  DISPLAY_OSCILL_ZOOM_LAST         55      /* control type: numeric, callback function: Setting */
+#define  DISPLAY_ZOOM                     56      /* control type: textMsg, callback function: (none) */
 
 #define  DO_STEP                          2       /* callback function: ClosePanel */
 #define  DO_STEP_TITLE                    2       /* control type: textMsg, callback function: (none) */
