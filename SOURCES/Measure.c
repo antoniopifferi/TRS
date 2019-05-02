@@ -3348,9 +3348,6 @@ void StartMH150(int Board,int Time){
 	if(P.Spc.MH150_Started) return;
 	int ret = MH_StartMeas(Board,Time);	
 	if(ret<0) {ErrHandler(ERR_MH150,ret,"MH_StartMeas"); return;}
-	if(P.Contest.Function==CONTEST_MEAS&&P.Frame.Actual==0){
-			P.Spc.MH150_Start = Timer();
-		}
 	P.Spc.MH150_Started = TRUE;
 }
 void StopMH150(int Board){ //This way the measure is not actually stopped
