@@ -79,7 +79,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1180
+#define MAX_TABLE		1248
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -89,7 +89,7 @@
 #define CT				1
 #define MAX_TTABLE		13
 #define STRLEN_TTABLE	20
-#define MAX_PANEL		15
+#define MAX_PANEL		16
 
 
 /* FILE CONSTANTS AND ENVIRONMENT SETTINGS */  
@@ -98,7 +98,9 @@
 #define FILESET		"SET\\TRS.TRS"
 #define DIRPROG		""
 #define DIRSETTINGS   "SET"
+#define DIRSEQUENCE    "SOLUS"
 #define DIR_INI      "INI"
+#define DIR_SOLUS	 "SOLUS"
 #define EXTSETTINGS   "*.TRS" 
 #define EXTFILEPOS	  ".POS"
 #define DIRFILEPOS	  "POS"
@@ -106,6 +108,7 @@
 #define DIRFILETRIM	  "TRM"
 #define EXTFILEBREAK  ".BRE"
 #define DIRFILEBREAK  "BREAK"
+#define EXTSOLUSFILE   "*.INI"
 
 /* LOOP CONSTANTS */
 #define MAX_LOOP		5
@@ -550,6 +553,8 @@
 #define MICRO2		23
 #define STEP_STANDA2	24
 #define ATT_LUCA		25
+#define LDs_SOLUS	26
+#define SIPM_SOLUS	27
 
 #define VARRO		 1
 #define NI_6602	     5
@@ -567,6 +572,7 @@
 #define SPC_SPADLAB		 11
 #define SPC_NIRS		 12
 #define SPC_LUCA		 13
+#define SPC_SOLUS		 14
 
 #define WAIT_DELAY	 0
 #define WAIT_TIME	 1
@@ -703,6 +709,7 @@
 #define TH260_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 #define SEC_2_MILLISEC	1000 // conversion factor for second to millisecond
 #define MILLISEC_2_SEC	1/1000 // conversion factor for millisecond to second
+#define SEC_2_100s_MICROSEC 10000
 
 /* SC1000 CONSTANTS */
 #define SC1000_TYPE unsigned long			// data type of hystogram SC1000 data (non-lin)
@@ -752,6 +759,11 @@
 #define LUCA_ATT_RUNNING 2
 #define LUCA_ATT_ERROR	3
 #define LUCA_FILE_HANDLE "LucaHandle.log"
+
+/* SOLUS CONSTANTS */
+#define SOLUS_DT 80
+#define SOLUS_MIN_SPAD_NUM 1
+#define SOLUS_MAX_SPAD_NUM N_PIXEL
 
 /* TEST CONSTANTS */
 #define TEST_MUS	10.0
@@ -911,7 +923,8 @@
 #define ERR_HYDRA		2
 #define ERR_TH260		3
 #define ERR_SC1000	4
-#define ERR_GENERIC	5
+#define ERR_SOLUS 5
+#define ERR_GENERIC	6
 
 
 /* GEOMETRY CONSTANTS */													//ALE
@@ -1505,6 +1518,74 @@ struct SurfaceConceptS{
 	double Period;									// period between two IRF peaks (used in rebinning)
 	double Rebin;
 };
+struct T_ControlAnalogS{
+	 int spadCurrent;	
+	 int inputCurrent;
+	 unsigned int spadVoltage;
+	 unsigned int inputVoltage;
+	 unsigned int p5Volt;
+};
+struct T_ControlParamsS{
+	 unsigned int LD_Voltage;	
+	 unsigned int SPAD_Voltage;
+	 unsigned int GSIPM3v3_Voltage;
+};
+struct T_OptodeAnalogS{
+	 int gsipmSPADcurrent;	
+	 int gsipmCoreCurrent;
+	 int laserCurrent;
+	 unsigned int gsipmSPADvoltage;
+	 unsigned int gsipmCoreVoltage;
+	 unsigned int laserVoltage;
+};
+struct SolusS{
+	 SOLUS_H SolusObj;
+	 Opt_Present OptList;
+	 LDs_registers LDs_reg[N_OPTODE];
+	 LD_parameters LDs_param[N_OPTODE];  
+	 GSIPM_config_reg GSIPM_reg[N_OPTODE];
+	 GSIPM_parameters GSIPM_param[N_OPTODE];
+     CalMap CalibMap[N_OPTODE];
+	 Sequence MeasSequence;
+	 UINT16 OptStatus[N_OPTODE];
+	 LDs_status LDs_Status[N_OPTODE];
+	 UINT16 OptArea[N_OPTODE];
+	 Data_H DataSolus;
+	 DCRmap DCRMapData;
+	 UINT16 ControlStatus;
+	 UINT32 LaserFrequency;
+	 char PowerOptode[N_OPTODE];
+	 Control_analog_acq ControlAnalog;
+	 Control_params ControlParams;
+	 struct T_ControlAnalogS T_ControlAnalog;
+	 struct T_ControlParamsS T_ControlParams;
+	 struct T_OptodeAnalogS T_OptodeAnalog[N_OPTODE];
+	 Optode_analog_acq OptodeAnalog[N_OPTODE];
+	 LDs_analog LDsAnalog[N_OPTODE];
+	 char AcqType;
+	 unsigned short AcqActual;
+	 unsigned short AcqTot;
+	 char SeqFile[260];
+	 char SeqFilePath[260];
+	 char CalibMapFile[260];
+	 char CalibMapFilePath[260];
+	 char LDsFile[260];
+	 char LDsFilePath[260];
+	 char GSIPMFile[260];
+	 char GSIPMFilePath[260];
+	 char GSIPMParmsFile[260];
+	 char GSIPMParmsFilePath[260];
+	 char LDsParmsFile[260];
+	 char LDsParmsFilePath[260];
+	 char Initialized;
+	 char SolusConstructed;
+	 char MeasStarted;
+	 char MeasStopped;
+	 char StopError;
+	 char StartError;
+	 int SeqLength;
+};
+
 struct SpcS {
 	char   Type;
 	char   Control;
@@ -1522,6 +1603,7 @@ struct SpcS {
 	double TimeM;
 	int	   TimeHydra;
 	int	   TimeTH260;
+	UINT16    TimeSolus;
 	int	   TH260HistLen;
 	int	   TimeSC1000;
 	long   Count;
@@ -1906,6 +1988,7 @@ struct ParmS {
 	struct TSequenceS TSequence;
 	struct TPartitionS TPartition;
 	struct BlockObjS BlockObj[MAX_ROW_PRES_BLOCK];
+	struct SolusS Solus;
 	};
 
 // Data Structures
@@ -1960,6 +2043,7 @@ int hTrim;
 int hStep;
 int hSwitch;
 int hNirs;
+int hSolus;
 int hLuca;
 int hMamm;
 int hSave;
@@ -2531,6 +2615,36 @@ void CheckMammot(void);			//EDO
 void AnalysisMamm_new(void);	//EDO
 void ShiftCorrection(void);		//EDO
 void BackShift(void);			//EDO
+
+/* ######################### SOLUS PROCEDURES ############################*/
+void InitSolus(void);
+void CloseSolus(void);
+void StartSolusMeas(void);
+void GetDataSolus(void);
+void StopSolusMeas(void);
+void GetInfoSolus(void);
+void SetInfoSolus(void);
+void ValidateMeasSequenceSolus(void);
+void ReadMeasSequenceFromFile(void);
+void WriteLDsInfoToFile(void);
+void WriteGSIPMInfoToFile(void);
+void ReadLDsInfoFromFile(void);
+void ReadGSIPMInfoFromFile(void);
+void ClearSolus(void);
+void InitLDStepSolus(char Step);
+void CloseLDStepSolus(char Step);
+void MoveLDStepSolus(char Step,long Goal,char Wait);
+void InitSipmStepSolus(char Step);
+void CloseSipmStepSolus(char Step);
+void MoveSipmStepSolus(char Step,long Goal,char Wait);
+void StartSolusDRCMeasure(void);
+void GetSolusDRCMeasure(void);
+void ReadCalibrationMapFromFile(void);
+void CreateSolusObj(void);
+void DestructSolusObj(void);
+void ReadInfoFromSolusPanel(void);
+void ReadLDsParamsFromFile(void);
+void ReadGSIPMParamsFromFile(void);
 
 
 /* ########################   MOXY PROCEDURES   ########################### */

@@ -6,6 +6,7 @@
 
 
 /* ########################   HEADINGS   ################################## */
+#include "SOLUS_SDK.h"
 #include <formatio.h>
 #include <cvirte.h>		/* Needed if linking in external compiler; harmless otherwise */
 #include <userint.h>
@@ -48,6 +49,7 @@ int main (int argc, char *argv[])
 	if ((hGeom = LoadPanel (hTrs, PATH_UIR, GEOMETRY)) < 0) return -1;//ALE
 	if ((hNirs = LoadPanel (hTrs, PATH_UIR, NIRS)) < 0) return -1;
 	if ((hLuca = LoadPanel (hTrs, PATH_UIR, LUCA)) < 0) return -1;
+	if ((hSolus = LoadPanel (hTrs, PATH_UIR, SOLUS_P)) < 0) return -1;
 	
 	CreateTable();
 	
@@ -82,6 +84,7 @@ void CVICALLBACK SaveSetting (int menuBar, int menuItem, void *callbackData, int
 		case MENU_FILE_SAVE_NIRS:			c_panel=NIRS; break;
 		case MENU_FILE_SAVE_LUCA:			c_panel=LUCA; break;
 		case MENU_FILE_SAVE_GEOMETRY:		c_panel=GEOMETRY; break;//ALE
+		case MENU_FILE_SAVE_SOLUS_P:		c_panel=SOLUS_P; break;
 		}
 	SaveSet(fpath,c_panel);
 	}
@@ -145,6 +148,7 @@ void CVICALLBACK LoadSetting (int menuBar, int menuItem, void *callbackData,int 
 		case MENU_FILE_LOAD_NIRS:			c_panel=NIRS; break;
 		case MENU_FILE_LOAD_LUCA:			c_panel=LUCA; break;
 		case MENU_FILE_LOAD_GEOMETRY:		c_panel=GEOMETRY; break;//ALE
+		case MENU_FILE_LOAD_SOLUS_P:		c_panel=SOLUS_P; break;
 		}
 	LoadSet(fpath,c_panel);
 	ReadAll();
@@ -220,6 +224,7 @@ void CVICALLBACK ShowPanel (int menuBar, int menuItem, void *callbackData,
 		case MENU_WINDOW_GEOMETRY:DisplayPanel (hGeom); break;//ALE
 		case MENU_DEVICE_NIRS:	  DisplayPanel (hNirs); break;
 		case MENU_DEVICE_LUCA:	  DisplayPanel (hLuca); break;
+		case MENU_DEVICE_SOLUS_P: DisplayPanel (hSolus); break;
 		}
 	}
 
@@ -246,6 +251,7 @@ void InitPanel(void){
 	hPanel[GEOMETRY]=hGeom;//ALE
 	hPanel[NIRS]=hNirs;
 	hPanel[LUCA]=hLuca;
+	hPanel[SOLUS_P]=hSolus;
 	LoadSet(FILESET,NEG);
 	ReadAll();
 	CompleteParmS();
@@ -365,7 +371,7 @@ void AddTab(int Class,int Type,int Panel,int Control,char *Label,int Row,int Col
 
 
 void CreateTable(void){
-	int il,is,it,ip,id,ic,ib,iff,ir,ips;
+	int il,is,it,ip,id,ic,ib,iff,ir,ips,io;
 
 	T.Num=0;
 
@@ -672,7 +678,37 @@ void CreateTable(void){
 	
 	//1
 	AddTab(CE,TINT,LUCA,LUCA_FREQ,"LucaFreq",0,0,&P.Spc.Luca[0].Freq);
-
+	
+	
+	//1
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_ACQ_TYPE,"AcqType",0,0,&P.Solus.AcqType);
+	AddTab(CE,TSTRING,SOLUS_P,SOLUS_P_SEQUENCE_FILE_PATH,"SequenceFile",0,0,P.Solus.SeqFile);
+	AddTab(CE,TSTRING,SOLUS_P,SOLUS_P_LDs_INFO_FILE_PATH,"LDsFile",0,0,P.Solus.LDsFile);
+	AddTab(CE,TSTRING,SOLUS_P,SOLUS_P_GSIPM_INFO_FILE_PATH,"GSIPMFile",0,0,P.Solus.GSIPMFile);
+	AddTab(CE,TSTRING,SOLUS_P,SOLUS_P_GSIPM_PARM_FILE_PATH,"GSIPMParmsFile",0,0,P.Solus.GSIPMParmsFile);
+	AddTab(CE,TSTRING,SOLUS_P,SOLUS_P_LDs_PARM_FILE_PATH,"LDsParmsFile",0,0,P.Solus.LDsParmsFile);
+	AddTab(CE,TSTRING,SOLUS_P,SOLUS_P_CALIB_MAP_FILE_PATH,"CalibMapFile",0,0,P.Solus.CalibMapFile);
+	AddTab(CE,TINT,SOLUS_P,SOLUS_P_SEQ_LENGTH,"SeqLength",0,0,&P.Solus.SeqLength);
+	AddTab(CE,TINT,SOLUS_P,SOLUS_P_LASER_FREQ,"Laserfreq",0,0,&P.Solus.LaserFrequency);
+	for(io=0;io<N_OPTODE;io++){        
+	//AddTab(CE,TINT,SOLUS_P,SOLUS_P_OPTODE_AREA_1+io,"OptArea",0,0,&P.Solus.OptArea[io]);
+	}
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_DIAGNOSTIC,"ControlDiagn",1,1,&P.Solus.T_ControlAnalog.spadCurrent);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_DIAGNOSTIC,"ControlDiagn",2,1,&P.Solus.T_ControlAnalog.spadVoltage);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_DIAGNOSTIC,"ControlDiagn",3,1,&P.Solus.T_ControlAnalog.inputCurrent);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_DIAGNOSTIC,"ControlDiagn",4,1,&P.Solus.T_ControlAnalog.inputVoltage);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_DIAGNOSTIC,"ControlDiagn",5,1,&P.Solus.T_ControlAnalog.p5Volt);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_PARAMS,"ControlParams",1,1,&P.Solus.T_ControlParams.LD_Voltage);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_PARAMS,"ControlParams",2,1,&P.Solus.T_ControlParams.SPAD_Voltage);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_PARAMS,"ControlParams",3,1,&P.Solus.T_ControlParams.GSIPM3v3_Voltage);
+	for(io=0;io<N_OPTODE;io++){
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",1,io+1,&P.Solus.T_OptodeAnalog[io].gsipmSPADcurrent);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",2,io+1,&P.Solus.T_OptodeAnalog[io].gsipmCoreCurrent);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",3,io+1,&P.Solus.T_OptodeAnalog[io].laserCurrent);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",4,io+1,&P.Solus.T_OptodeAnalog[io].gsipmSPADvoltage);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",5,io+1,&P.Solus.T_OptodeAnalog[io].gsipmCoreVoltage);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",6,io+1,&P.Solus.T_OptodeAnalog[io].laserVoltage);
+	}
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;
 	}
 

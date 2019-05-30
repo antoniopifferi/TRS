@@ -434,8 +434,8 @@
 #define  PARM_SPC_TITLE                   124     /* control type: textMsg, callback function: (none) */
 #define  PARM_DCR_FILE_ROOT_TDC           125     /* control type: string, callback function: Setting */
 #define  PARM_SC_SEL_REP_NUM              126     /* control type: numeric, callback function: Setting */
-#define  PARM_SC1000_FIRST                127     /* control type: numeric, callback function: Setting */
-#define  PARM_SC1000_LAST                 128     /* control type: numeric, callback function: Setting */
+#define  PARM_SC1000_LAST                 127     /* control type: numeric, callback function: Setting */
+#define  PARM_SC1000_FIRST                128     /* control type: numeric, callback function: Setting */
 
 #define  PRESENT                          11      /* callback function: ClosePanel */
 #define  PRESENT_TBLOCK_DEF               2       /* control type: table, callback function: Setting */
@@ -451,7 +451,55 @@
 #define  PRESENT_PRES_INIT_FILETEXT       12      /* control type: textMsg, callback function: (none) */
 #define  PRESENT_PRES_INIT_FILETEXT_2     13      /* control type: textMsg, callback function: (none) */
 
-#define  STEP                             12      /* callback function: ClosePanel */
+#define  SOLUS_P                          12      /* callback function: ClosePanel */
+#define  SOLUS_P_ACQ_TYPE                 2       /* control type: ring, callback function: Setting */
+#define  SOLUS_P_GET_OPTODE_DIAGN         3       /* control type: command, callback function: GetOptodeDiagnParams */
+#define  SOLUS_P_SET_CONTROL_PARAMS       4       /* control type: command, callback function: SetControlParams */
+#define  SOLUS_P_GET_CONTROL_PARAMS       5       /* control type: command, callback function: GetControlParams */
+#define  SOLUS_P_GET_CONTROL_DIAGN        6       /* control type: command, callback function: GetControlDiagnParams */
+#define  SOLUS_P_RUN_DCR_MEAS             7       /* control type: command, callback function: RunDCRMeas */
+#define  SOLUS_P_EXPO_LDS_PARM_FILE       8       /* control type: command, callback function: ExportLDsParmsFile */
+#define  SOLUS_P_EXPO_GSIPM_PARM_FILE     9       /* control type: command, callback function: ExportGSIPMParmsFile */
+#define  SOLUS_P_EXPORT_GSIPM_FILE        10      /* control type: command, callback function: ExportGSIPMFile */
+#define  SOLUS_P_EXPORT_LDs_FILE          11      /* control type: command, callback function: ExportLDsFile */
+#define  SOLUS_P_EXPORT_SEQUENCE          12      /* control type: command, callback function: ExportMeasSequence */
+#define  SOLUS_P_OPT1                     13      /* control type: LED, callback function: (none) */
+#define  SOLUS_P_OPT2                     14      /* control type: LED, callback function: (none) */
+#define  SOLUS_P_OPT3                     15      /* control type: LED, callback function: (none) */
+#define  SOLUS_P_OPT4                     16      /* control type: LED, callback function: (none) */
+#define  SOLUS_P_OPT5                     17      /* control type: LED, callback function: (none) */
+#define  SOLUS_P_OPT6                     18      /* control type: LED, callback function: (none) */
+#define  SOLUS_P_OPT7                     19      /* control type: LED, callback function: (none) */
+#define  SOLUS_P_OPT8                     20      /* control type: LED, callback function: (none) */
+#define  SOLUS_P_CALIB_MAP_FILE_PATH      21      /* control type: string, callback function: Setting */
+#define  SOLUS_P_LDs_PARM_FILE_PATH       22      /* control type: string, callback function: Setting */
+#define  SOLUS_P_GSIPM_PARM_FILE_PATH     23      /* control type: string, callback function: Setting */
+#define  SOLUS_P_GSIPM_INFO_FILE_PATH     24      /* control type: string, callback function: Setting */
+#define  SOLUS_P_LDs_INFO_FILE_PATH       25      /* control type: string, callback function: Setting */
+#define  SOLUS_P_SEQUENCE_FILE_PATH       26      /* control type: string, callback function: Setting */
+#define  SOLUS_P_T_OPTODE_DIAGNOSTIC      27      /* control type: table, callback function: Setting */
+#define  SOLUS_P_SEQ_LENGTH               28      /* control type: numeric, callback function: Setting */
+#define  SOLUS_P_T_CONTROL_PARAMS         29      /* control type: table, callback function: Setting */
+#define  SOLUS_P_T_CONTROL_DIAGNOSTIC     30      /* control type: table, callback function: Setting */
+#define  SOLUS_P_POWER_OPTODE_1           31      /* control type: binary, callback function: PowerOptode */
+#define  SOLUS_P_POWER_OPTODE_2           32      /* control type: binary, callback function: PowerOptode */
+#define  SOLUS_P_POWER_OPTODE_3           33      /* control type: binary, callback function: PowerOptode */
+#define  SOLUS_P_POWER_OPTODE_4           34      /* control type: binary, callback function: PowerOptode */
+#define  SOLUS_P_POWER_OPTODE_8           35      /* control type: binary, callback function: PowerOptode */
+#define  SOLUS_P_POWER_OPTODE_7           36      /* control type: binary, callback function: PowerOptode */
+#define  SOLUS_P_POWER_OPTODE_6           37      /* control type: binary, callback function: PowerOptode */
+#define  SOLUS_P_POWER_OPTODE_5           38      /* control type: binary, callback function: PowerOptode */
+#define  SOLUS_P_LASER_FREQ               39      /* control type: numeric, callback function: (none) */
+#define  SOLUS_P_OPTODE_AREA_1            40      /* control type: numeric, callback function: (none) */
+#define  SOLUS_P_OPTODE_AREA_2            41      /* control type: numeric, callback function: (none) */
+#define  SOLUS_P_OPTODE_AREA_3            42      /* control type: numeric, callback function: (none) */
+#define  SOLUS_P_OPTODE_AREA_4            43      /* control type: numeric, callback function: (none) */
+#define  SOLUS_P_OPTODE_AREA_5            44      /* control type: numeric, callback function: (none) */
+#define  SOLUS_P_OPTODE_AREA_6            45      /* control type: numeric, callback function: (none) */
+#define  SOLUS_P_OPTODE_AREA_7            46      /* control type: numeric, callback function: (none) */
+#define  SOLUS_P_OPTODE_AREA_8            47      /* control type: numeric, callback function: (none) */
+
+#define  STEP                             13      /* callback function: ClosePanel */
 #define  STEP_TEXTMSG_1                   2       /* control type: textMsg, callback function: (none) */
 #define  STEP_TEXTMSG_2                   3       /* control type: textMsg, callback function: (none) */
 #define  STEP_TEXTMSG_3                   4       /* control type: textMsg, callback function: (none) */
@@ -652,7 +700,7 @@
 #define  STEP_SORT_11                     199     /* control type: binary, callback function: Setting */
 #define  STEP_TITLE                       200     /* control type: textMsg, callback function: (none) */
 
-#define  SWITCH                           13      /* callback function: ClosePanel */
+#define  SWITCH                           14      /* callback function: ClosePanel */
 #define  SWITCH_TEXTMSG_1                 2       /* control type: textMsg, callback function: (none) */
 #define  SWITCH_TEXTMSG_2                 3       /* control type: textMsg, callback function: (none) */
 #define  SWITCH_TEXTMSG_3                 4       /* control type: textMsg, callback function: (none) */
@@ -765,7 +813,7 @@
 #define  SWITCH_FNAME_10                  111     /* control type: string, callback function: Setting */
 #define  SWITCH_TITLE                     112     /* control type: textMsg, callback function: (none) */
 
-#define  TRIM                             14      /* callback function: ClosePanel */
+#define  TRIM                             15      /* callback function: ClosePanel */
 #define  TRIM_STEP_1                      2       /* control type: ring, callback function: Setting */
 #define  TRIM_STEP_2                      3       /* control type: ring, callback function: Setting */
 #define  TRIM_STEP_3                      4       /* control type: ring, callback function: Setting */
@@ -978,7 +1026,7 @@
 #define  TRIM_TEXTMSG_10                  211     /* control type: textMsg, callback function: (none) */
 #define  TRIM_TITLE                       212     /* control type: textMsg, callback function: (none) */
 
-#define  TRS                              15      /* callback function: ClosePanel */
+#define  TRS                              16      /* callback function: ClosePanel */
 
 
      /* Control Arrays: */
@@ -1008,49 +1056,52 @@
 #define  MENU_FILE_SAVE_NIRS              18      /* callback function: SaveSetting */
 #define  MENU_FILE_SAVE_LUCA              19      /* callback function: SaveSetting */
 #define  MENU_FILE_SAVE_GEOMETRY          20      /* callback function: SaveSetting */
-#define  MENU_FILE_LOAD                   21
-#define  MENU_FILE_LOAD_SUBMENU           22
-#define  MENU_FILE_LOAD_ALL               23      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_SEPARATOR_4       24
-#define  MENU_FILE_LOAD_DISPLAY           25      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_DOSTEP            26      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LABEL             27      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LAYOUT            28      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_MAMM              29      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_PARM              30      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_PRESENT           31      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_MOXY              32      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_TRIM              33      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_STEP              34      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_SWITCH            35      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_NIRS              36      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LUCA              37      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_GEOMETRY          38      /* callback function: LoadSetting */
-#define  MENU_FILE_SEPARATOR              39
-#define  MENU_FILE_PRINT                  40      /* callback function: Print */
-#define  MENU_FILE_SEPARATOR_2            41
-#define  MENU_FILE_QUIT                   42      /* callback function: Quit */
-#define  MENU_WINDOW                      43
-#define  MENU_WINDOW_PARM                 44      /* callback function: ShowPanel */
-#define  MENU_WINDOW_DISPLAY              45      /* callback function: ShowPanel */
-#define  MENU_WINDOW_TRIM                 46      /* callback function: ShowPanel */
-#define  MENU_WINDOW_STEP                 47      /* callback function: ShowPanel */
-#define  MENU_WINDOW_SWITCH               48      /* callback function: ShowPanel */
-#define  MENU_WINDOW_GEOMETRY             49      /* callback function: ShowPanel */
-#define  MENU_WINDOW_LAYOUT               50      /* callback function: ShowPanel */
-#define  MENU_WINDOW_PRESENT              51      /* callback function: ShowPanel */
-#define  MENU_WINDOW_LABEL                52      /* callback function: ShowPanel */
-#define  MENU_WINDOW_DO_STEP              53      /* callback function: ShowPanel */
-#define  MENU_DEVICE                      54
-#define  MENU_DEVICE_MOXY                 55      /* callback function: ShowPanel */
-#define  MENU_DEVICE_MAMM                 56      /* callback function: ShowPanel */
-#define  MENU_DEVICE_NIRS                 57      /* callback function: ShowPanel */
-#define  MENU_DEVICE_LUCA                 58      /* callback function: ShowPanel */
-#define  MENU_RUN                         59
-#define  MENU_RUN_MEASURE                 60      /* callback function: Measure */
-#define  MENU_RUN_OSCILLOSCOPE            61      /* callback function: RunOscilloscope */
-#define  MENU_HELP                        62
-#define  MENU_HELP_ABOUT                  63      /* callback function: About */
+#define  MENU_FILE_SAVE_SOLUS_P           21      /* callback function: SaveSetting */
+#define  MENU_FILE_LOAD                   22
+#define  MENU_FILE_LOAD_SUBMENU           23
+#define  MENU_FILE_LOAD_ALL               24      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SEPARATOR_4       25
+#define  MENU_FILE_LOAD_DISPLAY           26      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_DOSTEP            27      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LABEL             28      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LAYOUT            29      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_MAMM              30      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_PARM              31      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_PRESENT           32      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_MOXY              33      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_TRIM              34      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_STEP              35      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SWITCH            36      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_NIRS              37      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LUCA              38      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_GEOMETRY          39      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SOLUS_P           40      /* callback function: LoadSetting */
+#define  MENU_FILE_SEPARATOR              41
+#define  MENU_FILE_PRINT                  42      /* callback function: Print */
+#define  MENU_FILE_SEPARATOR_2            43
+#define  MENU_FILE_QUIT                   44      /* callback function: Quit */
+#define  MENU_WINDOW                      45
+#define  MENU_WINDOW_PARM                 46      /* callback function: ShowPanel */
+#define  MENU_WINDOW_DISPLAY              47      /* callback function: ShowPanel */
+#define  MENU_WINDOW_TRIM                 48      /* callback function: ShowPanel */
+#define  MENU_WINDOW_STEP                 49      /* callback function: ShowPanel */
+#define  MENU_WINDOW_SWITCH               50      /* callback function: ShowPanel */
+#define  MENU_WINDOW_GEOMETRY             51      /* callback function: ShowPanel */
+#define  MENU_WINDOW_LAYOUT               52      /* callback function: ShowPanel */
+#define  MENU_WINDOW_PRESENT              53      /* callback function: ShowPanel */
+#define  MENU_WINDOW_LABEL                54      /* callback function: ShowPanel */
+#define  MENU_WINDOW_DO_STEP              55      /* callback function: ShowPanel */
+#define  MENU_DEVICE                      56
+#define  MENU_DEVICE_MOXY                 57      /* callback function: ShowPanel */
+#define  MENU_DEVICE_MAMM                 58      /* callback function: ShowPanel */
+#define  MENU_DEVICE_NIRS                 59      /* callback function: ShowPanel */
+#define  MENU_DEVICE_LUCA                 60      /* callback function: ShowPanel */
+#define  MENU_DEVICE_SOLUS_P              61      /* callback function: ShowPanel */
+#define  MENU_RUN                         62
+#define  MENU_RUN_MEASURE                 63      /* callback function: Measure */
+#define  MENU_RUN_OSCILLOSCOPE            64      /* callback function: RunOscilloscope */
+#define  MENU_HELP                        65
+#define  MENU_HELP_ABOUT                  66      /* callback function: About */
 
 
      /* Callback Prototypes: */
@@ -1058,7 +1109,15 @@
 void CVICALLBACK About(int menubar, int menuItem, void *callbackData, int panel);
 int  CVICALLBACK ClosePanel(int panel, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK CreatePad(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK ExportGSIPMFile(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK ExportGSIPMParmsFile(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK ExportLDsFile(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK ExportLDsParmsFile(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK ExportMeasSequence(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK GetCommand(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK GetControlDiagnParams(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK GetControlParams(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK GetOptodeDiagnParams(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK LoadGeom(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 void CVICALLBACK LoadSetting(int menubar, int menuItem, void *callbackData, int panel);
 int  CVICALLBACK LucaBoxCbk(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
@@ -1066,13 +1125,16 @@ int  CVICALLBACK LucaLasersCbk(int panel, int control, int event, void *callback
 void CVICALLBACK Measure(int menubar, int menuItem, void *callbackData, int panel);
 int  CVICALLBACK NirsBoxCbk(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK NirsLasersCbk(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK PowerOptode(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 void CVICALLBACK Print(int menubar, int menuItem, void *callbackData, int panel);
 int  CVICALLBACK PropPad(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 void CVICALLBACK Quit(int menubar, int menuItem, void *callbackData, int panel);
+int  CVICALLBACK RunDCRMeas(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK RunDoStep(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 void CVICALLBACK RunOscilloscope(int menubar, int menuItem, void *callbackData, int panel);
 int  CVICALLBACK SaveGeom(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 void CVICALLBACK SaveSetting(int menubar, int menuItem, void *callbackData, int panel);
+int  CVICALLBACK SetControlParams(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK Setting(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK SetType(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK ShowPad(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
