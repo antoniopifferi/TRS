@@ -5,7 +5,7 @@
 //#define _LUCA	// Enable LUCA compilation, load also LUCA_TRS.lib
 
 // VERSION
-#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 17.3\nDate: November 2018"
+#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 17.4\nDate: June 2019"
 
 // TYPE OF DATA
 // USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards.
@@ -463,6 +463,8 @@
 #define SWITCH_LEONI_DATABITS	8
 #define SWITCH_LEONI_STOPBITS	1
 
+#define SWITCH_THORWHEEL_BAUDRATE	115200	
+
 
 // SYNC CONSTANT
 #define SYNC_INPUT   1
@@ -524,6 +526,7 @@
 #define SWITCH_EOL2x2 5
 #define SWITCH_LUCA  6
 #define SWITCH_LEONI 7
+#define SWITCH_THORWHEEL 8
 
 #define LPT			 1
 #define NEWP	 	 2
@@ -2213,8 +2216,9 @@ void InitSwitchLuca(char Switch);
 void MoveSwitchLuca(long Goal,char Switch);
 void InitSwitchLeoni(char Switch);
 void MoveSwitchLeoni(long Goal,char Switch);
-
-
+void InitSwitchThorWheel(char Switch);
+void CloseSwitchThorWheel(char Switch);
+void MoveSwitchThorWheel(long Goal,char Switch);
 
 /* ########################   SYNC PROCEDURES   ######################## */
 void InitSync(void);

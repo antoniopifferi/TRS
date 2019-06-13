@@ -1,6 +1,6 @@
 /* ######################################################################## */
 /* 									   														*/
-/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 17.3  November  2018   */
+/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 17.4  June  2019   */
 /* 									   														*/
 /* ######################################################################## */
 
@@ -27,6 +27,7 @@
 // New TRIM
 // LUCA Box
 // SWITCH Leoni
+// SWITCH ThorWheel
 
 /* ########################   HELP   ################################## */
 // Board = Physical TCSPC Board
@@ -86,6 +87,7 @@
 //#include "thdefin.h"
 #include "W32nii3eMOD.h"
 #include <NIDAQmx.h>
+#include "uart_library.h"  // header of Thorlabs Wheel
 
 //#include <DAQmxIOctrl.h>
 
@@ -4336,6 +4338,7 @@ void InitSwitch(char Switch){
 		case SWITCH_EOL2x2: if((P.Switch[Switch].Type==LPT) || (P.Switch[Switch].Type==COM)) InitSwitch2X2EOL(Switch); break;                                  //Reb
 		case SWITCH_LUCA:	InitSwitchLuca(Switch); break;
 		case SWITCH_LEONI:	InitSwitchLeoni(Switch); break;
+		case SWITCH_THORWHEEL:	InitSwitchThorWheel(Switch); break;
 		default:break; 
 		}
 }
@@ -4357,6 +4360,7 @@ void CloseSwitch(char Switch){
 								}
 		case SWITCH_LUCA:	break;
 		case SWITCH_LEONI:	break;
+		case SWITCH_THORWHEEL:	CloseSwitchThorWheel(Switch); break;
 		default:break; 
 		}
 }
@@ -4374,6 +4378,7 @@ void MoveSwitch(long Goal, char Switch){
 		case SWITCH_EOL2x2: if((P.Switch[Switch].Type==LPT)||(P.Switch[Switch].Type==COM))  MoveSwitch2X2EOL(Goal,Switch); break; 
 		case SWITCH_LUCA:	MoveSwitchLuca(Goal,Switch); break;
 		case SWITCH_LEONI:	MoveSwitchLeoni(Goal,Switch); break;
+		case SWITCH_THORWHEEL:	MoveSwitchThorWheel(Goal,Switch); break;
 		default:break; 
 		}
 	}
@@ -4851,6 +4856,38 @@ void MoveSwitchLeoni(long Goal,char Switch){
 	sprintf(command,"ch%d\r\n",Goal);
 	ret=ComWrt(P.Switch[Switch].Com,command,strlen(command));
 	if(ret<0) Failure("Error MoveSwitchLeoni TIMEOUT on Communication");
+	}
+
+
+/* ########################    SWITCH THORLABS WHEEL  ####################### */
+
+/* INITIALIZE SWITCH THORLABS WHEEL */
+void InitSwitchThorWheel(char Switch){
+	int ret;
+	int com=P.Switch[Switch].Com;
+	char message[STRLEN];
+	sprintf(message,"Initializing Switch #%d THORLABS WHEEL on COM%d",Switch+1,com);
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+	ret=fnUART_LIBRARY_open(com,SWITCH_THORWHEEL_BAUDRATE);
+	if(ret!=0) Failure("Failure to initialize communication for Thorlabs Wheel"); else Passed();
+	FlushInQ (com);
+	FlushOutQ (com);
+	}
+
+
+/* CLOSE SWITCH THORLABS WHEEL */
+void CloseSwitchThorWheel(char Switch){
+	fnUART_LIBRARY_close();
+	}
+
+
+/* MOVE SWITCH THORLABS WHEEL */  
+void MoveSwitchThorWheel(long Goal,char Switch){
+	int ret;
+	char command[STRLEN];
+	sprintf(command,"pos=%d",Goal);
+	ret=fnUART_LIBRARY_Set(command,strlen(command));
+	if(ret!=0) Failure("Error Move Switch ThorWheel");
 	}
 
 
