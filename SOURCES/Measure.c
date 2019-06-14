@@ -4419,7 +4419,7 @@ void InitPosSwitch(char Switch){
 			}				
 	   	while(!feof(fpos)){
     		fscanf(fpos,"%ld",&label);
-			fscanf(fpos,"%lf",&pos);
+			fscanf(fpos,"%ld",&pos);
 			if(label==P.Loop[loop].Home)
 				if(!sethome){
 					P.Switch[Switch].Home = pos; // c'era double+0.5;Andrea 18/2/2002
@@ -4870,8 +4870,6 @@ void InitSwitchThorWheel(char Switch){
     SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
 	ret=fnUART_LIBRARY_open(com,SWITCH_THORWHEEL_BAUDRATE);
 	if(ret!=0) Failure("Failure to initialize communication for Thorlabs Wheel"); else Passed();
-	FlushInQ (com);
-	FlushOutQ (com);
 	}
 
 
@@ -4885,7 +4883,7 @@ void CloseSwitchThorWheel(char Switch){
 void MoveSwitchThorWheel(long Goal,char Switch){
 	int ret;
 	char command[STRLEN];
-	sprintf(command,"pos=%d",Goal);
+	sprintf(command,"pos=%d\r",Goal);
 	ret=fnUART_LIBRARY_Set(command,strlen(command));
 	if(ret!=0) Failure("Error Move Switch ThorWheel");
 	}
