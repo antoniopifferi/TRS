@@ -94,6 +94,7 @@ void SaveSet(char *FilePath,int Panel){
 	char vchar;
 	int vint;
 	double vdouble;
+	UINT16 vushint;
 	char vstring[STRLEN];
 	FILE *pfile;
 	if(Panel==NEG) pfile = fopen (FilePath, "w");
@@ -116,6 +117,11 @@ void SaveSet(char *FilePath,int Panel){
 					if(T.Class[it]==CE) GetCtrlVal(hPanel[T.Panel[it]],T.Ctrl[it],&vdouble);
 					else GetTableCellVal (hPanel[T.Panel[it]],T.Ctrl[it],MakePoint(T.Col[it],T.Row[it]),&vdouble);
 					fprintf(pfile,"%lf\n",vdouble);
+					break;
+				case TSHORT:
+					if(T.Class[it]==CE) GetCtrlVal(hPanel[T.Panel[it]],T.Ctrl[it],&vushint);
+					else GetTableCellVal (hPanel[T.Panel[it]],T.Ctrl[it],MakePoint(T.Col[it],T.Row[it]),&vushint);
+					fprintf(pfile,"%hu\n",vushint);
 					break;
 				case TSTRING:
 					if(T.Class[it]==CE) GetCtrlVal(hPanel[T.Panel[it]],T.Ctrl[it],vstring);
@@ -161,6 +167,7 @@ void LoadSet(char *FilePath,int Panel){
 	int type,class,it;
 	int vint;
 	double vdouble;
+	UINT16 vushint;
 	char vstring[STRLEN];
 	FILE *pfile;
 	pfile = fopen (FilePath, "r");
@@ -181,6 +188,11 @@ void LoadSet(char *FilePath,int Panel){
 							sscanf(line,"%d%d%s%lf",&class,&type,label,&vdouble);
 							if(T.Class[it]==CE) SetCtrlVal(hPanel[T.Panel[it]],T.Ctrl[it],vdouble);
 							else SetTableCellAttribute (hPanel[T.Panel[it]],T.Ctrl[it],MakePoint(T.Col[it],T.Row[it]),ATTR_CTRL_VAL,vdouble);
+							break;
+						case TSHORT:
+							sscanf(line,"%d%d%s%hu",&class,&type,label,&vushint);
+							if(T.Class[it]==CE) SetCtrlVal(hPanel[T.Panel[it]],T.Ctrl[it],vushint);
+							else SetTableCellAttribute (hPanel[T.Panel[it]],T.Ctrl[it],MakePoint(T.Col[it],T.Row[it]),ATTR_CTRL_VAL,vushint);
 							break;
 						case TSTRING:
 							Scan(line,"%d%d%s%s",&class,&type,label,vstring);
@@ -300,6 +312,7 @@ void UpdatePanel(void){
 	char *pchar;
 	int *pint;
 	double *pdouble;
+	UINT16 *pshort;
 	for(it=0;it<T.Num;it++)
 		switch (T.Type[it]) {	   
 			case TCHAR:
@@ -316,6 +329,11 @@ void UpdatePanel(void){
 				pdouble=T.Addr[it];
 				if(T.Class[it]==CE) SetCtrlAttribute (hPanel[T.Panel[it]],T.Ctrl[it],ATTR_CTRL_VAL,*pdouble);
 				else SetTableCellAttribute (hPanel[T.Panel[it]],T.Ctrl[it],MakePoint(T.Col[it],T.Row[it]),ATTR_CTRL_VAL,*pdouble);
+				break;
+			case TSHORT:
+				pshort=T.Addr[it];
+				if(T.Class[it]==CE) SetCtrlAttribute (hPanel[T.Panel[it]],T.Ctrl[it],ATTR_CTRL_VAL,*pshort);
+				else SetTableCellAttribute (hPanel[T.Panel[it]],T.Ctrl[it],MakePoint(T.Col[it],T.Row[it]),ATTR_CTRL_VAL,*pshort);
 				break;
 			case TSTRING:
 				if(T.Class[it]==CE) SetCtrlAttribute (hPanel[T.Panel[it]],T.Ctrl[it],ATTR_CTRL_VAL,T.Addr[it]);
@@ -691,7 +709,7 @@ void CreateTable(void){
 	AddTab(CE,TINT,SOLUS_P,SOLUS_P_SEQ_LENGTH,"SeqLength",0,0,&P.Solus.SeqLength);
 	AddTab(CE,TINT,SOLUS_P,SOLUS_P_LASER_FREQ,"Laserfreq",0,0,&P.Solus.LaserFrequency);
 	for(io=0;io<N_OPTODE;io++){        
-	//AddTab(CE,TINT,SOLUS_P,SOLUS_P_OPTODE_AREA_1+io,"OptArea",0,0,&P.Solus.OptArea[io]);
+		AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_OPTODE_AREA_1+io,"OptArea",0,0,&P.Solus.OptArea[io]);
 	}
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_DIAGNOSTIC,"ControlDiagn",1,1,&P.Solus.T_ControlAnalog.spadCurrent);
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_DIAGNOSTIC,"ControlDiagn",2,1,&P.Solus.T_ControlAnalog.spadVoltage);
@@ -709,6 +727,9 @@ void CreateTable(void){
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",5,io+1,&P.Solus.T_OptodeAnalog[io].gsipmCoreVoltage);
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",6,io+1,&P.Solus.T_OptodeAnalog[io].laserVoltage);
 	}
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_AUTOCAL,"AutoCal",0,0,&P.Solus.AutoCal);
+	AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_START_PIXEL,"StartPixel",0,0,&P.Solus.StartPixel);
+	AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_STOP_PIXEL,"StopPixel",0,0,&P.Solus.StopPixel);
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;
 	}
 

@@ -72,9 +72,9 @@ extern "C" {
 #define FRAME_SIZE_INT_HIST (2 + 3 + 192 + 2)	/**<Frame size histogram mode.*/
 #define FRAME_SIZE_INT (2 + 3 + 2)				/**<Frame size intensity mode.*/
 #define N_LD 4									/**<Number of laser driver chip per optode.*/
-#define N_OPTODE 8								/**<Number of optode.*/
+#define N_OPTODE 4								/**<Number of optode.*/                                     // TODO: change to 8!!!!
 #define N_PIXEL 1728							/**<Number of GSIPM pixels.*/
-#define EEPROM_SIZE 3602						/**<EEPROM size.*/
+#define EEPROM_SIZE 4096						/**<EEPROM size.*/
 
 /*@}*/
 
@@ -110,7 +110,9 @@ extern "C" {
 		PROBE_ERROR = 7,						/**<Probe returned an error code.*/
 		FIRMWARE_NOT_COMPATIBLE = -8,           /**<Firmware not compatible.*/
 		OPTODE_NOT_PRESENT = -9,				/**<Optode not present or not working.*/
-		FIRMWARE_UPDATE_ERROR = -10				/**<Error during firmware update.*/
+		FIRMWARE_UPDATE_ERROR = -10,			/**<Error during firmware update.*/
+		SEQUENCE_ALREADY_RUNNING = -11,			/**<A sequence is already running.*/
+		NO_SEQUENCE_RUNNING = -12				/**<A sequence has not been started yet.*/
 	} SOLUS_Return;
 
 	/**Types of acquisition data.	*/
@@ -130,65 +132,74 @@ extern "C" {
 	{
 		// channel 1
 		UINT16 CH1_DELAY_F1 : 10;		/**<Channel 1 Delay Fine.*/
-		UINT16 dummy3 : 6;				/**<Dummy bits.*/
+		UINT16 : 6;						/**<Zero bits.*/
 		UINT8 CH1_DELAYC1 : 4;			/**<Channel 1 Delay Coarse.*/
-		UINT8 dummy4 : 4;				/**<Dummy bits.*/
+		UINT8 : 4;						/**<Zero bits.*/
 		UINT16 CH1_WIDTH_F1 : 10;		/**<Channel 1 Width Fine.*/
-		UINT16 dummy5 : 6;				/**<Dummy bits.*/
+		UINT16 : 6;						/**<Zero bits.*/
 		UINT16 CH1_WIDTH_C1 : 5;		/**<Channel 1 Width Coarse.*/
-		UINT16 dummy6 : 11;				/**<Dummy bits.*/
+		UINT16 : 11;					/**<Zero bits.*/
 		UINT16 CH1_IFINE1 : 10;			/**<Channel 1 Current Fine.*/
-		UINT16 dummy7 : 6;				/**<Dummy bits.*/
+		UINT16 : 6;						/**<Zero bits.*/
 		UINT8 CH1_ICOARSE1 : 3;			/**<Channel 1 Current Coarse.*/
-		UINT8 dummy8 : 5;				/**<Dummy bits.*/
+		UINT8 : 5;						/**<Zero bits.*/
 		// channel 2
 		UINT16 CH2_DELAY_F2 : 10;		/**<Channel 2 Delay Fine.*/
-		UINT16 dummy9 : 6;				/**<Dummy bits.*/
+		UINT16 : 6;						/**<Zero bits.*/
 		UINT8 CH2_DELAYC2 : 4;			/**<Channel 2 Delay Coarse.*/
-		UINT8 dummy10 : 4;				/**<Dummy bits.*/
+		UINT8 : 4;						/**<Zero bits.*/
 		UINT16 CH2_WIDTH_F2 : 10;		/**<Channel 2 Width Fine.*/
-		UINT16 dummy11 : 6;				/**<Dummy bits.*/
+		UINT16 : 6;						/**<Zero bits.*/
 		UINT16 CH2_WIDTH_C2 : 5;		/**<Channel 2 Width Coarse.*/
-		UINT16 dummy12 : 11;			/**<Dummy bits.*/
+		UINT16 : 11;					/**<Zero bits.*/
 		UINT16 CH2_IFINE2 : 10;			/**<Channel 2 Current Fine.*/
-		UINT16 dummy13 : 6;				/**<Dummy bits.*/
+		UINT16 : 6;						/**<Zero bits.*/
 		UINT8 CH2_ICOARSE2 : 3;			/**<Channel 2 Current Coarse.*/
-		UINT8 dummy14 : 5;				/**<Dummy bits.*/
+		UINT8 : 5;						/**<Zero bits.*/
 		// LVDS Input interface
-		UINT8 ETTLI : 1;				/**<Enable TTL input mode.*/
-		UINT8 dummy15 : 7;				/**<Dummy bits.*/
+		UINT8 NETTLI : 1;				/**<Not TTL input mode.*/
+		UINT8 : 3;						/**<Zero bits.*/
+		UINT8 CLKDIV : 2;				/**<Reference frequency divider.*/
+		UINT8 : 2;						/**<Zero bits.*/
 		// Pulse Generator
-		UINT8 DIVH : 4;					/**<Frequency divider for PLL hi.*/
-		UINT8 DIVL : 4;					/**<Frequency divider for PLL low.*/
+		UINT8 DIVH : 3;					/**<Frequency divider for PLL hi.*/
+		UINT8 ENLP : 1;					/**<Enable Long Pulses.*/
+		UINT8 DIVL : 3;					/**<Frequency divider for PLL low.*/
+		UINT8 NEPLL : 1;				/**<Disable PLL.*/
 		// Sync Output
 		UINT16 SYNCDF : 10;				/**<Sync delay fine.*/
-		UINT16 dummy16 : 6;				/**<Dummy bits.*/
+		UINT16 : 6;						/**<Zero bits.*/
 		UINT8 SYNCDC : 4;				/**<Sync delay coarse.*/
 		UINT8 ESYNC : 1;				/**<Enable sync output.*/
 		UINT8 ETTLO : 1;				/**<Enable TTL output mode.*/
-		UINT8 dummy17 : 2;				/**<Dummy bits.*/
+		UINT8 : 2;						/**<Zero bits.*/
 		// ADC/DAC
 		UINT8 SELAD : 3;				/**<Select ADC/DAC source.*/
 		UINT8 ENADC : 1;				/**<Enable AD/DA converter.*/
-		UINT8 dummy18 : 4;				/**<Dummy bits.*/
+		UINT8 : 2;						/**<Zero bits.*/
+		UINT8 ILIM_LSB : 2;				/**<Current limit LSB.*/
+		UINT8 ILIM_MSB : 8;				/**<Current limit MSB.*/
 		// iCHAUS Internal Configuration
-		UINT8 SDAREF : 2;				/**<CChoose DA ref block I (hi or lo).*/
-		UINT8 dummy19 : 6;				/**<Dummy bits.*/
 		UINT8 CPONH : 1;				/**<Reference for charge pump block P.*/
 		UINT8 CPONL : 1;				/**<Reference for charge pump block P.*/
-		UINT8 dummy20 : 6;				/**<Dummy bits.*/
+		UINT8 : 2;						/**<Zero bits.*/
+		UINT8 SDAREF : 2;				/**<Choose DA ref block I (hi or lo).*/
+		UINT8 : 2;						/**<Zero bits.*/
 		UINT8 SYNCTR : 3;				/**<Sync trim in block S.*/
-		UINT8 dummy21 : 1;				/**<Dummy bits.*/
+		UINT8 : 1;						/**<Zero bit.*/
 		UINT8 ETIMON : 1;				/**<Enable test current monitor block S.*/
-		UINT8 dummy22 : 3;				/**<Dummy bits.*/
+		UINT8 : 3;						/**<Zero bits.*/
 		UINT8 CITR : 3;					/**<Trim output current in LDK (block O).*/
+		UINT8 : 1;						/**<Zero bit.*/
 		UINT8 NCIEX : 1;				/**<Not CI voltage external (block O).*/
 		UINT8 NCIDIS : 1;				/**<Not CI disable, emergency shutdown (block O).*/
-		UINT8 dummy23 : 2;				/**<Dummy bits.*/
+		UINT8 : 1;						/**<Zero bit.*/
+		UINT8 LBYP : 1;					/**<Bypass error check at startup.*/
 		// iCHAUS Internal Test
 		UINT8 TSEL : 4;					/**<Test block selection 3bit.*/
-		UINT8 TM : 3;					/**<Testmode.*/
-		UINT8 dummy24 : 1;				/**<Dummy bits.*/
+		UINT8 TM : 2;					/**<Testmode.*/
+		UINT8 : 1;						/**<Zero bit.*/
+		UINT8 ENTAP : 1;				/**<Enable Test Access Port.*/
 		// CRC Checksum
 		UINT8 CRC_CFG;					/**<CRC Checksum.*/
 	};
@@ -230,15 +241,15 @@ extern "C" {
 		UINT8 EN_QUADRANT_4 : 1;			/**<Enable Quadrant 4*/
 		UINT8 TDC_DITHER_CODE : 3;			/**<TDC dithering code*/
 		UINT8 TDC_DITHER_DISABLE : 1;		/**<Disable TDC dithering*/
-		UINT32 STOP;						/**<TDC stop position*/
-		UINT32 GATE_CLOSE;					/**<Gate closing position*/
-		UINT32 GATE_OPEN;					/**<Gate opening position*/
+		UINT8 STOP;							/**<TDC stop position. Valid range 0..23.*/
+		UINT8 GATE_CLOSE;					/**<Gate closing position. Valid range 0..23.*/
+		UINT8 GATE_OPEN;					/**<Gate opening position. Valid range 0..23.*/
 	};
 
-	/**GSIPM registers union containing all registers for the GSIPM chip. It is 14 bytes long.	*/
+	/**GSIPM registers union containing all registers for the GSIPM chip. It is 5 bytes long.	*/
 	typedef union {
 		struct _GSIPM_reg GSIPM_ref;				/**<GSIPM registers*/
-		UINT8 bytes[sizeof(struct _GSIPM_reg)];		/**<14 bytes*/
+		UINT8 bytes[sizeof(struct _GSIPM_reg)];		/**<5 bytes*/
 	} GSIPM_config_reg;
 
 	/**Struct containing the most common GSIPM parameters*/
@@ -264,7 +275,7 @@ extern "C" {
 	struct _Sequence_Line_LL
 	{
 		UINT16 meas_time;				/**<Measurement time in 100s of us*/
-		UINT16 attenuation : 12;		/**<Attenuation, i.e. number of disabled SPADs. If 0xFFF the automatically calibrated value is used*/
+		UINT16 attenuation : 12;		/**<Attenuation, i.e. number of disabled SPADs.*/
 		UINT16 gate_dly_c : 4;			/**<Gate delay coarse*/
 		UINT16 gate_dly_f : 10;			/**<Gate delay fine*/
 		UINT16 laser_num : 6;			/**<Laser to fire*/
@@ -274,9 +285,9 @@ extern "C" {
 	struct _Sequence_Line
 	{
 		UINT16 meas_time;				/**<Measurement time in hundreds of us*/
-		UINT16 attenuation;				/**<Attenuation, i.e. number of disabled SPADs. Valid range: 0..1727. If 0xFFF the automatically calibrated value is used*/
+		UINT16 attenuation;				/**<Attenuation, i.e. number of disabled SPADs. Valid range: 0..1727.*/
 		UINT8 gate_delay_coarse;		/**<Gate delay coarse. Valid range: 0..15.*/
-		UINT8 gate_delay_fine;			/**<Gate delay fine. Valid range: 0..1023.*/
+		UINT16 gate_delay_fine;			/**<Gate delay fine. Valid range: 0..1023.*/
 		UINT8 laser_num;				/**<Laser to fire. Valid range: 0..63.*/
 	};
 
@@ -284,7 +295,7 @@ extern "C" {
 	typedef union
 	{
 		struct _Sequence_Line_LL Lines[MAX_SEQUENCE];					/**<Array of Sequence Lines*/
-		UINT8 bytes[sizeof(struct _Sequence_Line_LL)*MAX_SEQUENCE];	/**<6 x MAX_SEQUENCE bytes*/
+		UINT8 bytes[sizeof(struct _Sequence_Line_LL)*MAX_SEQUENCE];		/**<6 x MAX_SEQUENCE bytes*/
 	} Sequence_LL;
 
 	/**High level array containing all lines of the measurement sequence.	*/
@@ -326,6 +337,9 @@ extern "C" {
 		UINT16 gsipmSPADvoltage;	/**<GSIPM SPAD voltage in mV*/
 		UINT16 gsipmCoreVoltage;	/**<GSIPM core voltage in mV*/
 		UINT16 laserVoltage;		/**<Laser voltage in mV*/
+		INT16 picTemperature;		/**<PIC Temperature in 0.01 °C*/
+		UINT16 gsipmTemperature;	/**<GSIPM Temperature (in code for now)*/
+		UINT16 bandgap;				/**<Bandgap readout (code)*/
 	} Optode_analog_acq;
 
 	/**Structure containing the analog acquisitions for the control board.	*/
@@ -717,13 +731,14 @@ extern "C" {
 	\ref SOLUS_GetMeasurement().
 	\param solus SOLUS handle
 	\param type Specify the datatype of the measurement (only intensity or complete histogram and intensity)
+	\param autocal Specify if autocalibration of attenuation should be performed before each line of the sequence. If FALSE, the value of attenuation specified in the sequence will be used.
 	\return OK Measurement started successfully.
 	\return INVALID_POINTER An empty SOLUS handle was passed.
 	\return INVALID_OP Acquisition already running.
 	\return COMM_ERROR Communication error.
 	\return COMM_TIMEOUT Communication timeout.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_StartSequence(SOLUS_H solus, DataType type);
+	DllSDKExport SOLUS_Return SOLUS_StartSequence(SOLUS_H solus, DataType type, BOOLEAN autocal);
 
 	/**Stop measurement sequence.
 	Stops the running measurement. It must be called in any case befora starting a new one.
@@ -753,20 +768,22 @@ extern "C" {
 	DllSDKExport SOLUS_Return SOLUS_GetMeasurement(SOLUS_H solus, Data_H* data, UINT16 NLines);
 
 	/**Start the DCR measurement.
-	Starts the DCR measurement with the specified integration time. Once the acquisition started data must be downloaded calling repeatedly the function
-	\ref SOLUS_GetDCRMeasurement().
+	Starts the DCR measurement with the specified integration time and pixel range. Once the acquisition started data must be downloaded calling repeatedly the function \ref SOLUS_GetDCRMeasurement().
 	\param solus SOLUS handle
 	\param IntegrationTime Specify the integration time for the measurement in hundreds of us.
+	\param StartPixel Specity the first pixel to be acquired
+	\param StopPixel Specity the last pixel to be acquired
 	\return OK Measurement started successfully.
 	\return INVALID_POINTER An empty SOLUS handle was passed.
 	\return INVALID_OP Acquisition already running.
 	\return COMM_ERROR Communication error.
 	\return COMM_TIMEOUT Communication timeout.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_StartDCRMeasurement(SOLUS_H solus, UINT16 IntegrationTime);
+	DllSDKExport SOLUS_Return SOLUS_StartDCRMeasurement(SOLUS_H solus, UINT16 IntegrationTime, UINT16 StartPixel, UINT16 StopPixel);
 
-	/**Get Measurement.
-	Gets the DCR measurement and save data into the passed DCRmap.
+	/**Get DCR Measurement.
+	Gets the DCR measurement and save data into the passed DCRmap. For each call of the function only the DCR for 1 pixel are acquired, thus the function must be called as many times as the required number
+	of pixels, and it will scan automatically through them. Further call after the last pixel has been acquired will generate an error.
 	\param solus SOLUS handle
 	\param DCR Pointer to the DCRmap array.
 	\return OK DCR acquired successfully.
@@ -776,6 +793,17 @@ extern "C" {
 	\return COMM_TIMEOUT Communication timeout.
 	*/
 	DllSDKExport SOLUS_Return SOLUS_GetDCRMeasurement(SOLUS_H solus, DCRmap* DCR);
+
+	/**Stop DCR measurement sequence.
+	Stops the running DCR measurement. It must be called in any case befora starting a new sequence.
+	\param solus SOLUS handle
+	\return OK Measurement stopped successfully.
+	\return INVALID_POINTER An empty SOLUS handle was passed.
+	\return INVALID_OP Acquisition not running.
+	\return COMM_ERROR Communication error.
+	\return COMM_TIMEOUT Communication timeout.
+	*/
+	DllSDKExport SOLUS_Return SOLUS_StopDCRSequence(SOLUS_H solus);
 
 	/*@}*/
 	//------------ Service methods -----------------------------------------
@@ -859,7 +887,7 @@ extern "C" {
 	\param address Address of the optode/control
 	\param flags Flag word
 	*/
-	DllSDKExport SOLUS_Return SOLUS_WriteFlags(SOLUS_H solus, ADDRESS address, UINT16 flags);
+	DllSDKExport SOLUS_Return SOLUS_WriteFlags(SOLUS_H solus, ADDRESS address, UINT16 flags, UINT16 mask);
 
 	/**Turn ON power supplies.
 	\param solus SOLUS handle
@@ -899,11 +927,11 @@ extern "C" {
 	*/
 	DllSDKExport SOLUS_Return SOLUS_GetControlParams(SOLUS_H solus, Control_params* Params);
 
-	/**Compensate tempurature.
+	/**Compensate temperature.
 	\param solus SOLUS handle
-	\param temperature Temperature.
+	\param temperature Calibration temperature.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_CompensateTemperature(SOLUS_H solus, float temperature);
+	DllSDKExport SOLUS_Return SOLUS_InitialSystemConfig(SOLUS_H solus, float temperature);
 
 	/*@}*/
 

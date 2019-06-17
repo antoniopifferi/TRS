@@ -79,12 +79,13 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1248
+#define MAX_TABLE		1251
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
 #define TDOUBLE			2
 #define	TSTRING			3
+#define TSHORT			4
 #define CE				0
 #define CT				1
 #define MAX_TTABLE		13
@@ -1584,6 +1585,9 @@ struct SolusS{
 	 char StopError;
 	 char StartError;
 	 int SeqLength;
+	 BOOLEAN AutoCal;
+	 UINT16	StartPixel;
+	 UINT16	StopPixel;
 };
 
 struct SpcS {
@@ -2637,6 +2641,7 @@ void MoveLDStepSolus(char Step,long Goal,char Wait);
 void InitSipmStepSolus(char Step);
 void CloseSipmStepSolus(char Step);
 void MoveSipmStepSolus(char Step,long Goal,char Wait);
+void TellPosSipmStepSolus(char Step,long *Actual);
 void StartSolusDRCMeasure(void);
 void GetSolusDRCMeasure(void);
 void ReadCalibrationMapFromFile(void);

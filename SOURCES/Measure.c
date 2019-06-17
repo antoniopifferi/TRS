@@ -5376,6 +5376,7 @@ void SetVel(char Step, double Freq){
 		case STEP_STANDA2: SetVelStanda2(Step,Freq); break;
 		case ATT_LUCA: break;
 		case LDs_SOLUS: break;
+		case SIPM_SOLUS: break;
 		case NONE: break;
 		}
 	P.Step[Step].FreqActual=Freq;
@@ -5508,6 +5509,8 @@ void DefineHome(char Step){
 		case CHAMALEON: DefineHomeCham(Step); break;
 		case STEP_STANDA2: DefineHomeStanda2(Step); break;
 		case ATT_LUCA: DefineHomeAttLuca(Step); break;
+		//case LDs_SOLUS: DefineHomeLDStepSolus(Step); break;
+		//case SIPM_SOLUS: DefineHomeSipmStepSolus(Step); break;
 		case NONE: break;
 		}
 
@@ -5645,6 +5648,8 @@ void TellPos(char Step,long *Position){
 		case CHAMALEON: TellPosCham(Step,Position); break;
 		case STEP_STANDA2: TellPosStanda2(Step,Position); break;
 		case ATT_LUCA: TellPosAttLuca(Step,Position); break;
+		//case LDs_SOLUS: TellPosLDStepSolus(Step,Position); break;
+		case SIPM_SOLUS: TellPosSipmStepSolus(Step,Position); break;
 		}
 	}
 
@@ -9680,6 +9685,7 @@ void CreateSolusObj(void){
 	
 }
 void DestructSolusObj(void){
+	if(!P.Solus.SolusConstructed) return;
 	int ret = SOLUS_Destr(P.Solus.SolusObj);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"CloseSolus");P.Solus.SolusConstructed = TRUE;}
 	else {SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Obj DeConstructed\n");P.Solus.SolusConstructed = FALSE;}
@@ -9693,8 +9699,8 @@ void InitSolus(void){
 	CreateSolusObj();
 	GetInfoSolus();
 	ReadMeasSequenceFromFile();
-	ReadLDsInfoFromFile();
-	ReadGSIPMInfoFromFile();
+	//ReadLDsInfoFromFile();
+	//ReadGSIPMInfoFromFile();
 	ReadLDsParamsFromFile();
 	ReadGSIPMParamsFromFile();
 	ReadCalibrationMapFromFile();
@@ -9710,11 +9716,11 @@ void ReadMeasSequenceFromFile(void){
 	sfile = fopen (P.Solus.SeqFilePath, "r");
 	int is;
 	char line[STRLEN];
-	UINT16 meas_time,attenuation;
-	UINT8 gate_delay_coarse,gate_delay_fine,laser_num; 
+	UINT16 meas_time,attenuation,gate_delay_fine;
+	UINT8 gate_delay_coarse,laser_num; 
 	fgets(line,STRLEN,sfile); 
 	for(is=0;is<MAX_SEQUENCE;is++){
-		fscanf(sfile, "%hu\t%hu\t%hhu\t%hhu\t%hhu\n",&meas_time,&attenuation,&gate_delay_coarse,&gate_delay_fine,&laser_num);
+		fscanf(sfile, "%hu\t%hu\t%hhu\t%hu\t%hhu\n",&meas_time,&attenuation,&gate_delay_coarse,&gate_delay_fine,&laser_num);
 		P.Solus.MeasSequence[is].meas_time = meas_time;
 		P.Solus.MeasSequence[is].attenuation = attenuation;
 		P.Solus.MeasSequence[is].gate_delay_coarse = gate_delay_coarse;
@@ -9758,7 +9764,7 @@ void ReadLDsInfoFromFile(void){
 		fscanf(wifile,"%*s%d\n",&temp);
 		P.Solus.LDs_reg[io].LD_reg[ild].CH2_ICOARSE2 = temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.LDs_reg[io].LD_reg[ild].ETTLI = temp;
+		P.Solus.LDs_reg[io].LD_reg[ild].NETTLI = temp;
 		fscanf(wifile,"%*s%d\n",&temp);
 		P.Solus.LDs_reg[io].LD_reg[ild].DIVH = temp;
 		fscanf(wifile,"%*s%d\n",&temp);
@@ -9904,20 +9910,15 @@ void ReadCalibrationMapFromFile(void){
 	for(io=0;io<N_OPTODE;io++){
 		fgets(line,STRLEN,sfile);
 		for(ip=0;ip<N_PIXEL;ip++)
-			fscanf(sfile,"%d\t%hu\n",&pixid,&P.Solus.CalibMap[io][ip]);
+			fscanf(sfile,"%d\t%hu\n",&pixid,&P.Solus.CalibMap[io][ip]);		 //to check
 	}
 	fclose(sfile);
 }
 void ReadInfoFromSolusPanel(void){
 	int io;
-	for(io=0;io<N_OPTODE;io++){  
-		if (P.Solus.OptList[io]){ 
-			GetCtrlVal(hSolus, SOLUS_P_OPTODE_AREA_1+io, &P.Solus.OptArea[io]);	
-		}	
-	}
-	
+	for(io=0;io<N_OPTODE;io++) 
+		GetCtrlVal(hSolus, SOLUS_P_OPTODE_AREA_1+io, &P.Solus.OptArea[io]);	
 	GetCtrlVal(hSolus, SOLUS_P_LASER_FREQ,&P.Solus.LaserFrequency);
-		
 }
 void GetInfoSolus(void){
 	char message[STRLEN];
@@ -10060,7 +10061,7 @@ void SetInfoSolus(void){
 	char message[STRLEN];
 	
 	//Set Optode Regs
-	for(io=0;io<N_OPTODE;io++){
+	/*for(io=0;io<N_OPTODE;io++){
 		if (P.Solus.OptList[io]){
 			ret = SOLUS_SetOptodeRegs(P.Solus.SolusObj,io,&P.Solus.LDs_reg[io],&P.Solus.GSIPM_reg[io]);
 			if(ret<0){
@@ -10069,7 +10070,7 @@ void SetInfoSolus(void){
 				SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);	
 			}
 		}
-	}
+	}*/
 	
 	//Set Optode Params
 	for(io=0;io<N_OPTODE;io++){
@@ -10135,9 +10136,9 @@ void StartSolusMeas(void){
 	for(is=0;is<P.Solus.AcqTot;is++) //SOLUS TO CHECK
 		P.Solus.MeasSequence[is].meas_time = P.Spc.TimeSolus;
 	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
-	ret =  SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType);
+	ret =  SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType,P.Solus.AutoCal);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"StartSolusMeas\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
-	else {SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Meas Started\n");P.Solus.MeasStarted = TRUE;P.Solus.StartError = FALSE;P.Solus.MeasStopped = FALSE;}
+	else {SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Meas Started\n");P.Solus.StartError = FALSE;P.Solus.MeasStarted = TRUE;P.Solus.MeasStopped = FALSE;}
 	P.Solus.AcqActual = 0;
 }
 void GetDataSolus(void){
@@ -10154,16 +10155,23 @@ void GetDataSolus(void){
 	ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,NLines);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");return;}
 	for(io=0;io<N_OPTODE;io++){
-		SingleFrame = (*P.Solus.DataSolus)[io];
-		for(ic=0;ic<P.Chann.Num;ic++)
-		D.Buffer[ib][io*P.Chann.Num+ic] = rand();//SingleFrame.histogram_data[ic];
+		if(P.Solus.OptList[io]){
+			SingleFrame = (*P.Solus.DataSolus)[io];
+			for(ic=0;ic<P.Chann.Num;ic++)
+			D.Buffer[ib][io*P.Chann.Num+ic] = rand();//SingleFrame.histogram_data[ic];
+		}
+		else{
+			for(ic=0;ic<P.Chann.Num;ic++)
+			D.Buffer[ib][io*P.Chann.Num+ic]	= 0;
+		}
 	}
+	P.Solus.AcqActual=P.Solus.AcqActual+NLines;
 }
 void StartSolusDRCMeasure(void){
 	int ret;
 	InitSolus();
 	SpcTime(P.Spc.TimeM); 
-	ret = SOLUS_StartDCRMeasurement(P.Solus.SolusObj,P.Spc.TimeSolus);
+	ret = SOLUS_StartDCRMeasurement(P.Solus.SolusObj,P.Spc.TimeSolus,P.Solus.StartPixel,P.Solus.StopPixel);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_StartDCRMeasurement");return;}
 }
 void GetSolusDRCMeasure(void){
@@ -10209,7 +10217,7 @@ void ClearSolus(void){
 		fprintf(wifile,"CH2_WIDTH_C2\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].CH2_WIDTH_C2);
 		fprintf(wifile,"CH2_IFINE2\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].CH2_IFINE2);
 		fprintf(wifile,"CH2_ICOARSE2\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].CH2_ICOARSE2);
-		fprintf(wifile,"ETTLI\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].ETTLI);
+		fprintf(wifile,"NETTLI\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].NETTLI);
 		fprintf(wifile,"DIVH\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].DIVH);
 		fprintf(wifile,"DIVL\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].DIVL);
 		fprintf(wifile,"SYNCDF\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].SYNCDF);
@@ -10284,7 +10292,7 @@ int CVICALLBACK ExportLDsFile (int panel, int control, int event,void *callbackD
 		fprintf(wifile,"CH2_WIDTH_C2\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].CH2_WIDTH_C2);
 		fprintf(wifile,"CH2_IFINE2\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].CH2_IFINE2);
 		fprintf(wifile,"CH2_ICOARSE2\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].CH2_ICOARSE2);
-		fprintf(wifile,"ETTLI\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].ETTLI);
+		fprintf(wifile,"NETTLI\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].NETTLI);
 		fprintf(wifile,"DIVH\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].DIVH);
 		fprintf(wifile,"DIVL\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].DIVL);
 		fprintf(wifile,"SYNCDF\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].SYNCDF);
@@ -10312,7 +10320,6 @@ int CVICALLBACK ExportLDsFile (int panel, int control, int event,void *callbackD
 	strcpy(P.Solus.LDsFile,fileName);
 	CompleteParmS();
 	UpdatePanel();
-	DestructSolusObj();
 	return 0;
 }
 int CVICALLBACK ExportGSIPMFile (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
@@ -10348,13 +10355,12 @@ int CVICALLBACK ExportGSIPMFile (int panel, int control, int event,void *callbac
 	strcpy(P.Solus.GSIPMFile,fileName);
 	CompleteParmS();
 	UpdatePanel();
-	DestructSolusObj();
 	return 0;
 }
 int CVICALLBACK ExportGSIPMParmsFile (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
 	if(event!=EVENT_COMMIT) return 0;
 	char fpath[MAX_PATHNAME_LEN];
-	int status=FileSelectPopup (DIRSEQUENCE, EXTSOLUSFILE, EXTSOLUSFILE,"SAVE GSIPM FILE", VAL_SAVE_BUTTON, 0, 1,1, 1, fpath);
+	int status=FileSelectPopup (DIRSEQUENCE, EXTSOLUSFILE, EXTSOLUSFILE,"SAVE GSIPM Params File", VAL_SAVE_BUTTON, 0, 1,1, 1, fpath);
 	if(status==VAL_NO_FILE_SELECTED) return 0;
 	CreateSolusObj();
 	GetInfoSolus();
@@ -10377,13 +10383,12 @@ int CVICALLBACK ExportGSIPMParmsFile (int panel, int control, int event,void *ca
 	strcpy(P.Solus.GSIPMParmsFile,fileName);
 	CompleteParmS();
 	UpdatePanel();
-	DestructSolusObj();
 	return 0;
 }
 int CVICALLBACK ExportLDsParmsFile (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
 	if(event!=EVENT_COMMIT) return 0;
 	char fpath[MAX_PATHNAME_LEN];
-	int status=FileSelectPopup (DIRSEQUENCE, EXTSOLUSFILE, EXTSOLUSFILE,"SAVE LDs FILE", VAL_SAVE_BUTTON, 0, 1,1, 1, fpath);
+	int status=FileSelectPopup (DIRSEQUENCE, EXTSOLUSFILE, EXTSOLUSFILE,"SAVE LDs Params File", VAL_SAVE_BUTTON, 0, 1,1, 1, fpath);
 	if(status==VAL_NO_FILE_SELECTED) return 0;
 	CreateSolusObj();
 	GetInfoSolus();
@@ -10410,7 +10415,6 @@ int CVICALLBACK ExportLDsParmsFile (int panel, int control, int event,void *call
 	strcpy(P.Solus.LDsParmsFile,fileName);
 	CompleteParmS();
 	UpdatePanel();
-	DestructSolusObj();
 	return 0;
 }
 int CVICALLBACK ExportMeasSequence (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
@@ -10425,14 +10429,13 @@ int CVICALLBACK ExportMeasSequence (int panel, int control, int event,void *call
 	sfile = fopen (fpath, "w");
 	fprintf(sfile, "Time\tAttenuation\tGate_Dly_C\tGate_Dly_F\tLaser_Num\n");
 	for(is=0;is<MAX_SEQUENCE;is++)   
-	fprintf(sfile, "%hu\t%hu\t%hhu\t%hhu\t%hhu\n",P.Solus.MeasSequence[is].meas_time,P.Solus.MeasSequence[is].attenuation,P.Solus.MeasSequence[is].gate_delay_coarse,P.Solus.MeasSequence[is].gate_delay_fine,P.Solus.MeasSequence[is].laser_num);
+	fprintf(sfile, "%hu\t%hu\t%hhu\t%hu\t%hhu\n",P.Solus.MeasSequence[is].meas_time,P.Solus.MeasSequence[is].attenuation,P.Solus.MeasSequence[is].gate_delay_coarse,P.Solus.MeasSequence[is].gate_delay_fine,P.Solus.MeasSequence[is].laser_num);
 	fclose(sfile);
 	char fileName[260];char driveName[260];char directoryName[260];
 	SplitPath (fpath,driveName,directoryName,fileName);
 	strcpy(P.Solus.SeqFile,fileName);
 	CompleteParmS();
 	UpdatePanel();
-	DestructSolusObj();
 	return 0;
 }
 /*int CVICALLBACK ImportMeasSequence (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
@@ -10478,7 +10481,6 @@ int CVICALLBACK GetControlDiagnParams (int panel, int control, int event,void *c
 	P.Solus.T_ControlAnalog.spadVoltage = P.Solus.ControlAnalog.spadVoltage;
 	CompleteParmS();														
 	UpdatePanel();															
-	DestructSolusObj();
 	return 0;
 }
 int CVICALLBACK GetOptodeDiagnParams (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
@@ -10496,7 +10498,6 @@ int CVICALLBACK GetOptodeDiagnParams (int panel, int control, int event,void *ca
 	}
 	CompleteParmS();
 	UpdatePanel();
-	DestructSolusObj();
 	return 0;
 }
 int CVICALLBACK GetControlParams (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
@@ -10508,7 +10509,6 @@ int CVICALLBACK GetControlParams (int panel, int control, int event,void *callba
 	P.Solus.T_ControlParams.GSIPM3v3_Voltage = P.Solus.ControlParams.GSIPM3v3_Voltage;
 	CompleteParmS();
 	UpdatePanel();
-	DestructSolusObj();
 	return 0;
 }
 int CVICALLBACK SetControlParams (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
@@ -10520,7 +10520,6 @@ int CVICALLBACK SetControlParams (int panel, int control, int event,void *callba
 	SetInfoSolus();
 	CompleteParmS();
 	UpdatePanel();
-	DestructSolusObj();
 	return 0;
 }
 int CVICALLBACK RunDCRMeas (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
@@ -10535,7 +10534,7 @@ int CVICALLBACK RunDCRMeas (int panel, int control, int event,void *callbackData
 	sfile = fopen (fpath, "w");
 	int io,ip;
 	for(io=0;io<N_OPTODE;io++){
-		fprintf(sfile,"Pixel#\tOptode %d\n",io);
+		fprintf(sfile,"Pixel#\tOptode %d\n",io+1);
 		for(ip=0;ip<N_PIXEL;ip++)
 			fprintf(sfile,"%d\t%u\n",ip,P.Solus.DCRMapData[io][ip]);
 	}
@@ -10553,7 +10552,6 @@ int CVICALLBACK PowerOptode (int panel, int control, int event,void *callbackDat
 	else
 		ret = SOLUS_PowerSupplyOFF(P.Solus.SolusObj,control-SOLUS_P_POWER_OPTODE_1,config);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"PowerSupply");}
-	DestructSolusObj();
 	return 0;
 }
 void InitLDStepSolus(char Step){
@@ -10568,7 +10566,6 @@ void CloseLDStepSolus(char Step){
 		ret = SOLUS_LaserOFF(P.Solus.SolusObj);
 		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
 	}
-	DestructSolusObj();
 }
 void MoveLDStepSolus(char Step,long Goal,char Wait){
 	int ret;
@@ -10588,12 +10585,17 @@ void CloseSipmStepSolus(char Step){
 	int ret;
 	ret = SOLUS_SetArea(P.Solus.SolusObj,P.Step[Step].Com-1,SOLUS_MIN_SPAD_NUM);
 	if (ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetArea");}
-	DestructSolusObj();
 }
 void MoveSipmStepSolus(char Step,long Goal,char Wait){
 	int ret;
 	ret = SOLUS_SetArea(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT16) Goal);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetArea");}
+}
+void TellPosSipmStepSolus(char Step,long *Actual){
+	int ret;
+	ret = SOLUS_GetArea(P.Solus.SolusObj,P.Step[Step].Com-1,&P.Solus.OptArea[P.Step[Step].Com-1]);
+	Actual = &P.Solus.OptArea[P.Step[Step].Com-1]; 
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_GetArea");}
 }
 /* ########################   MOXY PROCEDURES   ########################### */
 
