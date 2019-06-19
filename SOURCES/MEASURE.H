@@ -2644,6 +2644,7 @@ void MoveSipmStepSolus(char Step,long Goal,char Wait);
 void TellPosSipmStepSolus(char Step,long *Actual);
 void StartSolusDRCMeasure(void);
 void GetSolusDRCMeasure(void);
+void StopSolusDCRMeasure(void);
 void ReadCalibrationMapFromFile(void);
 void CreateSolusObj(void);
 void DestructSolusObj(void);

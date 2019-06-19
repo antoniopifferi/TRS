@@ -981,7 +981,7 @@ void CompleteParmS(void){
 	if(P.Spc.Type==SPC_NIRS)
 		if(P.Spc.Nirs[0].Lambda==NIRS_LAMBDA12) P.Spc.RoutingBits=1; else P.Spc.RoutingBits=0;
 	if(P.Spc.Type==SPC_LUCA) P.Spc.RoutingBits=1;
-	if(P.Spc.Type==SPC_SOLUS) P.Spc.RoutingBits=3;
+	if(P.Spc.Type==SPC_SOLUS) P.Spc.RoutingBits=sqrt(N_OPTODE);
 	for(ir=0;ir<P.Spc.RoutingBits;ir++) P.Num.Det*=2;
 	
 	// Filter-Page-Acq
@@ -9941,14 +9941,14 @@ void GetInfoSolus(void){
 	//Get Optode Registers and Parameters
 	for(io=0;io<N_OPTODE;io++){
 		if (P.Solus.OptList[io]){
-			ret = SOLUS_ReadOptodeRegs(P.Solus.SolusObj,io);
+			/*ret = SOLUS_ReadOptodeRegs(P.Solus.SolusObj,io);
 			if(ret<0){
 				ErrHandler(ERR_SOLUS,ret,"SOLUS_ReadOptodeRegs");
 				sprintf (message, "Error reading Opt%d params\n",io);
 				SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);	
 				continue;
 			}
-			ret = SOLUS_GetOptodeRegs(P.Solus.SolusObj,io,&P.Solus.LDs_reg[io],&P.Solus.GSIPM_reg[io]);
+			ret = SOLUS_GetOptodeRegs(P.Solus.SolusObj,io,&P.Solus.LDs_reg[io],&P.Solus.GSIPM_reg[io]);*/
 			ret = SOLUS_GetOptodeParams(P.Solus.SolusObj,io,&P.Solus.LDs_param[io],&P.Solus.GSIPM_param[io]);
 		}
 	}
@@ -10097,7 +10097,7 @@ void SetInfoSolus(void){
 	}
 	
 	//Set Optode Area
-	for(io=0;io<N_OPTODE;io++){
+	/*for(io=0;io<N_OPTODE;io++){
 		if (P.Solus.OptList[io]){ 
 			ret = SOLUS_SetArea(P.Solus.SolusObj,io,P.Solus.OptArea[io]);
 			if(ret<0){
@@ -10106,7 +10106,7 @@ void SetInfoSolus(void){
 				SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);	
 			}
 		}
-	}
+	}*/
 	
 	//Set Sequence
 	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
@@ -10158,7 +10158,7 @@ void GetDataSolus(void){
 		if(P.Solus.OptList[io]){
 			SingleFrame = (*P.Solus.DataSolus)[io];
 			for(ic=0;ic<P.Chann.Num;ic++)
-			D.Buffer[ib][io*P.Chann.Num+ic] = rand();//SingleFrame.histogram_data[ic];
+			D.Buffer[ib][io*P.Chann.Num+ic] = SingleFrame.histogram_data[ic];
 		}
 		else{
 			for(ic=0;ic<P.Chann.Num;ic++)
@@ -10175,9 +10175,16 @@ void StartSolusDRCMeasure(void){
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_StartDCRMeasurement");return;}
 }
 void GetSolusDRCMeasure(void){
-	int ret;
-	ret = SOLUS_GetDCRMeasurement(P.Solus.SolusObj,&P.Solus.DCRMapData);
+	int ret,ip,io;
+	for(io=0;io<N_OPTODE;io++)
+		for (ip=P.Solus.StartPixel;ip<P.Solus.StopPixel;ip++)
+			ret = SOLUS_GetDCRMeasurement(P.Solus.SolusObj,&P.Solus.DCRMapData);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_GetDCRMeasurement");return;}
+}
+void StopSolusDCRMeasure(void){
+	int ret;
+	//ret = SOLUS_StopDCRSequence(P.Solus.SolusObj);	
+	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_StopDCRSequence");}
 }
 void StopSolusMeas(void){
 	if(!P.Solus.MeasStarted) return;
@@ -10268,6 +10275,7 @@ void WriteGSIPMInfoToFile(void){
 	fclose(wifile);
 }*/
 int CVICALLBACK ExportLDsFile (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
+	return 0;
 	if(event!=EVENT_COMMIT) return 0;
 	char fpath[MAX_PATHNAME_LEN];
 	int status=FileSelectPopup (DIRSEQUENCE, EXTSOLUSFILE, EXTSOLUSFILE,"SAVE LDs FILE", VAL_SAVE_BUTTON, 0, 1,1, 1, fpath);
@@ -10279,7 +10287,7 @@ int CVICALLBACK ExportLDsFile (int panel, int control, int event,void *callbackD
 	wifile = fopen(fpath,"w");
 	for(io=0;io<N_OPTODE;io++){
 		for(ild=0;ild<N_LD;ild++){
-		fprintf(wifile,"---OPTODE %d, LD %d---\n",io,ild+1);
+		fprintf(wifile,"---OPTODE %d, LD %d---\n",io+1,ild+1);
 		fprintf(wifile,"CH1_DELAY_F1\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].CH1_DELAY_F1);
 		fprintf(wifile,"CH1_DELAYC1\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].CH1_DELAYC1);
 		fprintf(wifile,"CH1_WIDTH_F1\t%d\n",P.Solus.LDs_reg[io].LD_reg[ild].CH1_WIDTH_F1);
@@ -10323,6 +10331,7 @@ int CVICALLBACK ExportLDsFile (int panel, int control, int event,void *callbackD
 	return 0;
 }
 int CVICALLBACK ExportGSIPMFile (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
+	return 0;
 	if(event!=EVENT_COMMIT) return 0;
 	char fpath[MAX_PATHNAME_LEN];
 	int status=FileSelectPopup (DIRSEQUENCE, EXTSOLUSFILE, EXTSOLUSFILE,"SAVE GSIPM FILE", VAL_SAVE_BUTTON, 0, 1,1, 1, fpath);
@@ -10368,7 +10377,7 @@ int CVICALLBACK ExportGSIPMParmsFile (int panel, int control, int event,void *ca
 	FILE *wifile;
 	wifile = fopen(fpath,"w");
 	for(io=0;io<N_OPTODE;io++){
-		fprintf(wifile,"---OPTODE %d---\n",io);
+		fprintf(wifile,"---OPTODE %d---\n",io+1);
 		fprintf(wifile,"EN_QUADRANT_1\t%d\n",P.Solus.GSIPM_param[io].EN_QUADRANT_1);
 		fprintf(wifile,"EN_QUADRANT_2\t%d\n",P.Solus.GSIPM_param[io].EN_QUADRANT_2);
 		fprintf(wifile,"EN_QUADRANT_3\t%d\n",P.Solus.GSIPM_param[io].EN_QUADRANT_3);
@@ -10396,9 +10405,9 @@ int CVICALLBACK ExportLDsParmsFile (int panel, int control, int event,void *call
 	FILE *wifile;
 	wifile = fopen(fpath,"w");
 	for(io=0;io<N_OPTODE;io++){
-		fprintf(wifile,"---OPTODE %d---\n",io);
+		fprintf(wifile,"---OPTODE %d---\n",io+1);
 		for(ild=0;ild<NumLasers;ild++){
-		fprintf(wifile,"L#: %d\n",ild);			
+		fprintf(wifile,"L#: %d\n",ild+1);			
 		fprintf(wifile,"DELAY_F\t%d\n",P.Solus.LDs_param[io].DELAY_F[ild]);
 		fprintf(wifile,"DELAY_C\t%d\n",P.Solus.LDs_param[io].DELAY_C[ild]);
 		fprintf(wifile,"WIDTH_F\t%d\n",P.Solus.LDs_param[io].WIDTH_F[ild]);
@@ -10529,6 +10538,7 @@ int CVICALLBACK RunDCRMeas (int panel, int control, int event,void *callbackData
 	if(status==VAL_NO_FILE_SELECTED) return 0;
 	StartSolusDRCMeasure();
 	GetSolusDRCMeasure();
+	StopSolusDCRMeasure();
 	CloseSolus();
 	FILE *sfile;
 	sfile = fopen (fpath, "w");
@@ -10580,22 +10590,56 @@ void MoveLDStepSolus(char Step,long Goal,char Wait){
 void InitSipmStepSolus(char Step){
 	int ret;
 	CreateSolusObj();
+	memset(&P.Solus.MeasSequence,0,sizeof(P.Solus.MeasSequence));
+	P.Solus.MeasSequence[0].attenuation = 1;
+	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence");}
+	ret = SOLUS_StartSequence(P.Solus.SolusObj,&P.Solus.MeasSequence,P.Solus.AutoCal);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
+	ret = SOLUS_StopSequence(P.Solus.SolusObj);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");}
+	
 }
 void CloseSipmStepSolus(char Step){
 	int ret;
-	ret = SOLUS_SetArea(P.Solus.SolusObj,P.Step[Step].Com-1,SOLUS_MIN_SPAD_NUM);
-	if (ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetArea");}
+	P.Solus.MeasSequence[0].attenuation = 1;
+	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence");}
+	ret = SOLUS_StartSequence(P.Solus.SolusObj,&P.Solus.MeasSequence,P.Solus.AutoCal);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
+	ret = SOLUS_StopSequence(P.Solus.SolusObj);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");}
+	/*ret = SOLUS_SetArea(P.Solus.SolusObj,P.Step[Step].Com-1,SOLUS_MIN_SPAD_NUM);
+	if (ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetArea");}*/
 }
 void MoveSipmStepSolus(char Step,long Goal,char Wait){
 	int ret;
-	ret = SOLUS_SetArea(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT16) Goal);
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetArea");}
+	P.Solus.MeasSequence[0].attenuation =(UINT16) Goal;
+	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence");}
+	ret = SOLUS_StartSequence(P.Solus.SolusObj,&P.Solus.MeasSequence,P.Solus.AutoCal);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
+	ret = SOLUS_StopSequence(P.Solus.SolusObj);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");}
+	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
+	/*ret = SOLUS_SetArea(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT16) Goal);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetArea");}*/
 }
 void TellPosSipmStepSolus(char Step,long *Actual){
 	int ret;
-	ret = SOLUS_GetArea(P.Solus.SolusObj,P.Step[Step].Com-1,&P.Solus.OptArea[P.Step[Step].Com-1]);
+	ret = SOLUS_StartSequence(P.Solus.SolusObj,&P.Solus.MeasSequence,P.Solus.AutoCal);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
+	ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,1);
+	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");return;}
+	Frame SingleFrame;
+	Actual = NULL;
+	if(P.Solus.OptList[P.Step[Step].Com-1]){
+		SingleFrame = (*P.Solus.DataSolus)[P.Step[Step].Com-1];
+		Actual = &SingleFrame.Area_ON;
+	}
+	/*ret = SOLUS_GetArea(P.Solus.SolusObj,P.Step[Step].Com-1,&P.Solus.OptArea[P.Step[Step].Com-1]);
 	Actual = &P.Solus.OptArea[P.Step[Step].Com-1]; 
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_GetArea");}
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_GetArea");}*/
 }
 /* ########################   MOXY PROCEDURES   ########################### */
 
