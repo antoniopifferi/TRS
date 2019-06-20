@@ -10594,7 +10594,7 @@ void InitSipmStepSolus(char Step){
 	P.Solus.MeasSequence[0].attenuation = 1;
 	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence");}
-	ret = SOLUS_StartSequence(P.Solus.SolusObj,&P.Solus.MeasSequence,P.Solus.AutoCal);
+	ret = SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType,P.Solus.AutoCal);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
 	ret = SOLUS_StopSequence(P.Solus.SolusObj);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");}
@@ -10605,7 +10605,7 @@ void CloseSipmStepSolus(char Step){
 	P.Solus.MeasSequence[0].attenuation = 1;
 	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence");}
-	ret = SOLUS_StartSequence(P.Solus.SolusObj,&P.Solus.MeasSequence,P.Solus.AutoCal);
+	ret = SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType,P.Solus.AutoCal);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
 	ret = SOLUS_StopSequence(P.Solus.SolusObj);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");}
@@ -10617,7 +10617,7 @@ void MoveSipmStepSolus(char Step,long Goal,char Wait){
 	P.Solus.MeasSequence[0].attenuation =(UINT16) Goal;
 	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence");}
-	ret = SOLUS_StartSequence(P.Solus.SolusObj,&P.Solus.MeasSequence,P.Solus.AutoCal);
+	ret = SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType,P.Solus.AutoCal);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
 	ret = SOLUS_StopSequence(P.Solus.SolusObj);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");}
@@ -10627,7 +10627,7 @@ void MoveSipmStepSolus(char Step,long Goal,char Wait){
 }
 void TellPosSipmStepSolus(char Step,long *Actual){
 	int ret;
-	ret = SOLUS_StartSequence(P.Solus.SolusObj,&P.Solus.MeasSequence,P.Solus.AutoCal);
+	ret = SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType,P.Solus.AutoCal);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
 	ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,1);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");return;}
