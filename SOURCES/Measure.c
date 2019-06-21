@@ -671,6 +671,7 @@ void DecideAction(void){
 
 /* RESTORE INITIAL CONDITIONS */
 void CloseMeasure(void){
+	P.Action.CloseMeasure = TRUE;
 	char isw,is,it;
 	SpcClose();
 	for(isw=0;isw<MAX_SWITCH;isw++)
@@ -696,6 +697,7 @@ void CloseMeasure(void){
 		fclose(P.File.File);
 		free(DataRam0);
 		}*/
+	P.Action.CloseMeasure = FALSE;
 	}
 
 
@@ -2239,6 +2241,7 @@ void SpcWait(void){
  		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) WaitSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) WaitNirs(ib); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) WaitLuca(ib); break;
+		case SPC_SOLUS: WaitSolus(); break;
 		case DEMO:
 		case TEST: Delay((P.Contest.Function==CONTEST_OSC?P.Spc.TimeO:P.Spc.TimeM));break;
 		}
@@ -9708,6 +9711,7 @@ void InitSolus(void){
 	SetInfoSolus();
 	UpdatePanel();
 	P.Solus.Initialized = TRUE;
+	P.Solus.NLines = 1;
 	Passed();
 }
 void ReadMeasSequenceFromFile(void){
@@ -10032,7 +10036,7 @@ void GetInfoSolus(void){
 	ret = SOLUS_ReadDiagControl(P.Solus.SolusObj);
 	if(ret<0){
 		ErrHandler(ERR_SOLUS,ret,"SOLUS_ReadDiagControl");
-		sprintf (message, "Error reading Control Diagnostics\n",io);
+		sprintf (message, "Error reading Control Diagnostics\n");
 		SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);	
 	}
 	ret = SOLUS_GetDiagControl(P.Solus.SolusObj,&P.Solus.ControlAnalog);
@@ -10052,7 +10056,7 @@ void GetInfoSolus(void){
 	//Get Params Control
 	ret = SOLUS_GetControlParams(P.Solus.SolusObj,&P.Solus.ControlParams);
 	if(ret<0){
-		sprintf (message, "Error reading Control Params\n",io);
+		sprintf (message, "Error reading Control Params\n");
 		SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);	
 	}
 }
@@ -10141,8 +10145,17 @@ void StartSolusMeas(void){
 	else {SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Meas Started\n");P.Solus.StartError = FALSE;P.Solus.MeasStarted = TRUE;P.Solus.MeasStopped = FALSE;}
 	P.Solus.AcqActual = 0;
 }
+void WaitSolus(void){
+int ret,itry = 0;
+UINT16 nlines;
+do{
+	ret = SOLUS_IsMeasurementAvailable(P.Solus.SolusObj,&nlines);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
+	itry++;
+	}while(nlines != P.Solus.NLines && itry<10);	
+}
 void GetDataSolus(void){
-	UINT16 NLines = 1;
+	
 	int io,ic,ib=0,ret;
 	Frame SingleFrame;
 	if (P.Solus.AcqActual>=P.Solus.AcqTot||P.Solus.AcqActual>=MAX_SEQUENCE){
@@ -10152,7 +10165,7 @@ void GetDataSolus(void){
 		}
 		else return;
 	}
-	ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,NLines);
+	ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,P.Solus.NLines);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");return;}
 	for(io=0;io<N_OPTODE;io++){
 		if(P.Solus.OptList[io]){
@@ -10165,7 +10178,7 @@ void GetDataSolus(void){
 			D.Buffer[ib][io*P.Chann.Num+ic]	= 0;
 		}
 	}
-	P.Solus.AcqActual=P.Solus.AcqActual+NLines;
+	P.Solus.AcqActual=P.Solus.AcqActual+P.Solus.NLines;
 }
 void StartSolusDRCMeasure(void){
 	int ret;
@@ -10566,26 +10579,28 @@ int CVICALLBACK PowerOptode (int panel, int control, int event,void *callbackDat
 }
 void InitLDStepSolus(char Step){
 	int ret;
-	CreateSolusObj();
+	InitSolus();
 	ret = SOLUS_LaserOFF(P.Solus.SolusObj);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
 }
 void CloseLDStepSolus(char Step){
 	int ret,io;
-	if(P.Contest.Run==CONTEST_OSC){
+	if(P.Action.CloseMeasure){
 		ret = SOLUS_LaserOFF(P.Solus.SolusObj);
 		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
 	}
 }
 void MoveLDStepSolus(char Step,long Goal,char Wait){
 	int ret;
-	char HOLD_OFF = 0;
+	/*char HOLD_OFF = 0;
 	if(P.Step[Step].Hold==HOLD_OFF){
 		ret = SOLUS_LaserOFF(P.Solus.SolusObj);
 		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
-	}
+	}*/
+	ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_PowerSupplyON");} 
 	ret = SOLUS_LaserON(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT8) Goal);
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserON");}
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_LaserON");}
 }
 void InitSipmStepSolus(char Step){
 	int ret;

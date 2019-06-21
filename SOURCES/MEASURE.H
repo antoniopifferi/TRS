@@ -1212,6 +1212,7 @@ struct ActionS{
 	char StopMamm;		    //EDO
 	char DoJumpMamm;		//EDO
 	struct ScReinitS ScReInit;			//EDO
+	char CloseMeasure; //EDO
 	};
 
 struct LoopS {
@@ -1588,6 +1589,7 @@ struct SolusS{
 	 BOOLEAN AutoCal;
 	 UINT16	StartPixel;
 	 UINT16	StopPixel;
+	 UINT16 NLines;
 };
 
 struct SpcS {
@@ -2624,6 +2626,7 @@ void BackShift(void);			//EDO
 void InitSolus(void);
 void CloseSolus(void);
 void StartSolusMeas(void);
+void WaitSolus(void);
 void GetDataSolus(void);
 void StopSolusMeas(void);
 void GetInfoSolus(void);
