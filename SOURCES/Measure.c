@@ -2173,7 +2173,7 @@ void SpcTime(float Time){
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) TimeSpad(ib,Time); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) TimeNirs(ib,Time); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) TimeLuca(ib,Time); break;
-		case SPC_SOLUS: P.Spc.TimeSolus = (UINT16) (Time*SEC_2_100s_MICROSEC); break;
+		case SPC_SOLUS: P.Spc.TimeSolus = (float) (Time);
 		case TEST: break;
 		case DEMO: break;
 		}
@@ -9856,6 +9856,10 @@ void ReadLDsParamsFromFile(void){
 	char line[STRLEN],trash[STRLEN];
 	FILE *wifile; int temp; int NumLasers = N_LD*2;
 	wifile = fopen(P.Solus.LDsParmsFilePath,"r");
+	if (wifile==NULL){
+		ErrHandler(ERR_SOLUS,-3,"No LDsParamsFile Present");
+		return;
+	}
 	for(io=0;io<N_OPTODE;io++){
 		fgets(line,STRLEN,wifile);
 		for(ild=0;ild<NumLasers;ild++){
@@ -9886,6 +9890,10 @@ void ReadGSIPMParamsFromFile(void){
 	char line[STRLEN],trash[STRLEN];
 	FILE *wifile; int temp;
 	wifile = fopen(P.Solus.GSIPMParmsFilePath,"r");
+	if (wifile==NULL){
+		ErrHandler(ERR_SOLUS,-3,"No GSIPMParamsFile Present");
+		return;
+	}
 	for(io=0;io<N_OPTODE;io++){
 		fgets(line,STRLEN,wifile);
 		fscanf(wifile,"%*s%d\n",&temp);
@@ -9906,17 +9914,21 @@ void ReadGSIPMParamsFromFile(void){
 	fclose(wifile);
 }
 void ReadCalibrationMapFromFile(void){
-	FILE *sfile;
+	FILE *wifile;
 	MakePathname (DIR_SOLUS, P.Solus.CalibMapFile, P.Solus.CalibMapFilePath);
-	sfile = fopen (P.Solus.SeqFilePath, "r");
+	wifile = fopen (P.Solus.CalibMapFilePath, "r");
+	if (wifile==NULL){
+		ErrHandler(ERR_SOLUS,-3,"No CalibFile Present");
+		return;
+	}
 	char line[STRLEN];   
 	int io,ip,pixid=0;
 	for(io=0;io<N_OPTODE;io++){
-		fgets(line,STRLEN,sfile);
+		fgets(line,STRLEN,wifile);
 		for(ip=0;ip<N_PIXEL;ip++)
-			fscanf(sfile,"%d\t%hu\n",&pixid,&P.Solus.CalibMap[io][ip]);		 //to check
+			fscanf(wifile,"%d\t%hu\n",&pixid,&P.Solus.CalibMap[io][ip]);		 //to check
 	}
-	fclose(sfile);
+	fclose(wifile);
 }
 void ReadInfoFromSolusPanel(void){
 	int io;
@@ -9954,6 +9966,12 @@ void GetInfoSolus(void){
 			}
 			ret = SOLUS_GetOptodeRegs(P.Solus.SolusObj,io,&P.Solus.LDs_reg[io],&P.Solus.GSIPM_reg[io]);*/
 			ret = SOLUS_GetOptodeParams(P.Solus.SolusObj,io,&P.Solus.LDs_param[io],&P.Solus.GSIPM_param[io]);
+			if(ret<0){
+				ErrHandler(ERR_SOLUS,ret,"SOLUS_GetOptodeParams");
+				sprintf (message, "Error reading Opt%d params\n",io);
+				SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);	
+				continue;
+			}
 		}
 	}
 	
@@ -10117,8 +10135,8 @@ void SetInfoSolus(void){
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence");}
 	
 	//Set Laser Frequency
-	ret = SOLUS_SetLaserFrequency(P.Solus.SolusObj,P.Solus.LaserFrequency);
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetLaserFrequency");}	
+	/*ret = SOLUS_SetLaserFrequency(P.Solus.SolusObj,P.Solus.LaserFrequency);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetLaserFrequency");}*/	
 	
 	//Set Params Control
 	ret = SOLUS_SetControlParams(P.Solus.SolusObj,P.Solus.ControlParams);
@@ -10146,17 +10164,15 @@ void StartSolusMeas(void){
 	P.Solus.AcqActual = 0;
 }
 void WaitSolus(void){
-int ret,itry = 0;
-UINT16 nlines;
-do{
-	ret = SOLUS_IsMeasurementAvailable(P.Solus.SolusObj,&nlines);
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
-	itry++;
-	}while(nlines != P.Solus.NLines && itry<10);	
+	int ret;
+	UINT16 nlines;
+	do{
+		//ret = SOLUS_IsMeasurementAvailable(P.Solus.SolusObj,&nlines);
+		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
+		}while(nlines < P.Solus.NLines);
 }
 void GetDataSolus(void){
-	
-	int io,ic,ib=0,ret;
+	int io,ic,ib=0,ret,iro=0;
 	Frame SingleFrame;
 	if (P.Solus.AcqActual>=P.Solus.AcqTot||P.Solus.AcqActual>=MAX_SEQUENCE){
 		if(P.Contest.Function == CONTEST_OSC){
@@ -10169,9 +10185,10 @@ void GetDataSolus(void){
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");return;}
 	for(io=0;io<N_OPTODE;io++){
 		if(P.Solus.OptList[io]){
-			SingleFrame = (*P.Solus.DataSolus)[io];
+			SingleFrame = (*P.Solus.DataSolus)[iro];
 			for(ic=0;ic<P.Chann.Num;ic++)
 			D.Buffer[ib][io*P.Chann.Num+ic] = SingleFrame.histogram_data[ic];
+			iro++;
 		}
 		else{
 			for(ic=0;ic<P.Chann.Num;ic++)
@@ -10179,6 +10196,8 @@ void GetDataSolus(void){
 		}
 	}
 	P.Solus.AcqActual=P.Solus.AcqActual+P.Solus.NLines;
+	if(P.Solus.AcqActual>=P.Solus.AcqTot)
+		StopSolusMeas();
 }
 void StartSolusDRCMeasure(void){
 	int ret;

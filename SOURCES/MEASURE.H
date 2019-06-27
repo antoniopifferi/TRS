@@ -1609,7 +1609,7 @@ struct SpcS {
 	double TimeM;
 	int	   TimeHydra;
 	int	   TimeTH260;
-	UINT16    TimeSolus;
+	float    TimeSolus;
 	int	   TH260HistLen;
 	int	   TimeSC1000;
 	long   Count;
