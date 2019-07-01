@@ -69,8 +69,8 @@ extern "C" {
 #define MAX_SEQUENCE 384						/**<Max Sequence Lenght.*/
 #define MAX_FRAMES 384*8						/**<Max frames.*/
 #define HISTOGRAM_BINS 128						/**<Number of histogram bins.*/
-#define FRAME_SIZE_INT_HIST (2 + 3 + 192 + 2)	/**<Frame size histogram mode.*/
-#define FRAME_SIZE_INT (2 + 3 + 2)				/**<Frame size intensity mode.*/
+#define FRAME_SIZE_INT_HIST (2 + 4 + 192 + 2)	/**<Frame size histogram mode.*/
+#define FRAME_SIZE_INT (2 + 4 + 2)				/**<Frame size intensity mode.*/
 #define N_LD 4									/**<Number of laser driver chip per optode.*/
 #define N_OPTODE 4								/**<Number of optode.*/                                     // TODO: change to 8!!!!
 #define N_PIXEL 1728							/**<Number of GSIPM pixels.*/
@@ -274,7 +274,7 @@ extern "C" {
 	/**Low level Sequence line structure containing one line of the measurement sequence. It is 6 bytes long.	*/
 	struct _Sequence_Line_LL
 	{
-		UINT16 meas_time;				/**<Measurement time in 100s of us*/
+		UINT16 meas_time;				/**<Measurement time. If bit 16 is 0, bits 0-15 encode time with a 100us time bin, otherwise with a 10ms time bin.*/
 		UINT16 attenuation : 12;		/**<Attenuation, i.e. number of disabled SPADs.*/
 		UINT16 gate_dly_c : 4;			/**<Gate delay coarse*/
 		UINT16 gate_dly_f : 10;			/**<Gate delay fine*/
@@ -284,7 +284,7 @@ extern "C" {
 	/**High level Sequence line structure containing one line of the measurement sequence.*/
 	struct _Sequence_Line
 	{
-		UINT16 meas_time;				/**<Measurement time in hundreds of us*/
+		float meas_time;				/**<Measurement time in seconds. Valid range is 100us..327s. Actual value is rounded with 100us precision up to 3s, then with 10ms precision up to 327s.*/
 		UINT16 attenuation;				/**<Attenuation, i.e. number of disabled SPADs. Valid range: 0..1727.*/
 		UINT8 gate_delay_coarse;		/**<Gate delay coarse. Valid range: 0..15.*/
 		UINT16 gate_delay_fine;			/**<Gate delay fine. Valid range: 0..1023.*/
@@ -471,7 +471,7 @@ extern "C" {
 	DllSDKExport SOLUS_Return SOLUS_SetOptodeParams(SOLUS_H solus, ADDRESS optode, LD_parameters LD_Parameters, GSIPM_parameters GSIPM_parameters);
 
 	/**Set calibration map.
-	Sets the calibration map for a specific optode. The calibration is an array of N_PIXEL UINT16 values, containing the desired pixel activation order to be used by the internal calibration procedure or by SOLUS_SetArea() function.
+	Sets the calibration map for a specific optode. The calibration is an array of N_PIXEL UINT16 values, containing the desired pixel activation order to be used by the internal calibration procedure.
 	\param solus SOLUS handle
 	\param optode Address of the optode
 	\param data Pointer to the array containing the calibration map.
@@ -483,34 +483,6 @@ extern "C" {
 	\return COMM_TIMEOUT Communication timeout.
 	*/
 	DllSDKExport SOLUS_Return SOLUS_SetCalibrationMap(SOLUS_H solus, ADDRESS optode, CalMap* data);
-
-	/**Set GSIPM area.
-	Sets the active area of the GSIPM for a specific optode according to the calibration map.
-	\param solus SOLUS handle
-	\param optode Address of the optode
-	\param area Area to be activated in number of SPAD cells. Accepted values: 1..1728
-	\return OK Active area setting was successful.
-	\return OUT_OF_RANGE An invalid optode Address or area value was passed to the function.
-	\return OPTODE_NOT_PRESENT Optode not present or not working.
-	\return INVALID_POINTER An empty SOLUS handle was passed.
-	\return COMM_ERROR Communication error.
-	\return COMM_TIMEOUT Communication timeout.
-	*/
-	DllSDKExport SOLUS_Return SOLUS_SetArea(SOLUS_H solus, ADDRESS optode, UINT16 area);
-
-	/**Activate single SPAD.
-	Enables only a single SPAD of the GSIPM for a specific optode.
-	\param solus SOLUS handle
-	\param Optode Address of the optode
-	\param spad_number SPAD to be enabled. All other SPADs will be disabled. Accepted values: 1..1728
-	\return OK SPAD setting was successful.
-	\return OUT_OF_RANGE An invalid optode Address or spad_number value was passed to the function.
-	\return OPTODE_NOT_PRESENT Optode not present or not working.
-	\return INVALID_POINTER An empty SOLUS handle was passed.
-	\return COMM_ERROR Communication error.
-	\return COMM_TIMEOUT Communication timeout.
-	*/
-	DllSDKExport SOLUS_Return SOLUS_SetSingleSPAD(SOLUS_H solus, ADDRESS Optode, UINT16 spad_number);
 
 	/**Set measurement sequence, low level.
 	Sets the measurement sequence (valid for all the optode) at low level. If the effective sequence lenght is less than MAX_SEQUENCE, all fields of unused sequence entries must be set to 0.
@@ -610,7 +582,7 @@ extern "C" {
 	DllSDKExport SOLUS_Return SOLUS_ReadCalibrationMap(SOLUS_H solus, ADDRESS optode);
 
 	/**Set calibration map.
-	Gets the locally stored calibration map for a specific optode. The calibration is an array of N_PIXEL UINT16 values, containing the desired pixel activation order to be used by the internal calibration procedure or by \ref SOLUS_SetArea() function.
+	Gets the locally stored calibration map for a specific optode. The calibration is an array of N_PIXEL UINT16 values, containing the desired pixel activation order to be used by the internal calibration procedure.
 	Must be proceeded by \ref SOLUS_ReadCalibrationMap() if the actual and not cached values are desided (for instance to obtain the map loaded on startup from EEPROM).
 	\param solus SOLUS handle
 	\param optode Address of the optode
@@ -685,20 +657,6 @@ extern "C" {
 	*/
 	DllSDKExport SOLUS_Return SOLUS_GetStatusControl(SOLUS_H solus, UINT16* status);
 
-	/**Get actual active area for an optode.
-	Reads the actual active area from an optode, store it locally an return it to user.
-	\param solus SOLUS handle
-	\param optode Address of the optode
-	\param area Pointer to an UINT16 variable to hold the area.
-	\return OK Status getting was successful.
-	\return INVALID_POINTER An empty SOLUS handle or pointer to structures was passed.
-	\return OUT_OF_RANGE An invalid optode Address was passed to the function.
-	\return OPTODE_NOT_PRESENT Optode not present or not working.
-	\return COMM_ERROR Communication error.
-	\return COMM_TIMEOUT Communication timeout.
-	*/
-	DllSDKExport SOLUS_Return SOLUS_GetArea(SOLUS_H solus, ADDRESS optode, UINT16* area);
-
 	/**Read the actual laser frequency.
 	Read actual value for laser frequency from probe MCU.
 	\param solus SOLUS handle
@@ -751,6 +709,18 @@ extern "C" {
 	*/
 	DllSDKExport SOLUS_Return SOLUS_StopSequence(SOLUS_H solus);
 
+	/**Query Available Lines
+	Gets the number of acquired sequence lines. Call this function before the SOLUS_GetMeasurement to know if all the desired lines has been measured.
+	\param solus SOLUS handle
+	\param NLines Pointer to the number of acquired lines
+	\return OK Number of acquired lines succesfully read.
+	\return INVALID_POINTER An empty SOLUS of data handle was passed.
+	\return INVALID_OP Acquisition not running.
+	\return COMM_ERROR Communication error.
+	\return COMM_TIMEOUT Communication timeout.
+	*/
+	DllSDKExport SOLUS_Return SOLUS_QueryNLinesAvailable(SOLUS_H solus, UINT16 *NLines);
+
 	/**Get Measurement.
 	Gets the desired number of sequence lines from a running measurement and provide to the user the address of the internal data structure. Each line of the sequence is composed by N frames, where N is the
 	number of installed optodes (typically 8). Each frame rappresents an intensity or histogram measurement according to the programmed sequence. Data from the complete sequence may be acquired either with
@@ -770,7 +740,7 @@ extern "C" {
 	/**Start the DCR measurement.
 	Starts the DCR measurement with the specified integration time and pixel range. Once the acquisition started data must be downloaded calling repeatedly the function \ref SOLUS_GetDCRMeasurement().
 	\param solus SOLUS handle
-	\param IntegrationTime Specify the integration time for the measurement in hundreds of us.
+	\param IntegrationTime Specify the integration time for the measurement in s.
 	\param StartPixel Specity the first pixel to be acquired
 	\param StopPixel Specity the last pixel to be acquired
 	\return OK Measurement started successfully.
@@ -779,7 +749,7 @@ extern "C" {
 	\return COMM_ERROR Communication error.
 	\return COMM_TIMEOUT Communication timeout.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_StartDCRMeasurement(SOLUS_H solus, UINT16 IntegrationTime, UINT16 StartPixel, UINT16 StopPixel);
+	DllSDKExport SOLUS_Return SOLUS_StartDCRMeasurement(SOLUS_H solus, float IntegrationTime, UINT16 StartPixel, UINT16 StopPixel);
 
 	/**Get DCR Measurement.
 	Gets the DCR measurement and save data into the passed DCRmap. For each call of the function only the DCR for 1 pixel are acquired, thus the function must be called as many times as the required number
@@ -932,6 +902,48 @@ extern "C" {
 	\param temperature Calibration temperature.
 	*/
 	DllSDKExport SOLUS_Return SOLUS_InitialSystemConfig(SOLUS_H solus, float temperature);
+
+	/**Get actual active area for an optode. DEPRECATED! DO NOT USE!
+	Reads the actual active area from an optode, store it locally an return it to user.
+	\param solus SOLUS handle
+	\param optode Address of the optode
+	\param area Pointer to an UINT16 variable to hold the area.
+	\return OK Status getting was successful.
+	\return INVALID_POINTER An empty SOLUS handle or pointer to structures was passed.
+	\return OUT_OF_RANGE An invalid optode Address was passed to the function.
+	\return OPTODE_NOT_PRESENT Optode not present or not working.
+	\return COMM_ERROR Communication error.
+	\return COMM_TIMEOUT Communication timeout.
+	*/
+	DllSDKExport SOLUS_Return SOLUS_GetArea(SOLUS_H solus, ADDRESS optode, UINT16* area);
+
+	/**Set GSIPM area. DEPRECATED! DO NOT USE!
+	Sets the active area of the GSIPM for a specific optode according to the calibration map.
+	\param solus SOLUS handle
+	\param optode Address of the optode
+	\param area Area to be activated in number of SPAD cells. Accepted values: 1..1728
+	\return OK Active area setting was successful.
+	\return OUT_OF_RANGE An invalid optode Address or area value was passed to the function.
+	\return OPTODE_NOT_PRESENT Optode not present or not working.
+	\return INVALID_POINTER An empty SOLUS handle was passed.
+	\return COMM_ERROR Communication error.
+	\return COMM_TIMEOUT Communication timeout.
+	*/
+	DllSDKExport SOLUS_Return SOLUS_SetArea(SOLUS_H solus, ADDRESS optode, UINT16 area);
+
+	/**Activate single SPAD. DEPRECATED! DO NOT USE!
+	Enables only a single SPAD of the GSIPM for a specific optode.
+	\param solus SOLUS handle
+	\param Optode Address of the optode
+	\param spad_number SPAD to be enabled. All other SPADs will be disabled. Accepted values: 1..1728
+	\return OK SPAD setting was successful.
+	\return OUT_OF_RANGE An invalid optode Address or spad_number value was passed to the function.
+	\return OPTODE_NOT_PRESENT Optode not present or not working.
+	\return INVALID_POINTER An empty SOLUS handle was passed.
+	\return COMM_ERROR Communication error.
+	\return COMM_TIMEOUT Communication timeout.
+	*/
+	DllSDKExport SOLUS_Return SOLUS_SetSingleSPAD(SOLUS_H solus, ADDRESS Optode, UINT16 spad_number);
 
 	/*@}*/
 

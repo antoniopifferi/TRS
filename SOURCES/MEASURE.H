@@ -79,7 +79,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1251
+#define MAX_TABLE		1258
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1520,6 +1520,14 @@ struct SurfaceConceptS{
 	double Period;									// period between two IRF peaks (used in rebinning)
 	double Rebin;
 };
+struct FlagsS{
+	 UINT16 force_laser_off;
+	 UINT16 perform_autocal;
+	 UINT16 override_map;
+	 UINT16 gsipm_supply_off_after_meas;
+	 UINT16 laser_supply_off_after_meas;
+	 UINT16 turnoff_unused_LD;
+};
 struct T_ControlAnalogS{
 	 int spadCurrent;	
 	 int inputCurrent;
@@ -1539,6 +1547,7 @@ struct T_OptodeAnalogS{
 	 unsigned int gsipmSPADvoltage;
 	 unsigned int gsipmCoreVoltage;
 	 unsigned int laserVoltage;
+	 unsigned int picTemperature;
 };
 struct SolusS{
 	 SOLUS_H SolusObj;
@@ -1590,6 +1599,7 @@ struct SolusS{
 	 UINT16	StartPixel;
 	 UINT16	StopPixel;
 	 UINT16 NLines;
+	 struct FlagsS Flags; 
 };
 
 struct SpcS {

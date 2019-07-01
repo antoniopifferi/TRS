@@ -726,8 +726,15 @@ void CreateTable(void){
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",4,io+1,&P.Solus.T_OptodeAnalog[io].gsipmSPADvoltage);
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",5,io+1,&P.Solus.T_OptodeAnalog[io].gsipmCoreVoltage);
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",6,io+1,&P.Solus.T_OptodeAnalog[io].laserVoltage);
+	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",7,io+1,&P.Solus.T_OptodeAnalog[io].picTemperature);
 	}
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_AUTOCAL,"AutoCal",0,0,&P.Solus.AutoCal);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG1,"force_laser_off",0,0,&P.Solus.Flags.force_laser_off);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG2,"perform_autocal",0,0,&P.Solus.Flags.perform_autocal);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG3,"override_map",0,0,&P.Solus.Flags.override_map);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG4,"gsipm_supply_off_after_meas",0,0,&P.Solus.Flags.gsipm_supply_off_after_meas);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG5,"laser_supply_off_after_meas",0,0,&P.Solus.Flags.laser_supply_off_after_meas);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG6,"turnoff_unused_LD",0,0,&P.Solus.Flags.turnoff_unused_LD);
 	AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_START_PIXEL,"StartPixel",0,0,&P.Solus.StartPixel);
 	AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_STOP_PIXEL,"StopPixel",0,0,&P.Solus.StopPixel);
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;

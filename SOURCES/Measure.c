@@ -2173,7 +2173,7 @@ void SpcTime(float Time){
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) TimeSpad(ib,Time); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) TimeNirs(ib,Time); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) TimeLuca(ib,Time); break;
-		case SPC_SOLUS: P.Spc.TimeSolus = (float) (Time);
+		case SPC_SOLUS: P.Spc.TimeSolus = (float) (Time); break;//*SEC_2_100s_MICROSEC); break;
 		case TEST: break;
 		case DEMO: break;
 		}
@@ -4650,7 +4650,7 @@ void MoveSwitch1X4(long Goal,char Switch){
 	TaskHandle taskswitch0 = 0;
 	TaskHandle taskswitch1 = 0;
 	TaskHandle taskswitch2 = 0;	
-	 
+#ifdef NIDAQMX	 
 	status = DAQmxCreateTask ("Taskswitch0", &taskswitch0);
 	status = DAQmxCreateTask ("Taskswitch1", &taskswitch1); 
 	status = DAQmxCreateTask ("Taskswitch2", &taskswitch2); 	  
@@ -4690,7 +4690,7 @@ void MoveSwitch1X4(long Goal,char Switch){
 	status = DAQmxClearTask (taskswitch0);  
 	status = DAQmxClearTask (taskswitch1);  
 	status = DAQmxClearTask (taskswitch2);  
-
+#endif
 }  
 
 
@@ -7119,7 +7119,7 @@ void SetFreqNI_USB6229(char Step,long Goal){
 	TaskHandle	tasklatch=0;
 	TaskHandle	taskmoden=0;
 	
-	
+#ifdef NIDAQMX	
 	DAQmxCreateTask ("TaskFreq", &taskfreq);
 	DAQmxCreateTask ("TaskLatch", &tasklatch); 
 	DAQmxCreateTask ("TaskModEn", &taskmoden); 
@@ -7154,6 +7154,7 @@ void SetFreqNI_USB6229(char Step,long Goal){
 	DAQmxClearTask (taskfreq);
 	DAQmxClearTask (tasklatch);  
 	DAQmxClearTask (taskmoden);  
+#endif
 }
 
 
@@ -7162,12 +7163,14 @@ void SetVoltNI_USB6229(char Step,long Goal){
 	float volt;
 	
 	volt=(float)Goal/AOTF_VOLT_FACTOR;
+#ifdef NIDAQMX
 	//DAQmxCreateTask ("TaskModPower", &taskmodpower);
 	DAQmxCreateAOVoltageChan (taskmodpower, "Dev1/ao0", "MOD_POWER", 0, 1, DAQmx_Val_Volts, "");
 	DAQmxStartTask (taskmodpower);
 	DAQmxWriteAnalogScalarF64 (taskmodpower, 1, 10.0, volt, 0);
 	DAQmxStopTask (taskmodpower);
 	DAQmxClearTask (taskmodpower);
+#endif
 }
 
 
@@ -7179,11 +7182,13 @@ void SetVoltNI_USB6221(char Step,long Goal){
 	
 	//volt=(float)Goal/AOTF_VOLT_FACTOR;
 	//DAQmxCreateTask ("TaskModPower", &taskmodpower);
+#ifdef NIDAQMX
     DAQmxCreateAIVoltageChan (taskmodpower, "Dev1/ai0", " MOD_POWER ", DAQmx_Val_NRSE, -0.5, 0, DAQmx_Val_Volts, "");
 	DAQmxStartTask (taskmodpower);
 	DAQmxReadAnalogScalarF64 (taskmodpower, 10.0, &volt, 0);	
 	DAQmxStopTask (taskmodpower);
 	DAQmxClearTask (taskmodpower);
+#endif
 	P.Step[Step].Actual=(long)(volt*ADC_FACTOR);
 }
 
@@ -8237,6 +8242,7 @@ void InitAdc(void){
 void StartAdc(void){
 	//TaskHandle	taskmodpower=0; 
 	short status = 0;
+#ifdef NIDAQMX
 	status = DAQmxCreateTask ("", &P.Power.Adc.taskmodpower_diode);
     if(status!=0) Failure(GetDAQErrorString(status));
 	status = DAQmxCreateAIVoltageChan (P.Power.Adc.taskmodpower_diode, "Dev1/ai0", "", DAQmx_Val_RSE, -0.3, 0.0, DAQmx_Val_Volts, NULL);
@@ -8266,7 +8272,8 @@ void StartAdc(void){
     //**SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
     //status = AIClearAcquisition (P.Power.Adc.Task);
     //if(status!=0) Failure(GetDAQErrorString(status));
-    }
+#endif
+}
     
     
 /* STOP ADC ACQUISITION */
@@ -8277,6 +8284,7 @@ void WaitAdc(void){
 	//double stdev,value;
 	//status = DAQmxStopTask (P.Power.Adc.taskmodpower_diode);
 	//if(status!=0) Failure(GetDAQErrorString(status));
+#ifdef NIDAQMX
 	//status = DAQmxReadAnalogF64 (taskmodpower, P.Spc.TimeM*120, 10.0, DAQmx_Val_GroupByScanNumber, P.Power.Adc.Data, P.Spc.TimeM*200, &num_read, 0);
 	status = DAQmxReadAnalogF64 (P.Power.Adc.taskmodpower_diode, -1, 0, DAQmx_Val_GroupByChannel, P.Power.Adc.Data, 100000, &num_read, 0);
 	if(status!=0) Failure(GetDAQErrorString(status));
@@ -8290,6 +8298,7 @@ void WaitAdc(void){
 	P.Step[P.Power.Step].Actual=(long)(value*ADC_FACTOR);
 	status = DAQmxClearTask (P.Power.Adc.taskmodpower_diode);
     if(status!=0) Failure(GetDAQErrorString(status));
+#endif
 	//status=nidaqAIStop (P.Power.Adc.Task);
     //if(status!=0) Failure(GetDAQErrorString(status));
 	//status = nidaqAIRead (P.Power.Adc.Task, "", 1000, -1.0, P.Power.Adc.Data);
@@ -8298,7 +8307,7 @@ void WaitAdc(void){
     //if(status!=0) Failure(GetDAQErrorString(status));
     //P.Step[P.Power.Step].Actual=(long)(value*ADC_FACTOR);
     
-    }
+}
 
 
 /* STOP ADC ACQUISITION */
@@ -9720,11 +9729,11 @@ void ReadMeasSequenceFromFile(void){
 	sfile = fopen (P.Solus.SeqFilePath, "r");
 	int is;
 	char line[STRLEN];
-	UINT16 meas_time,attenuation,gate_delay_fine;
-	UINT8 gate_delay_coarse,laser_num; 
+	float meas_time, attenuation,gate_delay_fine;
+	float gate_delay_coarse,laser_num; 
 	fgets(line,STRLEN,sfile); 
 	for(is=0;is<MAX_SEQUENCE;is++){
-		fscanf(sfile, "%hu\t%hu\t%hhu\t%hu\t%hhu\n",&meas_time,&attenuation,&gate_delay_coarse,&gate_delay_fine,&laser_num);
+		fscanf(sfile, "%f\t%f\t%f\t%f\t%f\n",&meas_time,&attenuation,&gate_delay_coarse,&gate_delay_fine,&laser_num);
 		P.Solus.MeasSequence[is].meas_time = meas_time;
 		P.Solus.MeasSequence[is].attenuation = attenuation;
 		P.Solus.MeasSequence[is].gate_delay_coarse = gate_delay_coarse;
@@ -10138,6 +10147,14 @@ void SetInfoSolus(void){
 	/*ret = SOLUS_SetLaserFrequency(P.Solus.SolusObj,P.Solus.LaserFrequency);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetLaserFrequency");}*/	
 	
+	//Set Flags
+	UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.perform_autocal) << 4 | (P.Solus.Flags.override_map) << 3 | (P.Solus.Flags.laser_supply_off_after_meas) << 2 | (P.Solus.Flags.gsipm_supply_off_after_meas) << 1 | (P.Solus.Flags.force_laser_off);
+ 
+	for(io=0;io<N_OPTODE;io++){
+		ret = SOLUS_WriteFlags(P.Solus.SolusObj,io,Flags,0x00FF);	
+		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_WriteFlags");} 
+	}
+	
 	//Set Params Control
 	ret = SOLUS_SetControlParams(P.Solus.SolusObj,P.Solus.ControlParams);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetControlParams");}
@@ -10158,18 +10175,23 @@ void StartSolusMeas(void){
 	for(is=0;is<P.Solus.AcqTot;is++) //SOLUS TO CHECK
 		P.Solus.MeasSequence[is].meas_time = P.Spc.TimeSolus;
 	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
+	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
 	ret =  SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType,P.Solus.AutoCal);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"StartSolusMeas\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
 	else {SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Meas Started\n");P.Solus.StartError = FALSE;P.Solus.MeasStarted = TRUE;P.Solus.MeasStopped = FALSE;}
 	P.Solus.AcqActual = 0;
 }
 void WaitSolus(void){
-	int ret;
+	int ret; int itry = 0;
 	UINT16 nlines;
 	do{
-		//ret = SOLUS_IsMeasurementAvailable(P.Solus.SolusObj,&nlines);
-		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
-		}while(nlines < P.Solus.NLines);
+		ret = SOLUS_QueryNLinesAvailable(P.Solus.SolusObj,&nlines);
+		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_QueryNLinesAvailable");return;}
+	}while(nlines < P.Solus.NLines &&(itry++<10));
+	if(nlines < P.Solus.NLines || itry >=10){
+		ErrHandler(ERR_SOLUS,ret,"WaitSolus");
+	}
+		
 }
 void GetDataSolus(void){
 	int io,ic,ib=0,ret,iro=0;
@@ -10198,6 +10220,7 @@ void GetDataSolus(void){
 	P.Solus.AcqActual=P.Solus.AcqActual+P.Solus.NLines;
 	if(P.Solus.AcqActual>=P.Solus.AcqTot)
 		StopSolusMeas();
+		
 }
 void StartSolusDRCMeasure(void){
 	int ret;
@@ -10470,7 +10493,7 @@ int CVICALLBACK ExportMeasSequence (int panel, int control, int event,void *call
 	sfile = fopen (fpath, "w");
 	fprintf(sfile, "Time\tAttenuation\tGate_Dly_C\tGate_Dly_F\tLaser_Num\n");
 	for(is=0;is<MAX_SEQUENCE;is++)   
-	fprintf(sfile, "%hu\t%hu\t%hhu\t%hu\t%hhu\n",P.Solus.MeasSequence[is].meas_time,P.Solus.MeasSequence[is].attenuation,P.Solus.MeasSequence[is].gate_delay_coarse,P.Solus.MeasSequence[is].gate_delay_fine,P.Solus.MeasSequence[is].laser_num);
+	fprintf(sfile, "%f\t%d\t%d\t%d\t%d\n",P.Solus.MeasSequence[is].meas_time,P.Solus.MeasSequence[is].attenuation,P.Solus.MeasSequence[is].gate_delay_coarse,P.Solus.MeasSequence[is].gate_delay_fine,P.Solus.MeasSequence[is].laser_num);
 	fclose(sfile);
 	char fileName[260];char driveName[260];char directoryName[260];
 	SplitPath (fpath,driveName,directoryName,fileName);
@@ -10536,6 +10559,7 @@ int CVICALLBACK GetOptodeDiagnParams (int panel, int control, int event,void *ca
 		P.Solus.T_OptodeAnalog[io].gsipmSPADvoltage = P.Solus.OptodeAnalog[io].gsipmSPADvoltage;
 		P.Solus.T_OptodeAnalog[io].gsipmCoreVoltage = P.Solus.OptodeAnalog[io].gsipmCoreVoltage;
 		P.Solus.T_OptodeAnalog[io].laserVoltage = P.Solus.OptodeAnalog[io].laserVoltage;
+		P.Solus.T_OptodeAnalog[io].picTemperature = P.Solus.OptodeAnalog[io].picTemperature;
 	}
 	CompleteParmS();
 	UpdatePanel();
@@ -10605,8 +10629,10 @@ void InitLDStepSolus(char Step){
 void CloseLDStepSolus(char Step){
 	int ret,io;
 	if(P.Action.CloseMeasure){
-		ret = SOLUS_LaserOFF(P.Solus.SolusObj);
-		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
+		if(P.Solus.SolusObj!=NULL){ //AleR
+			ret = SOLUS_LaserOFF(P.Solus.SolusObj);
+			if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
+		}
 	}
 }
 void MoveLDStepSolus(char Step,long Goal,char Wait){
@@ -10669,7 +10695,7 @@ void TellPosSipmStepSolus(char Step,long *Actual){
 	Actual = NULL;
 	if(P.Solus.OptList[P.Step[Step].Com-1]){
 		SingleFrame = (*P.Solus.DataSolus)[P.Step[Step].Com-1];
-		Actual = &SingleFrame.Area_ON;
+		Actual = (long*)&SingleFrame.Area_ON;
 	}
 	/*ret = SOLUS_GetArea(P.Solus.SolusObj,P.Step[Step].Com-1,&P.Solus.OptArea[P.Step[Step].Com-1]);
 	Actual = &P.Solus.OptArea[P.Step[Step].Com-1]; 
