@@ -2651,6 +2651,7 @@ void ClearSolus(void);
 void InitLDStepSolus(char Step);
 void CloseLDStepSolus(char Step);
 void MoveLDStepSolus(char Step,long Goal,char Wait);
+void DefineHomeLDStepSolus(char Step);
 void InitSipmStepSolus(char Step);
 void CloseSipmStepSolus(char Step);
 void MoveSipmStepSolus(char Step,long Goal,char Wait);

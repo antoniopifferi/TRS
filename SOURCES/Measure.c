@@ -310,7 +310,7 @@ void DoStep(char Issue, int Homecontrol){
 		}
 //	else if(dostep->Break) NoOscilloscope();	//TODO: check
 	if(dostep->Return) MoveStep(&P.Step[step].Actual,(long)(dostep->Home*factor),step,TRUE,TRUE);
-	else SetCtrlVal(hDoStep,Homecontrol,dostep->Goal);
+	else SetCtrlVal(hDoStep,Homecontrol,dostep->Home);//SetCtrlVal(hDoStep,Homecontrol,dostep->Goal);
 	SetActivePanel(hParm);
 	CloseStep(step);
 	}
@@ -5512,7 +5512,7 @@ void DefineHome(char Step){
 		case CHAMALEON: DefineHomeCham(Step); break;
 		case STEP_STANDA2: DefineHomeStanda2(Step); break;
 		case ATT_LUCA: DefineHomeAttLuca(Step); break;
-		//case LDs_SOLUS: DefineHomeLDStepSolus(Step); break;
+		case LDs_SOLUS: DefineHomeLDStepSolus(Step); break;
 		//case SIPM_SOLUS: DefineHomeSipmStepSolus(Step); break;
 		case NONE: break;
 		}
@@ -9698,14 +9698,14 @@ void CreateSolusObj(void){
 }
 void DestructSolusObj(void){
 	if(!P.Solus.SolusConstructed) return;
-	int ret = SOLUS_Destr(P.Solus.SolusObj);
+	int ret = 5;
+	ret = SOLUS_Destr(P.Solus.SolusObj);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"CloseSolus");P.Solus.SolusConstructed = TRUE;}
-	else {SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Obj DeConstructed\n");P.Solus.SolusConstructed = FALSE;}
+	else {SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Obj DeConstructed\n");P.Solus.SolusConstructed = FALSE;P.Solus.SolusObj = NULL;}
 	int io;
 	for(io=0;io<N_OPTODE;io++)
 		if (P.Solus.OptList[io])
 			SetCtrlVal (hSolus, SOLUS_P_OPT1+io, OFF);
-	P.Solus.SolusObj = NULL;
 }
 void InitSolus(void){
 	CreateSolusObj();
@@ -9874,22 +9874,22 @@ void ReadLDsParamsFromFile(void){
 		for(ild=0;ild<NumLasers;ild++){
 		fgets(line,STRLEN,wifile);
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.LDs_param[io].DELAY_F[ild] = temp;
+		P.Solus.LDs_param[io].DELAY_F[ild] = (UINT16) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.LDs_param[io].DELAY_C[ild] = temp;
+		P.Solus.LDs_param[io].DELAY_C[ild] = (UINT8) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.LDs_param[io].WIDTH_F[ild] = temp;
+		P.Solus.LDs_param[io].WIDTH_F[ild] = (UINT16) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.LDs_param[io].WIDTH_C[ild] = temp;
+		P.Solus.LDs_param[io].WIDTH_C[ild] = (UINT8) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.LDs_param[io].I_FINE[ild] = temp;
+		P.Solus.LDs_param[io].I_FINE[ild] = (UINT16) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.LDs_param[io].I_COARSE[ild] = temp;
+		P.Solus.LDs_param[io].I_COARSE[ild] = (UINT8) temp;
 		}
 	fscanf(wifile,"%*s%d\n",&temp);
-	P.Solus.LDs_param[io].SYNCD_F = temp;
+	P.Solus.LDs_param[io].SYNCD_F = (UINT16) temp;
 	fscanf(wifile,"%*s%d\n",&temp);
-	P.Solus.LDs_param[io].SYNCD_C = temp;
+	P.Solus.LDs_param[io].SYNCD_C = (UINT8) temp;
 	}
 	fclose(wifile);
 }	
@@ -9906,19 +9906,19 @@ void ReadGSIPMParamsFromFile(void){
 	for(io=0;io<N_OPTODE;io++){
 		fgets(line,STRLEN,wifile);
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.GSIPM_param[io].EN_QUADRANT_1 = temp;
+		P.Solus.GSIPM_param[io].EN_QUADRANT_1 = (BOOLEAN) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.GSIPM_param[io].EN_QUADRANT_2 = temp;
+		P.Solus.GSIPM_param[io].EN_QUADRANT_2 = (BOOLEAN) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.GSIPM_param[io].EN_QUADRANT_3 = temp;
+		P.Solus.GSIPM_param[io].EN_QUADRANT_3 = (BOOLEAN) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.GSIPM_param[io].EN_QUADRANT_4 = temp;
+		P.Solus.GSIPM_param[io].EN_QUADRANT_4 = (BOOLEAN) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.GSIPM_param[io].STOP = temp;
+		P.Solus.GSIPM_param[io].STOP = (UINT8) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.GSIPM_param[io].GATE_OPEN = temp;
+		P.Solus.GSIPM_param[io].GATE_OPEN = (UINT8) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
-		P.Solus.GSIPM_param[io].GATE_CLOSE = temp;
+		P.Solus.GSIPM_param[io].GATE_CLOSE = (UINT8) temp;
 	}
 	fclose(wifile);
 }
@@ -10151,8 +10151,10 @@ void SetInfoSolus(void){
 	UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.perform_autocal) << 4 | (P.Solus.Flags.override_map) << 3 | (P.Solus.Flags.laser_supply_off_after_meas) << 2 | (P.Solus.Flags.gsipm_supply_off_after_meas) << 1 | (P.Solus.Flags.force_laser_off);
  
 	for(io=0;io<N_OPTODE;io++){
+		if(P.Solus.OptList[io]){
 		ret = SOLUS_WriteFlags(P.Solus.SolusObj,io,Flags,0x00FF);	
 		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_WriteFlags");} 
+		}
 	}
 	
 	//Set Params Control
@@ -10182,14 +10184,14 @@ void StartSolusMeas(void){
 	P.Solus.AcqActual = 0;
 }
 void WaitSolus(void){
-	int ret; int itry = 0;
+	int ret = 0x1; int itry = 0;
 	UINT16 nlines;
 	do{
 		ret = SOLUS_QueryNLinesAvailable(P.Solus.SolusObj,&nlines);
 		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_QueryNLinesAvailable");return;}
-	}while(nlines < P.Solus.NLines &&(itry++<10));
-	if(nlines < P.Solus.NLines || itry >=10){
-		ErrHandler(ERR_SOLUS,ret,"WaitSolus");
+	}while(nlines < P.Solus.NLines);// &&(itry++<10));
+	if(nlines < P.Solus.NLines){// || itry >=10){
+		ErrHandler(ERR_SOLUS,-1,"WaitSolus");
 	}
 		
 }
@@ -10612,11 +10614,10 @@ int CVICALLBACK PowerOptode (int panel, int control, int event,void *callbackDat
 	CreateSolusObj();
 	char PowerState; int ret;
 	GetCtrlVal(panel,control,&PowerState);
-	UINT16 config=0;
 	if(PowerState)
-		ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,control-SOLUS_P_POWER_OPTODE_1,config);
+		ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,control-SOLUS_P_POWER_OPTODE_1,0X01);
 	else
-		ret = SOLUS_PowerSupplyOFF(P.Solus.SolusObj,control-SOLUS_P_POWER_OPTODE_1,config);
+		ret = SOLUS_PowerSupplyOFF(P.Solus.SolusObj,control-SOLUS_P_POWER_OPTODE_1,0x00);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"PowerSupply");}
 	return 0;
 }
@@ -10644,8 +10645,14 @@ void MoveLDStepSolus(char Step,long Goal,char Wait){
 	}*/
 	ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_PowerSupplyON");} 
+	// Goal: 0-7 
 	ret = SOLUS_LaserON(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT8) Goal);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_LaserON");}
+}
+void DefineHomeLDStepSolus(char Step){
+	
+	P.Step[Step].Home = 0;
+	
 }
 void InitSipmStepSolus(char Step){
 	int ret;
