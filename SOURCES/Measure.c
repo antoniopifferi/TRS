@@ -4161,8 +4161,11 @@ void AutoTrim(int Trim){
 /*	if(T->Type==CONT)
 		if((T->Stop)&&((P.Step[si].Type==MICRO)||(P.Step[si].Type==MICRO2))) GetMicro(P.Step[si].Com,&P.Step[si].Actual); //WaitStep()????!
 		else StopStep(si);	  */ //original
-	if(T->Type==CONT) StopStep(si); // patch??
-	
+	//if(T->Type==CONT && !T->Stop && !T->Boundary) StopStep(si); // another patch, but could fail in case of desincronization stepper/timer
+	if(T->Type==CONT)
+		if((T->Stop)||(T->Boundary)) WaitPos(si,goalstep);  // patch to avoid hanging when stepper is not moving  
+		else StopStep(si); // stop only if you reached Success before Boundary or Stop (i.e. stepper is moving)
+
 	if(T->Type==CONT) SetVel(si,P.Step[si].Freq);
 	if(T->Target==TARGET_AREAWIDTH){
 		if(T->ImprovedW){
