@@ -1588,6 +1588,7 @@ struct SolusS{
 	 char GSIPMParmsFilePath[260];
 	 char LDsParmsFile[260];
 	 char LDsParmsFilePath[260];
+	 char LUTFilePath[260];
 	 char Initialized;
 	 char SolusConstructed;
 	 char MeasStarted;
@@ -2665,6 +2666,7 @@ void DestructSolusObj(void);
 void ReadInfoFromSolusPanel(void);
 void ReadLDsParamsFromFile(void);
 void ReadGSIPMParamsFromFile(void);
+int ReadSolusLUT(int Goal,char Step);
 
 
 /* ########################   MOXY PROCEDURES   ########################### */

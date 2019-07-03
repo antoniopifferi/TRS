@@ -10626,6 +10626,18 @@ void InitLDStepSolus(char Step){
 	InitSolus();
 	ret = SOLUS_LaserOFF(P.Solus.SolusObj);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
+	if (P.Contest.Run == CONTEST_MEAS){
+		int itry;
+		for(itry=0;itry<2;itry++){ 
+		int ActGoal = ReadSolusLUT(0,Step);
+		SetInfoSolus();
+		ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
+		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_PowerSupplyON");} 
+		// Goal: 0-7 
+		ret = SOLUS_LaserON(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT8) ActGoal);
+		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_LaserON");}
+		}
+	}
 }
 void CloseLDStepSolus(char Step){
 	int ret,io;
@@ -10643,11 +10655,48 @@ void MoveLDStepSolus(char Step,long Goal,char Wait){
 		ret = SOLUS_LaserOFF(P.Solus.SolusObj);
 		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
 	}*/
+	if(P.Contest.Run == CONTEST_OSC){
 	ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_PowerSupplyON");} 
 	// Goal: 0-7 
 	ret = SOLUS_LaserON(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT8) Goal);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_LaserON");}
+	}
+	if (P.Contest.Run == CONTEST_MEAS){
+		int ActGoal = ReadSolusLUT(Goal,Step);
+		SetInfoSolus();
+		ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
+		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_PowerSupplyON");} 
+		// Goal: 0-7 
+		ret = SOLUS_LaserON(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT8) ActGoal);
+		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_LaserON");}
+	}
+}
+int ReadSolusLUT(int GoalEntryID, char Step){
+	FILE *sfile;
+	MakePathname (DIR_SOLUS, "LUT.ini", P.Solus.LUTFilePath);
+	sfile = fopen (P.Solus.LUTFilePath, "r");
+	int is; int io = P.Step[Step].Com-1;
+	char line[STRLEN];
+	int EntryID,OptodeID,LaserID,DelayF,DelayC,WidthC,WidthF,CurrentF,CurrentC;
+	fgets(line,STRLEN,sfile);
+	int ret;
+	do{
+		ret = fscanf (sfile, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t\%d\t%d",&EntryID,&OptodeID,&LaserID,&DelayF,&DelayC,&WidthF,&WidthC,&CurrentF,&CurrentC);
+		if(ret==EOF) break;
+		if(EntryID==GoalEntryID&&OptodeID==P.Step[Step].Com-1){
+			int ild = LaserID;
+			P.Solus.LDs_param[io].DELAY_F[ild] = (UINT16) DelayF;
+			P.Solus.LDs_param[io].DELAY_C[ild] = (UINT8) DelayC;
+			P.Solus.LDs_param[io].WIDTH_F[ild] = (UINT16) WidthF;
+			P.Solus.LDs_param[io].WIDTH_C[ild] = (UINT8) WidthC;
+			P.Solus.LDs_param[io].I_FINE[ild] = (UINT16) CurrentF;
+			P.Solus.LDs_param[io].I_COARSE[ild] = (UINT8) CurrentC;
+			return LaserID;
+			break;
+		}
+	}while(1);
+	fclose(sfile);
 }
 void DefineHomeLDStepSolus(char Step){
 	

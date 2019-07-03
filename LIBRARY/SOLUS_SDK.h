@@ -72,7 +72,7 @@ extern "C" {
 #define FRAME_SIZE_INT_HIST (2 + 4 + 192 + 2)	/**<Frame size histogram mode.*/
 #define FRAME_SIZE_INT (2 + 4 + 2)				/**<Frame size intensity mode.*/
 #define N_LD 4									/**<Number of laser driver chip per optode.*/
-#define N_OPTODE 4								/**<Number of optode.*/                                     // TODO: change to 8!!!!
+#define N_OPTODE 4								/**<Number of optode.								TODO: change to 8!!!!*/                             
 #define N_PIXEL 1728							/**<Number of GSIPM pixels.*/
 #define EEPROM_SIZE 4096						/**<EEPROM size.*/
 
@@ -699,7 +699,7 @@ extern "C" {
 	DllSDKExport SOLUS_Return SOLUS_StartSequence(SOLUS_H solus, DataType type, BOOLEAN autocal);
 
 	/**Stop measurement sequence.
-	Stops the running measurement. It must be called in any case befora starting a new one.
+	Stops the running measurement. It must be called in any case before starting a new one.
 	\param solus SOLUS handle
 	\return OK Measurement stopped successfully.
 	\return INVALID_POINTER An empty SOLUS handle was passed.
@@ -710,7 +710,7 @@ extern "C" {
 	DllSDKExport SOLUS_Return SOLUS_StopSequence(SOLUS_H solus);
 
 	/**Query Available Lines
-	Gets the number of acquired sequence lines. Call this function before the SOLUS_GetMeasurement to know if all the desired lines has been measured.
+	Gets the number of acquired sequence lines. Call this function before \ref SOLUS_GetMeasurement() to know if all the desired lines has been measured.
 	\param solus SOLUS handle
 	\param NLines Pointer to the number of acquired lines
 	\return OK Number of acquired lines succesfully read.
@@ -724,7 +724,8 @@ extern "C" {
 	/**Get Measurement.
 	Gets the desired number of sequence lines from a running measurement and provide to the user the address of the internal data structure. Each line of the sequence is composed by N frames, where N is the
 	number of installed optodes (typically 8). Each frame rappresents an intensity or histogram measurement according to the programmed sequence. Data from the complete sequence may be acquired either with
-	a single or multiple calls of this function, however the user must take care not to request in total more lines than the length of the currently programmed sequence.
+	a single or multiple calls of this function, however the user must take care not to request in total more lines than the length of the currently programmed sequence. In order to avoid data corruption,
+	it must be preceeded by \ref SOLUS_QueryNLinesAvailable(), unless the user is sure that the measurement time is elapsed.
 	\param solus SOLUS handle
 	\param data Pointer to the data structure handle
 	\param NLines Number of sequence lines to be acquired. Accepted values: 1..384
@@ -752,8 +753,8 @@ extern "C" {
 	DllSDKExport SOLUS_Return SOLUS_StartDCRMeasurement(SOLUS_H solus, float IntegrationTime, UINT16 StartPixel, UINT16 StopPixel);
 
 	/**Get DCR Measurement.
-	Gets the DCR measurement and save data into the passed DCRmap. For each call of the function only the DCR for 1 pixel are acquired, thus the function must be called as many times as the required number
-	of pixels, and it will scan automatically through them. Further call after the last pixel has been acquired will generate an error.
+	Gets the DCR measurement and save data into the passed DCRmap. For each call of the function only the DCR for 1 pixel are acquired and thre corresponding entry in the DCRmap is polulated,
+	thus the function must be called as many times as the required number of pixels, and it will scan automatically through them. Further call after the last pixel has been acquired will generate an error.
 	\param solus SOLUS handle
 	\param DCR Pointer to the DCRmap array.
 	\return OK DCR acquired successfully.
@@ -779,7 +780,7 @@ extern "C" {
 	//------------ Service methods -----------------------------------------
 	/**
 	* \defgroup Service Service methods
-	Service function for the SOLUS probe.
+	Service functions for the SOLUS probe.
 	*/
 	/*@{*/
 
@@ -856,6 +857,7 @@ extern "C" {
 	\param solus SOLUS handle
 	\param address Address of the optode/control
 	\param flags Flag word
+	\param mask Mask word
 	*/
 	DllSDKExport SOLUS_Return SOLUS_WriteFlags(SOLUS_H solus, ADDRESS address, UINT16 flags, UINT16 mask);
 
@@ -902,6 +904,14 @@ extern "C" {
 	\param temperature Calibration temperature.
 	*/
 	DllSDKExport SOLUS_Return SOLUS_InitialSystemConfig(SOLUS_H solus, float temperature);
+
+	/*@}*/
+	//------------ Deprecated methods -----------------------------------------
+	/**
+	* \defgroup Deprecated Deprecated methods
+	Deprecated functions for the SOLUS probe. DO NOT USE!
+	*/
+	/*@{*/
 
 	/**Get actual active area for an optode. DEPRECATED! DO NOT USE!
 	Reads the actual active area from an optode, store it locally an return it to user.

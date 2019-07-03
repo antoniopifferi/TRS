@@ -1,0 +1,14 @@
+GSIPM
+GATE_OPEN 0:1:23, 1 ns/step
+GATE_CLOSE 0:1:23, 1 ns/step
+STOP 0:1:23, 1 ns/step
+
+LDS
+DELAY_F 0:1:1023, 1 ps/step	/ per ogni laser
+DELAY_C 0:1:15, 244 ps/step	/ per ogni laser
+SYNCD_C,SYNCD_F sono uguali a quelli della sequenza (qui sotto)
+
+SEQ
+SYNCD_F 0:1:1023, 1 ps/step	/ applicati a tutti i detector in // (Come il delayer nel FGSPAD)
+SYNCD_C 0:1:15, 244 ps/step	/ applicati a tutti i detector in // (Come il delayer nel FGSPAD)
+
