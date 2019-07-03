@@ -4161,7 +4161,7 @@ void AutoTrim(int Trim){
 /*	if(T->Type==CONT)
 		if((T->Stop)&&((P.Step[si].Type==MICRO)||(P.Step[si].Type==MICRO2))) GetMicro(P.Step[si].Com,&P.Step[si].Actual); //WaitStep()????!
 		else StopStep(si);	  */ //original
-	if(T->Type==CONT) StopStep(si); // patch??
+	if(T->Type==CONT && !T->Stop && !T->Boundary) StopStep(si); // patch to vaoid hanging when stepper is not moving
 	
 	if(T->Type==CONT) SetVel(si,P.Step[si].Freq);
 	if(T->Target==TARGET_AREAWIDTH){
