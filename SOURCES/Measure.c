@@ -2198,7 +2198,7 @@ void SpcStop(char Status){
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StopSpad(ib);break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StopNirs(ib);break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StopLuca(ib);break;
-		case SPC_SOLUS: break;//StopSolusMeas();break;
+		case SPC_SOLUS: StopSolusMeas();break;
 		case TEST: break;
 		case DEMO: break;
 		default: break;
@@ -8777,6 +8777,7 @@ void ErrHandler(int Device, int Code, char* Function){
 				case -7: strcpy(serror,"PROBE_ERROR"); break;	
 				case -8: strcpy(serror,"FIRMWARE_NOT_COMPATIBLE"); break;
 				case -9: strcpy(serror,"OPTODE_NOT_PRESENT"); break;	
+				case -10: strcpy(serror,"NOT IMPLEMENTED YET"); break;
 			}
 			strcpy (sdevice, "SOLUS");
 			break;
@@ -10149,11 +10150,10 @@ void SetInfoSolus(void){
 	
 	//Set Flags
 	UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.perform_autocal) << 4 | (P.Solus.Flags.override_map) << 3 | (P.Solus.Flags.laser_supply_off_after_meas) << 2 | (P.Solus.Flags.gsipm_supply_off_after_meas) << 1 | (P.Solus.Flags.force_laser_off);
- 
 	for(io=0;io<N_OPTODE;io++){
 		if(P.Solus.OptList[io]){
-		ret = SOLUS_WriteFlags(P.Solus.SolusObj,io,Flags,0x00FF);	
-		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_WriteFlags");} 
+			ret = SOLUS_WriteFlags(P.Solus.SolusObj,io,Flags,0x00FF);	
+			if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_WriteFlags");} 
 		}
 	}
 	
@@ -10172,6 +10172,14 @@ void ValidateMeasSequenceSolus(void){
 	P.Solus.SeqLength = P.Solus.AcqTot;
 }
 void StartSolusMeas(void){
+	if(P.Solus.AcqActual>=P.Solus.AcqTot)
+		if(P.Contest.Function == CONTEST_OSC)
+			StopSolusMeas();
+		else{
+			StopSolusMeas();
+			/*ErrHandler(ERR_SOLUS,-10,"StartSolusMeas\n");
+			return;*/
+		}
 	if(P.Solus.MeasStarted) return;
 	int ret,is;
 	for(is=0;is<P.Solus.AcqTot;is++) //SOLUS TO CHECK
@@ -10190,21 +10198,18 @@ void WaitSolus(void){
 		ret = SOLUS_QueryNLinesAvailable(P.Solus.SolusObj,&nlines);
 		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_QueryNLinesAvailable");return;}
 	}while(nlines < P.Solus.NLines);// &&(itry++<10));
-	if(nlines < P.Solus.NLines){// || itry >=10){
-		ErrHandler(ERR_SOLUS,-1,"WaitSolus");
-	}
-		
 }
 void GetDataSolus(void){
 	int io,ic,ib=0,ret,iro=0;
 	Frame SingleFrame;
-	if (P.Solus.AcqActual>=P.Solus.AcqTot||P.Solus.AcqActual>=MAX_SEQUENCE){
+	/*if (P.Solus.AcqActual>=P.Solus.AcqTot||P.Solus.AcqActual>=MAX_SEQUENCE){
 		if(P.Contest.Function == CONTEST_OSC){
 			StopSolusMeas();
 			StartSolusMeas();
+			WaitSolus();
 		}
 		else return;
-	}
+	}*/
 	ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,P.Solus.NLines);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");return;}
 	for(io=0;io<N_OPTODE;io++){
@@ -10220,8 +10225,8 @@ void GetDataSolus(void){
 		}
 	}
 	P.Solus.AcqActual=P.Solus.AcqActual+P.Solus.NLines;
-	if(P.Solus.AcqActual>=P.Solus.AcqTot)
-		StopSolusMeas();
+	/*if(P.Solus.AcqActual>=P.Solus.AcqTot)
+		StopSolusMeas();*/
 		
 }
 void StartSolusDRCMeasure(void){
