@@ -215,6 +215,7 @@ void CVICALLBACK Quit (int menuBar, int menuItem, void *callbackData,int panel){
 	SaveSet(FILESET,NEG);
 	int ib;
 	for (ib=0;ib<P.Num.Board;ib++){P.Spc.ScDeinit=TRUE;CompleteClosureSC1000(ib);} //EDO	//controllare
+	if(P.Solus.SolusConstructed) CloseSolus();
 	QuitUserInterface (0);
 	}
 
@@ -367,6 +368,7 @@ void UpdatePanel(void){
 
 int CVICALLBACK ClosePanel (int panel, int event, void *callbackdata, int eventdata1, int eventdata2) {
 	if(event!=EVENT_CLOSE) return(0);
+	if(P.Solus.SolusConstructed) CloseSolus();
     if(panel==hTrs) {SaveSet(FILESET,NEG);QuitUserInterface (0); return(0);}
     HidePanel(panel);
     return(0);

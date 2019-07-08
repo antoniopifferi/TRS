@@ -1,0 +1,32 @@
+0.3.0
+- rename function CompensateTemperature to InitialSystemconfig (one time command to set also STUSB4500 config)
+- modify behaeviour of DCRmeasurement
+- added parameter to StartSequence to specify if Autocal is to be performed or not
+- Reduced GSIPM_config_reg size (Stop, Gate_open/close in decimal number and not one-hot encoded)
+- New Optode_analog_acq members
+- New menu-based solus_example.c
+- changed bit name in _LD_reg (ETTLI->NETTLI)
+- Corrected Laser Driver _LD_reg bitfield
+- Added a mask parameter to function WriteFlags
+- fix gate_delay_fine type in _Sequence_Line structure
+- deprecate functions SetArea, GetArea, SetSingleSPAD
+- meas_time high level is now float, and low level is encoded as 15+1 bit to enlarge range
+- added QueryNLinesAvailable
+- NOTE: this release only works with 4 Optodes. Check the OptList object returned by the constructor to avoid addressing not installed optodes. This is in any case a best practise, so that in future we can use the OptList object to mark down detective optodes if necessary.
+
+0.2.0
+- add laser frequency setting/getting functions
+- add optode address to frame data
+- add functions to switch on and off the lasers
+- add high level structures for ICs parameters
+- rename Set/GetOptodeParams to Set/GetOptodeRegs
+- add function SetOptodeParams (high level)
+- add function GetOptodeParams (high level)
+- add Set/GetControlParameters commands and Control_Params structure
+- add DCR measurement functions
+- rename Sequence to Sequence_LL and _Sequence_Line to _Sequence_Line_LL (Low Level)
+- rename functions Set/GetSequence to Set/GetSequenceLL (Low Level)
+- add High Level Set/GetSequence
+
+0.1.0
+Initial release
