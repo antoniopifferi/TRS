@@ -10021,12 +10021,16 @@ void GetInfoSolus(void){
 			}
 			ret = SOLUS_GetStatusOptode(P.Solus.SolusObj,io,&P.Solus.OptStatus[io],&P.Solus.LDs_Status[io]);
 			for(iLD = 0;iLD<N_LD;iLD++){
+				//sprintf(message,"--Optode %d. Laser Driver %d\n%05x--\n",io,iLD,P.Solus.LDs_Status[io].u32[iLD]); 
+				//SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
 				if(P.Solus.LDs_Status[io].status[iLD].ERR_LCKH){
-					sprintf(message,"Optode %d\nLaser Driver %d\Error: ERR_LCKH\n",io,iLD); 
+					sprintf(message,"Optode %d. Laser Driver %d. Error: ERR_LCKH\n",io,iLD);
+					SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
 					MessagePopup ("ERROR RETURN FUNCTION", message);	
 				}
 				if(P.Solus.LDs_Status[io].status[iLD].ERR_LCKL){
-					sprintf(message,"Optode %d\nLaser Driver %d\Error: ERR_LCKL\n",io,iLD); 
+					sprintf(message,"Optode %d. Laser Driver %d. Error: ERR_LCKL\n",io,iLD);
+					SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
 					MessagePopup ("ERROR RETURN FUNCTION", message);	
 				}
 			}					
@@ -10164,13 +10168,13 @@ void SetInfoSolus(void){
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetLaserFrequency");}*/	
 	
 	//Set Flags
-	UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.perform_autocal) << 4 | (P.Solus.Flags.override_map) << 3 | (P.Solus.Flags.laser_supply_off_after_meas) << 2 | (P.Solus.Flags.gsipm_supply_off_after_meas) << 1 | (P.Solus.Flags.force_laser_off);
+	/*UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.perform_autocal) << 4 | (P.Solus.Flags.override_map) << 3 | (P.Solus.Flags.laser_supply_off_after_meas) << 2 | (P.Solus.Flags.gsipm_supply_off_after_meas) << 1 | (P.Solus.Flags.force_laser_off);
 	for(io=0;io<N_OPTODE;io++){
 		if(P.Solus.OptList[io]){
 			ret = SOLUS_WriteFlags(P.Solus.SolusObj,io,Flags,0x00FF);	
 			if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_WriteFlags");} 
 		}
-	}
+	}*/
 	
 	//Set Params Control
 	ret = SOLUS_SetControlParams(P.Solus.SolusObj,P.Solus.ControlParams);
