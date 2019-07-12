@@ -244,7 +244,7 @@ void KernelGen(){
 						if(P.Action.InitMamm) {if(P.Command.Abort) break; InitMammot();}	   
 						if(P.Action.StartMamm) StartMammot();
 						if(P.Action.WaitChrono) WaitChrono();
-						if(P.Action.StartAdc) {StartAdc(); P.Time.Start=clock();}		 // se � attivo ADC e power
+						if(P.Action.StartAdc) {StartAdc(); P.Time.Start=clock();}		 // se ? attivo ADC e power
 			    		if(P.Action.StartSync) StartSync();
 	                    if(P.Action.SpcReset) 
 							SpcReset(P.Action.Status,P.Meas.Clear,P.Meas.Stop);
@@ -254,7 +254,7 @@ void KernelGen(){
 						if(P.Action.WaitEnd) WaitEnd(P.Spc.TimeM,P.Wait.Pos,P.Wait.Type,P.Wait.Step);
 						if(P.Action.StopSync) StopSync();
 						if(P.Action.SpcStop) SpcStop(P.Action.Status);
-						if(P.Action.WaitAdc) {P.Time.Stop=clock();WaitAdc();}		 // se � attivo ADC e power
+						if(P.Action.WaitAdc) {P.Time.Stop=clock();WaitAdc();}		 // se ? attivo ADC e power
 		    		    //if(P.Action.StopAdc) StopAdc();		 // mi da errore...Andrea F
 						if(P.Action.StopOma) StopOma();
 						if(P.Action.SpcOut) SpcOut(P.Action.Status);
@@ -310,7 +310,7 @@ void DoStep(char Issue, int Homecontrol){
 		}
 //	else if(dostep->Break) NoOscilloscope();	//TODO: check
 	if(dostep->Return) MoveStep(&P.Step[step].Actual,(long)(dostep->Home*factor),step,TRUE,TRUE);
-	else SetCtrlVal(hDoStep,Homecontrol,dostep->Home);//SetCtrlVal(hDoStep,Homecontrol,dostep->Goal);
+	else SetCtrlVal(hDoStep,Homecontrol,dostep->Goal);
 	SetActivePanel(hParm);
 	CloseStep(step);
 	}
@@ -1003,7 +1003,6 @@ void CompleteParmS(void){
 	P.Acq.Counter=0;
 	P.Acq.Bank=SPC_BANK_DIM/(P.Chann.Num*P.Num.Det);
 
-	//TO DO FOR SOLUS...
 	// Ram
 	if(P.Meas.Ram==0) P.Ram.Loop=P.Loop[LOOP1].Num*P.Loop[LOOP2].Num*P.Loop[LOOP3].Num*P.Loop[LOOP4].Num*P.Loop[LOOP5].Num;
 	else P.Ram.Loop = MAX(P.Meas.Ram,P.Num.LoopxFrame);
@@ -2198,7 +2197,7 @@ void SpcStop(char Status){
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StopSpad(ib);break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StopNirs(ib);break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StopLuca(ib);break;
-		case SPC_SOLUS: StopSolusMeas();break;
+		case SPC_SOLUS: break;//StopSolusMeas();break;
 		case TEST: break;
 		case DEMO: break;
 		default: break;
@@ -5092,7 +5091,7 @@ int CVICALLBACK ClientTCPCB (unsigned handle, int event, int error,
             		break;
             	}
             	
-            /*ricezione conferma della modalit� col nomefile automatico*/	
+            /*ricezione conferma della modalit? col nomefile automatico*/	
             	if(strcmp (receiveBuf, "YES!")==0){
             		P.Oma.FileYes=1;
             		break;
@@ -5542,7 +5541,8 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 	long delta;
 	int is;
 	char on = FALSE;
-	if (*Actual==Goal) return;
+	if(P.Step[Step].Type!=LDs_SOLUS)
+		if (*Actual==Goal) return;
 	P.Step[Step].Moving = TRUE;
 	delta=Goal-*Actual;
 	dir=(delta>0?1:-1);
@@ -6681,8 +6681,8 @@ void InitPi(char Step){
 void ClosePi(){
 	
 	if (MCRS_close()!=0)
-		SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PI: CLOSE DEVICE ERROR\n");	   //Chiude la COM aperta prima. Potrebbe creare conflitti se ci fossero pi�
-					 //driver PI su COM differenti. In tal caso conviene sfruttare la possibilit�
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PI: CLOSE DEVICE ERROR\n");	   //Chiude la COM aperta prima. Potrebbe creare conflitti se ci fossero pi?
+					 //driver PI su COM differenti. In tal caso conviene sfruttare la possibilit?
 					 //di collegare i dispositivi in cascata e comandarli da un'unica COM.
 	}
 
@@ -8777,7 +8777,9 @@ void ErrHandler(int Device, int Code, char* Function){
 				case -7: strcpy(serror,"PROBE_ERROR"); break;	
 				case -8: strcpy(serror,"FIRMWARE_NOT_COMPATIBLE"); break;
 				case -9: strcpy(serror,"OPTODE_NOT_PRESENT"); break;	
-				case -10: strcpy(serror,"NOT IMPLEMENTED YET"); break;
+				case -10: strcpy(serror,"FIRMWARE_UPDATE_ERROR"); break;
+				case -11: strcpy(serror,"SEQUENCE_ALREADY_RUNNING"); break;
+				case -12: strcpy(serror,"NO_SEQUENCE_RUNNING"); break;
 			}
 			strcpy (sdevice, "SOLUS");
 			break;
@@ -9217,12 +9219,12 @@ void FindTop(void){
 	P.Mamm.Idx[Y].Last = (P.Mamm.Shrink[Y]?P.Mamm.Idx[Y].Top[MAMM_VIS]:P.Mamm.Idx[Y].Num-1);
 	
 //	Find Top NIR
-//	Indietreggia di una quantit� fissa
+//	Indietreggia di una quantit? fissa
 	if(P.Mamm.BackTopNIR>0) {
 		P.Mamm.Idx[Y].Top[MAMM_NIR] = P.Mamm.Idx[Y].Top[MAMM_NIR]-P.Mamm.BackTopNIR;
 		MoveStep(&stepy->Actual,stepy->Start[P.Mamm.Idx[Y].Top[MAMM_NIR]], P.Mamm.Step[Y],WAIT_TRUE, status);
 		}
-//	Indietreggia finch� conteggi VIS > RateLow
+//	Indietreggia finch? conteggi VIS > RateLow
 	do {
 		P.Mamm.Idx[Y].Top[MAMM_NIR]--;
 		MoveStep(&stepy->Actual,stepy->Start[P.Mamm.Idx[Y].Top[MAMM_NIR]], P.Mamm.Step[Y],WAIT_TRUE, status);	
@@ -9476,7 +9478,7 @@ void StartMammot(void){
 		for(ip=0; ip<P.Num.Page;ip++)
 			CompileSub(P.Ram.Actual, ifr, ip);
 	
-	float AcqTime = min((P.Frame.Last-P.Frame.First)+(P.Mamm.ExtraFrame.Num)/abs(P.Loop[P.Mamm.Loop[X]].Delta),P.Frame.Num)*P.Spc.TimeM; //controllare  //20 � in mm
+	float AcqTime = min((P.Frame.Last-P.Frame.First)+(P.Mamm.ExtraFrame.Num)/abs(P.Loop[P.Mamm.Loop[X]].Delta),P.Frame.Num)*P.Spc.TimeM; //controllare  //20 ? in mm
 	if(!P.Spc.Started)
 		for(ib=0;ib<P.Num.Board;ib++)
 			P.Spc.ScAcqTime=StartSC1000(ib,AcqTime);
@@ -9886,6 +9888,8 @@ void ReadLDsParamsFromFile(void){
 		P.Solus.LDs_param[io].I_FINE[ild] = (UINT16) temp;
 		fscanf(wifile,"%*s%d\n",&temp);
 		P.Solus.LDs_param[io].I_COARSE[ild] = (UINT8) temp;
+		fscanf(wifile,"%*s%d\n",&temp);
+		P.Solus.LDs_param[io].CITR[(int) ild/2] = (UINT8) temp;
 		}
 	fscanf(wifile,"%*s%d\n",&temp);
 	P.Solus.LDs_param[io].SYNCD_F = (UINT16) temp;
@@ -9950,6 +9954,7 @@ void GetInfoSolus(void){
 	char message[STRLEN];
 	int ret;
 	int io;
+	int iLD;
 	
 	//Check OPTODE is present
 	for(io=0;io<N_OPTODE;io++){
@@ -10015,6 +10020,16 @@ void GetInfoSolus(void){
 				continue;
 			}
 			ret = SOLUS_GetStatusOptode(P.Solus.SolusObj,io,&P.Solus.OptStatus[io],&P.Solus.LDs_Status[io]);
+			for(iLD = 0;iLD<N_LD;iLD++){
+				if(P.Solus.LDs_Status[io].status[iLD].ERR_LCKH){
+					sprintf(message,"Optode %d\nLaser Driver %d\Error: ERR_LCKH\n",io,iLD); 
+					MessagePopup ("ERROR RETURN FUNCTION", message);	
+				}
+				if(P.Solus.LDs_Status[io].status[iLD].ERR_LCKL){
+					sprintf(message,"Optode %d\nLaser Driver %d\Error: ERR_LCKL\n",io,iLD); 
+					MessagePopup ("ERROR RETURN FUNCTION", message);	
+				}
+			}					
 			sprintf (message, "Status Opt%d: %d\n",io,P.Solus.OptStatus[io]);
 			SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
 		}
@@ -10259,7 +10274,10 @@ void StopSolusMeas(void){
 void CloseSolus(void){
 	if(!P.Solus.MeasStopped) StopSolusMeas();
 	int ret,io;
+	ret = SOLUS_LaserOFF(P.Solus.SolusObj);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
 	DestructSolusObj();
+	P.Solus.Initialized = FALSE;
 }
 void ClearSolus(void){
 	if(!P.Spc.Trash) return;
@@ -10476,6 +10494,7 @@ int CVICALLBACK ExportLDsParmsFile (int panel, int control, int event,void *call
 		fprintf(wifile,"WIDTH_C\t%d\n",P.Solus.LDs_param[io].WIDTH_C[ild]);
 		fprintf(wifile,"I_FINE\t%d\n",P.Solus.LDs_param[io].I_FINE[ild]);
 		fprintf(wifile,"I_COARSE\t%d\n",P.Solus.LDs_param[io].I_COARSE[ild]);
+		fprintf(wifile,"CITR\t%d\n",P.Solus.LDs_param[io].CITR[(int) ild/2]);
 		}
 		fprintf(wifile,"SYNCD_F\t%d\n",P.Solus.LDs_param[io].SYNCD_F);   
 		fprintf(wifile,"SYNCD_C\t%d\n",P.Solus.LDs_param[io].SYNCD_C);   
@@ -10631,18 +10650,6 @@ void InitLDStepSolus(char Step){
 	InitSolus();
 	ret = SOLUS_LaserOFF(P.Solus.SolusObj);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
-	if (P.Contest.Run == CONTEST_MEAS){
-		int itry;
-		for(itry=0;itry<2;itry++){ 
-		int ActGoal = ReadSolusLUT(0,Step);
-		SetInfoSolus();
-		ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
-		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_PowerSupplyON");} 
-		// Goal: 0-7 
-		ret = SOLUS_LaserON(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT8) ActGoal);
-		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_LaserON");}
-		}
-	}
 }
 void CloseLDStepSolus(char Step){
 	int ret,io;
@@ -10655,39 +10662,31 @@ void CloseLDStepSolus(char Step){
 }
 void MoveLDStepSolus(char Step,long Goal,char Wait){
 	int ret;
-	/*char HOLD_OFF = 0;
-	if(P.Step[Step].Hold==HOLD_OFF){
-		ret = SOLUS_LaserOFF(P.Solus.SolusObj);
-		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
-	}*/
-	if(P.Contest.Run == CONTEST_OSC){
+	
+	int ActGoal = Goal;
+	if(strlen(P.Step[Step].FName)!=0){
+		ActGoal = ReadSolusLUT(Goal,Step);
+		SetInfoSolus();
+	}
 	ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_PowerSupplyON");} 
 	// Goal: 0-7 
-	ret = SOLUS_LaserON(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT8) Goal);
+	ret = SOLUS_LaserON(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT8) ActGoal);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_LaserON");}
-	}
-	if (P.Contest.Run == CONTEST_MEAS){
-		int ActGoal = ReadSolusLUT(Goal,Step);
-		SetInfoSolus();
-		ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
-		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_PowerSupplyON");} 
-		// Goal: 0-7 
-		ret = SOLUS_LaserON(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT8) ActGoal);
-		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_LaserON");}
-	}
+	P.Step[Step].Actual = ActGoal;
 }
+
 int ReadSolusLUT(int GoalEntryID, char Step){
 	FILE *sfile;
 	MakePathname (DIR_SOLUS, "LUT.ini", P.Solus.LUTFilePath);
 	sfile = fopen (P.Solus.LUTFilePath, "r");
 	int is; int io = P.Step[Step].Com-1;
 	char line[STRLEN];
-	int EntryID,OptodeID,LaserID,DelayF,DelayC,WidthC,WidthF,CurrentF,CurrentC;
+	int EntryID,OptodeID,LaserID,DelayF,DelayC,WidthC,WidthF,CurrentF,CurrentC,Citr;
 	fgets(line,STRLEN,sfile);
 	int ret;
 	do{
-		ret = fscanf (sfile, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t\%d\t%d",&EntryID,&OptodeID,&LaserID,&DelayF,&DelayC,&WidthF,&WidthC,&CurrentF,&CurrentC);
+		ret = fscanf (sfile, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t\%d\t%d\%ds",&EntryID,&OptodeID,&LaserID,&DelayF,&DelayC,&WidthF,&WidthC,&CurrentF,&CurrentC,&Citr);
 		if(ret==EOF) break;
 		if(EntryID==GoalEntryID&&OptodeID==P.Step[Step].Com-1){
 			int ild = LaserID;
@@ -10697,6 +10696,7 @@ int ReadSolusLUT(int GoalEntryID, char Step){
 			P.Solus.LDs_param[io].WIDTH_C[ild] = (UINT8) WidthC;
 			P.Solus.LDs_param[io].I_FINE[ild] = (UINT16) CurrentF;
 			P.Solus.LDs_param[io].I_COARSE[ild] = (UINT8) CurrentC;
+			P.Solus.LDs_param[io].CITR[(int) ild/2] = (UINT8) Citr;
 			return LaserID;
 			break;
 		}
@@ -10705,7 +10705,7 @@ int ReadSolusLUT(int GoalEntryID, char Step){
 }
 void DefineHomeLDStepSolus(char Step){
 	
-	P.Step[Step].Home = 0;
+	P.Step[Step].Home = 1000000000;
 	
 }
 void InitSipmStepSolus(char Step){

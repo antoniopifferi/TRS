@@ -220,6 +220,7 @@ extern "C" {
 		UINT8 WIDTH_C[8];		/**<Laser Width Coarse array. Valid range 0..31.*/
 		UINT16 I_FINE[8];		/**<Current Fine array. Valid range 0..1023.*/
 		UINT8 I_COARSE[8];		/**<Current Coarse array. Valid range 0..7.*/
+		UINT8 CITR[4];			/**<Current boost setting, one parameter for each driver. Driver 0 -> lasers 0 and 1, etc. Valid range 0..7.*/
 		// Sync Output
 		UINT16 SYNCD_F;			/**<Sync delay fine. Valid range 0..1023.*/
 		UINT8 SYNCD_C;			/**<Sync delay coarse. Valid range 0..15.*/
@@ -337,7 +338,7 @@ extern "C" {
 		UINT16 gsipmSPADvoltage;	/**<GSIPM SPAD voltage in mV*/
 		UINT16 gsipmCoreVoltage;	/**<GSIPM core voltage in mV*/
 		UINT16 laserVoltage;		/**<Laser voltage in mV*/
-		INT16 picTemperature;		/**<PIC Temperature in 0.01 °C*/
+		INT16 picTemperature;		/**<PIC Temperature in 0.01 C*/
 		UINT16 gsipmTemperature;	/**<GSIPM Temperature (in code for now)*/
 		UINT16 bandgap;				/**<Bandgap readout (code)*/
 	} Optode_analog_acq;
@@ -800,7 +801,7 @@ extern "C" {
 	\param address Address of the optode/control
 	\param data Data read from EEPROM
 	*/
-	DllSDKExport SOLUS_Return SOLUS_ReadEEPROM(SOLUS_H solus, ADDRESS address, unsigned char* data);
+	DllSDKExport SOLUS_Return SOLUS_ReadEEPROM(SOLUS_H solus, ADDRESS address, unsigned int* data);
 
 	/**Read optode diagnothic.
 	\param solus SOLUS handle
