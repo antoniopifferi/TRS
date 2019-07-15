@@ -4060,7 +4060,7 @@ void AutoTrim(int Trim){
 	char isfirst,islast;
 	long loop_index;
 	char loop=P.Trim[Trim].Loop;
-	char is_any_SPC = ((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==SPC_SC1000));
+	char is_any_SPC = ((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==SPC_SC1000)||(P.Spc.Type==SPC_SOLUS));
 	short page;
 	
 	// Actions for FileTrimmer
@@ -4129,7 +4129,12 @@ void AutoTrim(int Trim){
 				startstep=FALSE;
 				dataclear=is_any_SPC;
 				datain=is_any_SPC;
-				typewait=WAIT_TIME;
+				//typewait=WAIT_TIME;
+				switch (T->Wait){
+					case TRIM_WAIT_POS: typewait=WAIT_POS; break;
+					case TRIM_WAIT_TIME: typewait=WAIT_TIME; break;
+					case TRIM_WAIT_SPC: typewait=WAIT_SPC; break;
+					}
 				tellpos=FALSE;
 				datastop=is_any_SPC;
 				dataout=TRUE;
