@@ -497,6 +497,7 @@
 #define EXACT		 2
 #define ONLY_FIRST	 3
 #define ONLY_SEC	 4
+#define TRIM_BINARY	 5
 #define REF   		 0
 #define SIG   		 1
 #define OFF			 0

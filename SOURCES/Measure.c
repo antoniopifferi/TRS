@@ -4062,6 +4062,8 @@ void AutoTrim(int Trim){
 	char loop=P.Trim[Trim].Loop;
 	char is_any_SPC = ((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==SPC_SC1000)||(P.Spc.Type==SPC_SOLUS));
 	short page;
+	double fraction=0; // initial guess=0, all closed for BINARY TRIM
+	int max_steps=T->Delta*2^T->Num; // max number of steps for BINARY TRIM
 	
 	// Actions for FileTrimmer
 	if(P.Trim[Trim].FileTrim)
@@ -4124,6 +4126,7 @@ void AutoTrim(int Trim){
 		// Decide Action
 		switch (T->Type) {
 			case LIGTH:
+			case TRIM_BINARY:
 				datareset=(isfirst||is_any_SPC);
 				movestep=TRUE;
 				startstep=FALSE;
@@ -4158,7 +4161,11 @@ void AutoTrim(int Trim){
 			
 		// Do Action
 		T->Trial++;
-		goalstep=Origin+T->Dir*T->Trial*T->Delta;
+		if(T->Type==TRIM_BINARY){
+            fraction=fraction+T->Dir*pow(2,-T->Trial); // add fraction with decresing amplitude (+ or - is ruled by DIR)
+			goalstep=Origin+floor(max_steps*fraction);
+			}
+		else goalstep=Origin+T->Dir*T->Trial*T->Delta; 
 		if(movestep) MoveStep(&P.Step[si].Actual,goalstep,si,TRUE,FALSE);
 		if(startstep) MoveStep(&P.Step[si].Actual,Origin+T->Dir*T->Num*T->Delta,si,FALSE,FALSE);
 		if(datareset) SpcReset(FALSE,dataclear,datain);
@@ -4268,7 +4275,19 @@ void CheckTrimGoal(int Trim){
 	if((T->Scan==TRIM_SCAN_RANGE)&&(T->Trial==0)){
 		T->Success = ((T->Value>T->Low)&&(T->Value<T->High));
 		T->Dir = ((T->Value<T->Goal)?TRIM_DIR_POS:TRIM_DIR_NEG);
-		return;
+		return; // return here not to perform standard operation
+		}
+
+	// BINARY TRIM
+	if(T->Type==TRIM_BINARY){
+		T->Success = ((T->Value>T->Low)&&(T->Value<T->High));
+		T->Dir = ((T->Value<T->Goal)?TRIM_DIR_POS:TRIM_DIR_NEG);
+		T->Improved = abs(T->Value-T->Goal)<abs(T->Best-T->Goal);
+		if(T->Improved){
+			T->Best=T->Value;
+			T->PosBest=T->PosAct;
+			}
+		return; // return here not to perform standard operation
 		}
 
 	// standard operation 
@@ -4285,6 +4304,7 @@ void CheckTrimGoal(int Trim){
 		T->Set=T->Trial;
 		T->PosBest=T->PosAct;
 		}
+	
 	}
 
 
