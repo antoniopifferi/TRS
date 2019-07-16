@@ -4063,7 +4063,7 @@ void AutoTrim(int Trim){
 	char is_any_SPC = ((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==SPC_SC1000)||(P.Spc.Type==SPC_SOLUS));
 	short page;
 	double fraction=0; // initial guess=0, all closed for BINARY TRIM
-	int max_steps=T->Delta*2^T->Num; // max number of steps for BINARY TRIM
+	int max_steps=T->Delta*pow(2,T->Num); // max number of steps for BINARY TRIM
 	
 	// Actions for FileTrimmer
 	if(P.Trim[Trim].FileTrim)
@@ -4170,7 +4170,7 @@ void AutoTrim(int Trim){
 		if(startstep) MoveStep(&P.Step[si].Actual,Origin+T->Dir*T->Num*T->Delta,si,FALSE,FALSE);
 		if(datareset) SpcReset(FALSE,dataclear,datain);
 		WaitEnd(T->Time,goalstep,typewait,si);
-		if(tellpos) TellPos(si,&T->PosAct);
+		if(tellpos) TellPos(si,&T->PosAct); else T->PosAct=P.Step[si].Actual;
 		if(datastop) SpcStop(FALSE);
 		if(dataout) SpcOut(FALSE);
 		D.Curve=D.Osc[page];
@@ -4271,13 +4271,6 @@ void CheckTrimGoal(int Trim){
 			break;
 		}
 	
-	// case TRIM_SCAN_RANGE (i.e. up and down depending on value) & First Check before any movement
-	if((T->Scan==TRIM_SCAN_RANGE)&&(T->Trial==0)){
-		T->Success = ((T->Value>T->Low)&&(T->Value<T->High));
-		T->Dir = ((T->Value<T->Goal)?TRIM_DIR_POS:TRIM_DIR_NEG);
-		return; // return here not to perform standard operation
-		}
-
 	// BINARY TRIM
 	if(T->Type==TRIM_BINARY){
 		T->Success = ((T->Value>T->Low)&&(T->Value<T->High));
@@ -4287,6 +4280,13 @@ void CheckTrimGoal(int Trim){
 			T->Best=T->Value;
 			T->PosBest=T->PosAct;
 			}
+		return; // return here not to perform standard operation and also before the following one
+		}
+
+	// case TRIM_SCAN_RANGE (i.e. up and down depending on value) & First Check before any movement
+	if((T->Scan==TRIM_SCAN_RANGE)&&(T->Trial==0)){
+		T->Success = ((T->Value>T->Low)&&(T->Value<T->High));
+		T->Dir = ((T->Value<T->Goal)?TRIM_DIR_POS:TRIM_DIR_NEG);
 		return; // return here not to perform standard operation
 		}
 
@@ -10387,7 +10387,7 @@ void WriteGSIPMInfoToFile(void){
 	fclose(wifile);
 }*/
 int CVICALLBACK ExportLDsFile (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
-	return 0;
+	//return 0;
 	if(event!=EVENT_COMMIT) return 0;
 	char fpath[MAX_PATHNAME_LEN];
 	int status=FileSelectPopup (DIRSEQUENCE, EXTSOLUSFILE, EXTSOLUSFILE,"SAVE LDs FILE", VAL_SAVE_BUTTON, 0, 1,1, 1, fpath);
@@ -10443,7 +10443,7 @@ int CVICALLBACK ExportLDsFile (int panel, int control, int event,void *callbackD
 	return 0;
 }
 int CVICALLBACK ExportGSIPMFile (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
-	return 0;
+	//return 0;
 	if(event!=EVENT_COMMIT) return 0;
 	char fpath[MAX_PATHNAME_LEN];
 	int status=FileSelectPopup (DIRSEQUENCE, EXTSOLUSFILE, EXTSOLUSFILE,"SAVE GSIPM FILE", VAL_SAVE_BUTTON, 0, 1,1, 1, fpath);
