@@ -2034,7 +2034,7 @@ void SpcClose(void){
 		case SPC_SPADLAB: CloseSpad(); break;
 		case SPC_NIRS: CloseNirs(); break;
 		case SPC_LUCA: CloseLuca(); break;
-		case SPC_SOLUS: CloseSolus(); break;
+		case SPC_SOLUS: if(!P.Solus.MeasStopped) StopSolusMeas(); break;//CloseSolus(); break;
 		case TEST: break;
 		case DEMO: CloseDemo(); break;
 		}
@@ -5511,7 +5511,7 @@ void DefineHome(char Step){
 		case CHAMALEON: DefineHomeCham(Step); break;
 		case STEP_STANDA2: DefineHomeStanda2(Step); break;
 		case ATT_LUCA: DefineHomeAttLuca(Step); break;
-		case LDs_SOLUS: DefineHomeLDStepSolus(Step); break;
+		case LDs_SOLUS: break;//DefineHomeLDStepSolus(Step); break;
 		//case SIPM_SOLUS: DefineHomeSipmStepSolus(Step); break;
 		case NONE: break;
 		}
@@ -9701,9 +9701,8 @@ void CreateSolusObj(void){
 }
 void DestructSolusObj(void){
 	if(!P.Solus.SolusConstructed) return;
-	int ret = 5;
-	ret = SOLUS_Destr(P.Solus.SolusObj);
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"CloseSolus");P.Solus.SolusConstructed = TRUE;}
+	int ret = SOLUS_Destr(P.Solus.SolusObj);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_Destr");P.Solus.SolusConstructed = TRUE;}
 	else {SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Obj DeConstructed\n");P.Solus.SolusConstructed = FALSE;P.Solus.SolusObj = NULL;}
 	int io;
 	for(io=0;io<N_OPTODE;io++)
@@ -9730,18 +9729,35 @@ void ReadMeasSequenceFromFile(void){
 	FILE *sfile;
 	MakePathname (DIR_SOLUS, P.Solus.SeqFile, P.Solus.SeqFilePath);
 	sfile = fopen (P.Solus.SeqFilePath, "r");
-	int is;
+	int is=0,ret=0;
 	char line[STRLEN];
 	float meas_time, attenuation,gate_delay_fine;
-	float gate_delay_coarse,laser_num; 
-	fgets(line,STRLEN,sfile); 
-	for(is=0;is<MAX_SEQUENCE;is++){
-		fscanf(sfile, "%f\t%f\t%f\t%f\t%f\n",&meas_time,&attenuation,&gate_delay_coarse,&gate_delay_fine,&laser_num);
-		P.Solus.MeasSequence[is].meas_time = meas_time;
-		P.Solus.MeasSequence[is].attenuation = attenuation;
-		P.Solus.MeasSequence[is].gate_delay_coarse = gate_delay_coarse;
-		P.Solus.MeasSequence[is].gate_delay_fine = gate_delay_fine;
-		P.Solus.MeasSequence[is].laser_num = laser_num;
+	float gate_delay_coarse,laser_num;
+	if(P.Solus.AcqType<2){
+		fgets(line,STRLEN,sfile); 
+		for(is=0;is<MAX_SEQUENCE;is++){
+			ret=fscanf(sfile, "%f\t%f\t%f\t%f\t%f\n",&meas_time,&attenuation,&gate_delay_coarse,&gate_delay_fine,&laser_num);
+			P.Solus.MeasSequence[is].meas_time = meas_time;
+			P.Solus.MeasSequence[is].attenuation = attenuation;
+			P.Solus.MeasSequence[is].gate_delay_coarse = gate_delay_coarse;
+			P.Solus.MeasSequence[is].gate_delay_fine = gate_delay_fine;
+			P.Solus.MeasSequence[is].laser_num = laser_num;
+		}
+	}
+	if(P.Solus.AcqType>=2){
+		fgets(line,STRLEN,sfile);
+		do{
+			ret=fscanf(sfile, "%f\t%f\t%f\t%f\t%f\n",&meas_time,&attenuation,&gate_delay_coarse,&gate_delay_fine,&laser_num);
+			if(ret==EOF) break;
+			P.Solus.POSMeasSequence[is].meas_time = meas_time;
+			P.Solus.POSMeasSequence[is].attenuation = attenuation;
+			P.Solus.POSMeasSequence[is].gate_delay_coarse = gate_delay_coarse;
+			P.Solus.POSMeasSequence[is].gate_delay_fine = gate_delay_fine;
+			P.Solus.POSMeasSequence[is++].laser_num = laser_num;
+		}while(ret!=EOF);
+		memcpy(&P.Solus.MeasSequence[0],&P.Solus.POSMeasSequence[0],sizeof(P.Solus.POSMeasSequence[0]));
+		P.Solus.POSAcqActual = 0;
+		P.Solus.POSAcqTot = is;
 	}
 	fclose(sfile);
 	ValidateMeasSequenceSolus() ;
@@ -10168,13 +10184,13 @@ void SetInfoSolus(void){
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetLaserFrequency");}*/	
 	
 	//Set Flags
-	/*UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.perform_autocal) << 4 | (P.Solus.Flags.override_map) << 3 | (P.Solus.Flags.laser_supply_off_after_meas) << 2 | (P.Solus.Flags.gsipm_supply_off_after_meas) << 1 | (P.Solus.Flags.force_laser_off);
+	UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.laser_supply_off_after_meas) << 4 | (P.Solus.Flags.gsipm_supply_off_after_meas) << 3 | (P.Solus.Flags.override_map) << 2 | (P.Solus.Flags.perform_autocal) << 1 | (P.Solus.Flags.force_laser_off);
 	for(io=0;io<N_OPTODE;io++){
 		if(P.Solus.OptList[io]){
 			ret = SOLUS_WriteFlags(P.Solus.SolusObj,io,Flags,0x00FF);	
 			if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_WriteFlags");} 
 		}
-	}*/
+	}
 	
 	//Set Params Control
 	ret = SOLUS_SetControlParams(P.Solus.SolusObj,P.Solus.ControlParams);
@@ -10191,62 +10207,58 @@ void ValidateMeasSequenceSolus(void){
 	P.Solus.SeqLength = P.Solus.AcqTot;
 }
 void StartSolusMeas(void){
-	if(P.Solus.AcqActual>=P.Solus.AcqTot)
-		if(P.Contest.Function == CONTEST_OSC)
-			StopSolusMeas();
-		else{
-			StopSolusMeas();
-			/*ErrHandler(ERR_SOLUS,-10,"StartSolusMeas\n");
-			return;*/
-		}
+	if(P.Solus.AcqActual>=P.Solus.AcqTot) StopSolusMeas();
 	if(P.Solus.MeasStarted) return;
+	if(P.Spc.Trash)
+		P.Solus.POSAcqActual=0;
 	int ret,is;
-	for(is=0;is<P.Solus.AcqTot;is++) //SOLUS TO CHECK
-		P.Solus.MeasSequence[is].meas_time = P.Spc.TimeSolus;
+	if(P.Solus.AcqType<2)
+		for(is=0;is<P.Solus.AcqTot;is++)
+			P.Solus.MeasSequence[is].meas_time = P.Spc.TimeSolus;
+	if(P.Solus.AcqType>=2){
+		if(P.Solus.POSAcqActual>=P.Solus.POSAcqTot)
+			P.Solus.POSAcqActual=0;
+		memcpy(&P.Solus.MeasSequence[0],&P.Solus.POSMeasSequence[P.Solus.POSAcqActual],sizeof(P.Solus.POSMeasSequence[P.Solus.POSAcqActual]));	
+	}
 	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
-	ret =  SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType,P.Solus.AutoCal);
+	char AcqType = fmod(P.Solus.AcqType,2);
+	ret =  SOLUS_StartSequence(P.Solus.SolusObj,AcqType,P.Solus.AutoCal);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"StartSolusMeas\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
-	else {SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Meas Started\n");P.Solus.StartError = FALSE;P.Solus.MeasStarted = TRUE;P.Solus.MeasStopped = FALSE;}
+	else {
+		//SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Meas Started\n");
+		P.Solus.StartError = FALSE;P.Solus.MeasStarted = TRUE;P.Solus.MeasStopped = FALSE;
+	}
 	P.Solus.AcqActual = 0;
 }
 void WaitSolus(void){
-	int ret = 0x1; int itry = 0;
+	int ret;
 	UINT16 nlines;
 	do{
 		ret = SOLUS_QueryNLinesAvailable(P.Solus.SolusObj,&nlines);
 		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_QueryNLinesAvailable");return;}
-	}while(nlines < P.Solus.NLines);// &&(itry++<10));
+	}while(nlines < P.Solus.NLines);
 }
 void GetDataSolus(void){
 	int io,ic,ib=0,ret,iro=0;
 	Frame SingleFrame;
-	/*if (P.Solus.AcqActual>=P.Solus.AcqTot||P.Solus.AcqActual>=MAX_SEQUENCE){
-		if(P.Contest.Function == CONTEST_OSC){
-			StopSolusMeas();
-			StartSolusMeas();
-			WaitSolus();
-		}
-		else return;
-	}*/
 	ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,P.Solus.NLines);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");return;}
 	for(io=0;io<N_OPTODE;io++){
 		if(P.Solus.OptList[io]){
 			SingleFrame = (*P.Solus.DataSolus)[iro];
 			for(ic=0;ic<P.Chann.Num;ic++)
-			D.Buffer[ib][io*P.Chann.Num+ic] = SingleFrame.histogram_data[ic];
+				D.Buffer[ib][io*P.Chann.Num+ic] = SingleFrame.histogram_data[P.Chann.Num-1-ic];
+			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-1]=SingleFrame.intensity_data;
 			iro++;
 		}
 		else{
 			for(ic=0;ic<P.Chann.Num;ic++)
-			D.Buffer[ib][io*P.Chann.Num+ic]	= 0;
+				D.Buffer[ib][io*P.Chann.Num+ic]	= 0;
 		}
 	}
 	P.Solus.AcqActual=P.Solus.AcqActual+P.Solus.NLines;
-	/*if(P.Solus.AcqActual>=P.Solus.AcqTot)
-		StopSolusMeas();*/
-		
+	P.Solus.POSAcqActual = P.Solus.POSAcqActual + 1;
 }
 void StartSolusDRCMeasure(void){
 	int ret;
@@ -10264,7 +10276,7 @@ void GetSolusDRCMeasure(void){
 }
 void StopSolusDCRMeasure(void){
 	int ret;
-	//ret = SOLUS_StopDCRSequence(P.Solus.SolusObj);	
+	ret = SOLUS_StopDCRSequence(P.Solus.SolusObj);	
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_StopDCRSequence");}
 }
 void StopSolusMeas(void){
@@ -10272,12 +10284,18 @@ void StopSolusMeas(void){
 	int ret;
 	ret = SOLUS_StopSequence(P.Solus.SolusObj);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");P.Solus.StopError = TRUE;P.Solus.MeasStopped=FALSE;return;}
-	else {SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Meas Stopped\n");P.Solus.StopError = FALSE;P.Solus.MeasStarted = FALSE;P.Solus.MeasStopped = TRUE;}
+	else {
+		//SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Meas Stopped\n");
+		P.Solus.StopError = FALSE;P.Solus.MeasStarted = FALSE;P.Solus.MeasStopped = TRUE;
+	}
 	P.Solus.AcqActual = 0;
+	if(P.Spc.Trash) 
+		P.Solus.POSAcqActual=0;
 }
 void CloseSolus(void){
 	if(!P.Solus.MeasStopped) StopSolusMeas();
 	int ret,io;
+	Delay(1);
 	ret = SOLUS_LaserOFF(P.Solus.SolusObj);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
 	DestructSolusObj();
@@ -10666,10 +10684,9 @@ void CloseLDStepSolus(char Step){
 }
 void MoveLDStepSolus(char Step,long Goal,char Wait){
 	int ret;
-	
 	int ActGoal = Goal;
 	if(strlen(P.Step[Step].FName)!=0){
-		ActGoal = ReadSolusLUT(Goal,Step);
+		ActGoal = ReadSolusLDsLUT(Goal,Step);
 		SetInfoSolus();
 	}
 	ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
@@ -10680,7 +10697,7 @@ void MoveLDStepSolus(char Step,long Goal,char Wait){
 	P.Step[Step].Actual = ActGoal;
 }
 
-int ReadSolusLUT(int GoalEntryID, char Step){
+int ReadSolusLDsLUT(int GoalEntryID, char Step){
 	FILE *sfile;
 	MakePathname (DIR_SOLUS, "LUT.ini", P.Solus.LUTFilePath);
 	sfile = fopen (P.Solus.LUTFilePath, "r");
@@ -10708,9 +10725,7 @@ int ReadSolusLUT(int GoalEntryID, char Step){
 	fclose(sfile);
 }
 void DefineHomeLDStepSolus(char Step){
-	
 	P.Step[Step].Home = 1000000000;
-	
 }
 void InitSipmStepSolus(char Step){
 	int ret;

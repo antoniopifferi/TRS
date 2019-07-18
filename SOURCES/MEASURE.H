@@ -765,6 +765,7 @@
 #define SOLUS_DT 80
 #define SOLUS_MIN_SPAD_NUM 1
 #define SOLUS_MAX_SPAD_NUM N_PIXEL
+#define SOLUS_MAX_POS_SEQUENCE MAX_SEQUENCE*10
 
 /* TEST CONSTANTS */
 #define TEST_MUS	10.0
@@ -1520,6 +1521,7 @@ struct SurfaceConceptS{
 	double Period;									// period between two IRF peaks (used in rebinning)
 	double Rebin;
 };
+struct _Sequence_Line SequenceS[MAX_SEQUENCE*10];
 struct FlagsS{
 	 UINT16 force_laser_off;
 	 UINT16 perform_autocal;
@@ -1558,6 +1560,7 @@ struct SolusS{
 	 GSIPM_parameters GSIPM_param[N_OPTODE];
      CalMap CalibMap[N_OPTODE];
 	 Sequence MeasSequence;
+	 struct _Sequence_Line POSMeasSequence[SOLUS_MAX_POS_SEQUENCE];
 	 UINT16 OptStatus[N_OPTODE];
 	 LDs_status LDs_Status[N_OPTODE];
 	 UINT16 OptArea[N_OPTODE];
@@ -1576,6 +1579,8 @@ struct SolusS{
 	 char AcqType;
 	 unsigned short AcqActual;
 	 unsigned short AcqTot;
+	 unsigned short POSAcqActual;
+	 unsigned short POSAcqTot;
 	 char SeqFile[260];
 	 char SeqFilePath[260];
 	 char CalibMapFile[260];
@@ -1600,7 +1605,7 @@ struct SolusS{
 	 UINT16	StartPixel;
 	 UINT16	StopPixel;
 	 UINT16 NLines;
-	 struct FlagsS Flags; 
+	 struct FlagsS Flags;
 };
 
 struct SpcS {
@@ -2666,7 +2671,7 @@ void DestructSolusObj(void);
 void ReadInfoFromSolusPanel(void);
 void ReadLDsParamsFromFile(void);
 void ReadGSIPMParamsFromFile(void);
-int ReadSolusLUT(int Goal,char Step);
+int ReadSolusLDsLUT(int Goal,char Step);
 
 
 /* ########################   MOXY PROCEDURES   ########################### */

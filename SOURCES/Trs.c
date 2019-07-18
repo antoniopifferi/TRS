@@ -733,7 +733,7 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_AUTOCAL,"AutoCal",0,0,&P.Solus.AutoCal);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG1,"force_laser_off",0,0,&P.Solus.Flags.force_laser_off);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG2,"perform_autocal",0,0,&P.Solus.Flags.perform_autocal);
-	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG3,"override_map",0,0,&P.Solus.Flags.override_map);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG3,"use_calib_map",0,0,&P.Solus.Flags.override_map);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG4,"gsipm_supply_off_after_meas",0,0,&P.Solus.Flags.gsipm_supply_off_after_meas);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG5,"laser_supply_off_after_meas",0,0,&P.Solus.Flags.laser_supply_off_after_meas);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG6,"turnoff_unused_LD",0,0,&P.Solus.Flags.turnoff_unused_LD);
