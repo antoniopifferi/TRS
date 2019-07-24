@@ -1526,9 +1526,12 @@ struct FlagsS{
 	 UINT16 force_laser_off;
 	 UINT16 perform_autocal;
 	 UINT16 override_map;
-	 UINT16 gsipm_supply_off_after_meas;
-	 UINT16 laser_supply_off_after_meas;
+	 UINT16 gsipm_gate_off_after_meas;
+	 UINT16 laser_off_after_meas;
 	 UINT16 turnoff_unused_LD;
+};
+struct BufferS{
+	 UINT16 SPAD_Voltage;
 };
 struct T_ControlAnalogS{
 	 int spadCurrent;	
@@ -1606,6 +1609,7 @@ struct SolusS{
 	 UINT16	StopPixel;
 	 UINT16 NLines;
 	 struct FlagsS Flags;
+	 struct BufferS Buffer;
 };
 
 struct SpcS {
@@ -2672,6 +2676,7 @@ void ReadInfoFromSolusPanel(void);
 void ReadLDsParamsFromFile(void);
 void ReadGSIPMParamsFromFile(void);
 int ReadSolusLDsLUT(int Goal,char Step);
+void GetSolusStatus(void);
 
 
 /* ########################   MOXY PROCEDURES   ########################### */

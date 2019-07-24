@@ -2034,7 +2034,12 @@ void SpcClose(void){
 		case SPC_SPADLAB: CloseSpad(); break;
 		case SPC_NIRS: CloseNirs(); break;
 		case SPC_LUCA: CloseLuca(); break;
-		case SPC_SOLUS: if(!P.Solus.MeasStopped) StopSolusMeas(); break;//CloseSolus(); break;
+		case SPC_SOLUS: 
+				if(!P.Solus.MeasStopped){
+					StopSolusMeas();
+					GetInfoSolus();
+				}
+				break;
 		case TEST: break;
 		case DEMO: CloseDemo(); break;
 		}
@@ -9711,7 +9716,7 @@ void DestructSolusObj(void){
 }
 void InitSolus(void){
 	CreateSolusObj();
-	GetInfoSolus();
+	//GetInfoSolus();
 	ReadMeasSequenceFromFile();
 	//ReadLDsInfoFromFile();
 	//ReadGSIPMInfoFromFile();
@@ -9762,7 +9767,7 @@ void ReadMeasSequenceFromFile(void){
 	fclose(sfile);
 	ValidateMeasSequenceSolus() ;
 }
-void ReadLDsInfoFromFile(void){
+/*void ReadLDsInfoFromFile(void){
 	MakePathname (DIR_SOLUS, P.Solus.LDsFile, P.Solus.LDsFilePath);
 	int io,ild;
 	char line[STRLEN],trash[STRLEN];
@@ -9877,7 +9882,7 @@ void ReadGSIPMInfoFromFile(void){
 		P.Solus.GSIPM_reg[io].GSIPM_ref.GATE_OPEN = temp;
 	}
 	fclose(wifile);
-}
+}*/
 void ReadLDsParamsFromFile(void){
 	MakePathname (DIR_SOLUS, P.Solus.LDsParmsFile, P.Solus.LDsParmsFilePath);
 	int io,ild;
@@ -9965,6 +9970,7 @@ void ReadInfoFromSolusPanel(void){
 	for(io=0;io<N_OPTODE;io++) 
 		GetCtrlVal(hSolus, SOLUS_P_OPTODE_AREA_1+io, &P.Solus.OptArea[io]);	
 	GetCtrlVal(hSolus, SOLUS_P_LASER_FREQ,&P.Solus.LaserFrequency);
+	P.Solus.ControlParams.SPAD_Voltage = P.Solus.T_ControlParams.SPAD_Voltage;
 }
 void GetInfoSolus(void){
 	char message[STRLEN];
@@ -10117,11 +10123,60 @@ void GetInfoSolus(void){
 	}
 	
 	//Get Params Control
-	ret = SOLUS_GetControlParams(P.Solus.SolusObj,&P.Solus.ControlParams);
+	/*ret = SOLUS_GetControlParams(P.Solus.SolusObj,&P.Solus.ControlParams);
 	if(ret<0){
 		sprintf (message, "Error reading Control Params\n");
 		SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);	
+	}*/
+}
+void GetSolusStatus(void){
+	char message[STRLEN];
+	int ret;
+	int io;
+	int iLD;
+	//Get Optode Status
+	for(io=0;io<N_OPTODE;io++){ 
+		if (P.Solus.OptList[io]){ 
+			ret = SOLUS_ReadStatusOptode(P.Solus.SolusObj,io);
+			if(ret<0){
+				ErrHandler(ERR_SOLUS,ret,"SOLUS_ReadStatusOptode");
+				sprintf (message, "Error reading Opt%d Status\n",io);
+				SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
+				continue;
+			}
+			ret = SOLUS_GetStatusOptode(P.Solus.SolusObj,io,&P.Solus.OptStatus[io],&P.Solus.LDs_Status[io]);
+			for(iLD = 0;iLD<N_LD;iLD++){
+				//sprintf(message,"--Optode %d. Laser Driver %d\n%05x--\n",io,iLD,P.Solus.LDs_Status[io].u32[iLD]); 
+				//SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
+				if(P.Solus.LDs_Status[io].status[iLD].ERR_LCKH){
+					sprintf(message,"Optode %d. Laser Driver %d. Error: ERR_LCKH\n",io,iLD);
+					SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
+					MessagePopup ("ERROR RETURN FUNCTION", message);	
+				}
+				if(P.Solus.LDs_Status[io].status[iLD].ERR_LCKL){
+					sprintf(message,"Optode %d. Laser Driver %d. Error: ERR_LCKL\n",io,iLD);
+					SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
+					MessagePopup ("ERROR RETURN FUNCTION", message);	
+				}
+			}					
+			sprintf (message, "Status Opt%d: %d\n",io,P.Solus.OptStatus[io]);
+			SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
+		}
 	}
+	
+	//Get Control Status
+	ret = SOLUS_ReadStatusControl(P.Solus.SolusObj);
+	if(ret<0){
+		ErrHandler(ERR_SOLUS,ret,"SOLUS_ReadStatusControl");
+		sprintf (message, "Error reading Status Control\n");
+		SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);	
+	}
+	else{
+		ret = SOLUS_GetStatusControl(P.Solus.SolusObj,&P.Solus.ControlStatus);
+		sprintf (message, "Status Control: %d\n",P.Solus.ControlStatus);
+		SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
+	}	
+	
 }
 void SetInfoSolus(void){
 	int io,ret;
@@ -10184,7 +10239,7 @@ void SetInfoSolus(void){
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetLaserFrequency");}*/	
 	
 	//Set Flags
-	UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.laser_supply_off_after_meas) << 4 | (P.Solus.Flags.gsipm_supply_off_after_meas) << 3 | (P.Solus.Flags.override_map) << 2 | (P.Solus.Flags.perform_autocal) << 1 | (P.Solus.Flags.force_laser_off);
+	UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.laser_off_after_meas) << 4 | (P.Solus.Flags.gsipm_gate_off_after_meas) << 3 | (P.Solus.Flags.override_map) << 2 | (P.Solus.Flags.perform_autocal) << 1 | (P.Solus.Flags.force_laser_off);
 	for(io=0;io<N_OPTODE;io++){
 		if(P.Solus.OptList[io]){
 			ret = SOLUS_WriteFlags(P.Solus.SolusObj,io,Flags,0x00FF);	
@@ -10193,8 +10248,11 @@ void SetInfoSolus(void){
 	}
 	
 	//Set Params Control
+	if(P.Solus.ControlParams.SPAD_Voltage!=P.Solus.Buffer.SPAD_Voltage){
 	ret = SOLUS_SetControlParams(P.Solus.SolusObj,P.Solus.ControlParams);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetControlParams");}
+	P.Solus.Buffer.SPAD_Voltage=P.Solus.ControlParams.SPAD_Voltage;
+	}
 }
 void ValidateMeasSequenceSolus(void){
 	int is;
@@ -10209,15 +10267,11 @@ void ValidateMeasSequenceSolus(void){
 void StartSolusMeas(void){
 	if(P.Solus.AcqActual>=P.Solus.AcqTot) StopSolusMeas();
 	if(P.Solus.MeasStarted) return;
-	if(P.Spc.Trash)
-		P.Solus.POSAcqActual=0;
 	int ret,is;
 	if(P.Solus.AcqType<2)
 		for(is=0;is<P.Solus.AcqTot;is++)
 			P.Solus.MeasSequence[is].meas_time = P.Spc.TimeSolus;
 	if(P.Solus.AcqType>=2){
-		if(P.Solus.POSAcqActual>=P.Solus.POSAcqTot)
-			P.Solus.POSAcqActual=0;
 		memcpy(&P.Solus.MeasSequence[0],&P.Solus.POSMeasSequence[P.Solus.POSAcqActual],sizeof(P.Solus.POSMeasSequence[P.Solus.POSAcqActual]));	
 	}
 	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
@@ -10233,7 +10287,7 @@ void StartSolusMeas(void){
 }
 void WaitSolus(void){
 	int ret;
-	UINT16 nlines;
+	UINT16 nlines=0;
 	do{
 		ret = SOLUS_QueryNLinesAvailable(P.Solus.SolusObj,&nlines);
 		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_QueryNLinesAvailable");return;}
@@ -10247,9 +10301,11 @@ void GetDataSolus(void){
 	for(io=0;io<N_OPTODE;io++){
 		if(P.Solus.OptList[io]){
 			SingleFrame = (*P.Solus.DataSolus)[iro];
-			for(ic=0;ic<P.Chann.Num;ic++)
-				D.Buffer[ib][io*P.Chann.Num+ic] = SingleFrame.histogram_data[P.Chann.Num-1-ic];
-			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-1]=SingleFrame.intensity_data;
+			for(ic=0;ic<P.Chann.Num;ic++){
+				D.Buffer[ib][io*P.Chann.Num+ic] = (T_DATA) SingleFrame.histogram_data[P.Chann.Num-1-ic];
+			}
+			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-1]=(T_DATA) SingleFrame.intensity_data;
+			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-2]=(T_DATA) SingleFrame.Status;
 			iro++;
 		}
 		else{
@@ -10258,7 +10314,14 @@ void GetDataSolus(void){
 		}
 	}
 	P.Solus.AcqActual=P.Solus.AcqActual+P.Solus.NLines;
-	P.Solus.POSAcqActual = P.Solus.POSAcqActual + 1;
+	if(P.Contest.Function==CONTEST_OSC&&P.Contest.Run==CONTEST_OSC)
+		P.Solus.POSAcqActual = P.Solus.POSAcqActual + 1;
+	if(P.Contest.Function==CONTEST_MEAS&&P.Contest.Run==CONTEST_MEAS)
+		P.Solus.POSAcqActual = P.Solus.POSAcqActual + 1;
+	if(P.Contest.Function==CONTEST_MEAS&&P.Contest.Run==CONTEST_OSC)
+		P.Solus.POSAcqActual = P.Solus.POSAcqActual + 1;
+	if(P.Contest.Function==CONTEST_OSC&&P.Contest.Run==CONTEST_MEAS)
+		P.Solus.POSAcqActual = P.Solus.POSAcqActual;
 }
 void StartSolusDRCMeasure(void){
 	int ret;
@@ -10289,15 +10352,19 @@ void StopSolusMeas(void){
 		P.Solus.StopError = FALSE;P.Solus.MeasStarted = FALSE;P.Solus.MeasStopped = TRUE;
 	}
 	P.Solus.AcqActual = 0;
-	if(P.Spc.Trash) 
-		P.Solus.POSAcqActual=0;
+	if(P.Spc.Trash){
+		if (P.Contest.Run==CONTEST_MEAS){
+		}
+		else P.Solus.POSAcqActual=0;
+	}
+	if(P.Solus.POSAcqActual>=P.Solus.POSAcqTot)
+		P.Solus.POSAcqActual = 0;
 }
 void CloseSolus(void){
 	if(!P.Solus.MeasStopped) StopSolusMeas();
 	int ret,io;
-	Delay(1);
-	ret = SOLUS_LaserOFF(P.Solus.SolusObj);
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
+	//ret = SOLUS_LaserOFF(P.Solus.SolusObj);
+	//if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
 	DestructSolusObj();
 	P.Solus.Initialized = FALSE;
 }
@@ -10627,9 +10694,9 @@ int CVICALLBACK GetControlParams (int panel, int control, int event,void *callba
 int CVICALLBACK SetControlParams (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
 	if(event!=EVENT_COMMIT) return 0;
 	CreateSolusObj();
-	P.Solus.ControlParams.LD_Voltage = P.Solus.T_ControlParams.LD_Voltage;
+	P.Solus.ControlParams.LD_Voltage = 0;//P.Solus.T_ControlParams.LD_Voltage;
 	P.Solus.ControlParams.SPAD_Voltage = P.Solus.T_ControlParams.SPAD_Voltage;
-	P.Solus.ControlParams.GSIPM3v3_Voltage = P.Solus.T_ControlParams.GSIPM3v3_Voltage;
+	P.Solus.ControlParams.GSIPM3v3_Voltage = 0;//P.Solus.T_ControlParams.GSIPM3v3_Voltage;
 	SetInfoSolus();
 	CompleteParmS();
 	UpdatePanel();
@@ -10670,15 +10737,15 @@ int CVICALLBACK PowerOptode (int panel, int control, int event,void *callbackDat
 void InitLDStepSolus(char Step){
 	int ret;
 	InitSolus();
-	ret = SOLUS_LaserOFF(P.Solus.SolusObj);
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
+	//ret = SOLUS_LaserOFF(P.Solus.SolusObj);
+	//if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
 }
 void CloseLDStepSolus(char Step){
 	int ret,io;
 	if(P.Action.CloseMeasure){
 		if(P.Solus.SolusObj!=NULL){ //AleR
-			ret = SOLUS_LaserOFF(P.Solus.SolusObj);
-			if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
+			//ret = SOLUS_LaserOFF(P.Solus.SolusObj);
+			//if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
 		}
 	}
 }
@@ -10689,8 +10756,8 @@ void MoveLDStepSolus(char Step,long Goal,char Wait){
 		ActGoal = ReadSolusLDsLUT(Goal,Step);
 		SetInfoSolus();
 	}
-	ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_PowerSupplyON");} 
+	//ret = SOLUS_PowerSupplyON(P.Solus.SolusObj,P.Step[Step].Com-1,0X01);
+	//if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_PowerSupplyON");} 
 	// Goal: 0-7 
 	ret = SOLUS_LaserON(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT8) ActGoal);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_LaserON");}

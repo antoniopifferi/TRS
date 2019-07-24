@@ -267,9 +267,9 @@ extern "C" {
 	/**Struct containing control PCb parameters*/
 	typedef struct
 	{
-		UINT16 LD_Voltage;				/**<Laser driver supply voltage*/
-		UINT16 SPAD_Voltage;			/**<SPAD supply voltage*/
-		UINT16 GSIPM3v3_Voltage;		/**<GSIPM 3.3V supply voltage*/
+		UINT16 LD_Voltage;				/**<Laser driver supply voltage presets. Valid range 0..3. Default value: 0*/
+		UINT16 SPAD_Voltage;			/**<SPAD supply voltage in mV. Valid range 25000..29500*/
+		UINT16 GSIPM3v3_Voltage;		/**<GSIPM 3.3V supply voltage presets. Valid range 0..3. Default value: 0*/
 	} Control_params;
 
 	/**Low level Sequence line structure containing one line of the measurement sequence. It is 6 bytes long.	*/
@@ -801,7 +801,7 @@ extern "C" {
 	\param address Address of the optode/control
 	\param data Data read from EEPROM
 	*/
-	DllSDKExport SOLUS_Return SOLUS_ReadEEPROM(SOLUS_H solus, ADDRESS address, unsigned int* data);
+	DllSDKExport SOLUS_Return SOLUS_ReadEEPROM(SOLUS_H solus, ADDRESS address, unsigned char* data);
 
 	/**Read optode diagnothic.
 	\param solus SOLUS handle
