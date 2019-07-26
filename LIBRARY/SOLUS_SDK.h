@@ -272,6 +272,15 @@ extern "C" {
 		UINT16 GSIPM3v3_Voltage;		/**<GSIPM 3.3V supply voltage presets. Valid range 0..3. Default value: 0*/
 	} Control_params;
 
+	/**Struct containing autocalibration parameters*/
+	typedef struct
+	{
+		UINT32 goal;					/**<Intensity goal for the calibration procedure. Valid range 1..16000000*/
+		UINT16 meas_time;				/**<Measurement time for each step of the calibration procedure with a 100us time bin. Valid range 1..32767*/
+		UINT16 steps;					/**<Number of steps of the calibration procedure. Valid range 1..11.*/
+		UINT16 start_pos;				/**<Starting position for the binary search. Valid range 1..1728*/
+	} Autocal_params;
+
 	/**Low level Sequence line structure containing one line of the measurement sequence. It is 6 bytes long.	*/
 	struct _Sequence_Line_LL
 	{
@@ -484,6 +493,17 @@ extern "C" {
 	\return COMM_TIMEOUT Communication timeout.
 	*/
 	DllSDKExport SOLUS_Return SOLUS_SetCalibrationMap(SOLUS_H solus, ADDRESS optode, CalMap* data);
+
+	/**Set autocalibration parameters.
+	\param solus SOLUS handle
+	\param Params Structure containing the parameters to be set
+	\return OK Calibration map setting was successful.
+	\return OUT_OF_RANGE An invalid parameter was passed to the function.
+	\return INVALID_POINTER An empty SOLUS handle or pointer to data was passed.
+	\return COMM_ERROR Communication error.
+	\return COMM_TIMEOUT Communication timeout.
+	*/
+	DllSDKExport SOLUS_Return SOLUS_SetAutocalParams(SOLUS_H solus, Autocal_params Params);
 
 	/**Set measurement sequence, low level.
 	Sets the measurement sequence (valid for all the optode) at low level. If the effective sequence lenght is less than MAX_SEQUENCE, all fields of unused sequence entries must be set to 0.

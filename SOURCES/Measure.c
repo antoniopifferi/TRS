@@ -9971,6 +9971,10 @@ void ReadInfoFromSolusPanel(void){
 		GetCtrlVal(hSolus, SOLUS_P_OPTODE_AREA_1+io, &P.Solus.OptArea[io]);	
 	GetCtrlVal(hSolus, SOLUS_P_LASER_FREQ,&P.Solus.LaserFrequency);
 	P.Solus.ControlParams.SPAD_Voltage = P.Solus.T_ControlParams.SPAD_Voltage;
+	P.Solus.AutocalParams.goal = P.Solus.T_AutocalParams.goal;
+	P.Solus.AutocalParams.meas_time = P.Solus.T_AutocalParams.meas_time;
+	P.Solus.AutocalParams.start_pos = P.Solus.T_AutocalParams.start_pos;
+	P.Solus.AutocalParams.steps = P.Solus.T_AutocalParams.steps;
 }
 void GetInfoSolus(void){
 	char message[STRLEN];
@@ -10253,6 +10257,10 @@ void SetInfoSolus(void){
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetControlParams");}
 	P.Solus.Buffer.SPAD_Voltage=P.Solus.ControlParams.SPAD_Voltage;
 	}
+	
+	//Set AutoCal params
+	/*ret = SOLUS_SetAutocalParams(P.Solus.SolusObj,P.Solus.AutocalParams);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetAutocalParams");}*/
 }
 void ValidateMeasSequenceSolus(void){
 	int is;

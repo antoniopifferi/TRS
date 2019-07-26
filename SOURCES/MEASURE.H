@@ -79,7 +79,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1258
+#define MAX_TABLE		1262
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1545,6 +1545,12 @@ struct T_ControlParamsS{
 	 unsigned int SPAD_Voltage;
 	 unsigned int GSIPM3v3_Voltage;
 };
+struct T_AutocalParamsS{
+	 unsigned int goal;	
+	 unsigned int meas_time;
+	 unsigned int steps;
+	 unsigned int start_pos;
+};
 struct T_OptodeAnalogS{
 	 int gsipmSPADcurrent;	
 	 int gsipmCoreCurrent;
@@ -1574,8 +1580,10 @@ struct SolusS{
 	 char PowerOptode[N_OPTODE];
 	 Control_analog_acq ControlAnalog;
 	 Control_params ControlParams;
+	 Autocal_params AutocalParams;
 	 struct T_ControlAnalogS T_ControlAnalog;
 	 struct T_ControlParamsS T_ControlParams;
+	 struct T_AutocalParamsS T_AutocalParams;
 	 struct T_OptodeAnalogS T_OptodeAnalog[N_OPTODE];
 	 Optode_analog_acq OptodeAnalog[N_OPTODE];
 	 LDs_analog LDsAnalog[N_OPTODE];
