@@ -726,13 +726,13 @@ void CreateTable(void){
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_AUTOCAL_PARAMS,"AutoCalParams",3,1,&P.Solus.T_AutocalParams.steps);
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_AUTOCAL_PARAMS,"AutoCalParams",4,1,&P.Solus.T_AutocalParams.start_pos);
 	for(io=0;io<N_OPTODE;io++){
-	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",1,io+1,&P.Solus.T_OptodeAnalog[io].gsipmSPADcurrent);
-	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",2,io+1,&P.Solus.T_OptodeAnalog[io].gsipmCoreCurrent);
-	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",3,io+1,&P.Solus.T_OptodeAnalog[io].laserCurrent);
-	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",4,io+1,&P.Solus.T_OptodeAnalog[io].gsipmSPADvoltage);
-	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",5,io+1,&P.Solus.T_OptodeAnalog[io].gsipmCoreVoltage);
-	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",6,io+1,&P.Solus.T_OptodeAnalog[io].laserVoltage);
-	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",7,io+1,&P.Solus.T_OptodeAnalog[io].picTemperature);
+		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",1,io+1,&P.Solus.T_OptodeAnalog[io].gsipmSPADcurrent);
+		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",2,io+1,&P.Solus.T_OptodeAnalog[io].gsipmCoreCurrent);
+		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",3,io+1,&P.Solus.T_OptodeAnalog[io].laserCurrent);
+		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",4,io+1,&P.Solus.T_OptodeAnalog[io].gsipmSPADvoltage);
+		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",5,io+1,&P.Solus.T_OptodeAnalog[io].gsipmCoreVoltage);
+		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",6,io+1,&P.Solus.T_OptodeAnalog[io].laserVoltage);
+		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",7,io+1,&P.Solus.T_OptodeAnalog[io].picTemperature);
 	}
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_AUTOCAL,"AutoCal",0,0,&P.Solus.AutoCal);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG1,"force_laser_off",0,0,&P.Solus.Flags.force_laser_off);
@@ -741,6 +741,7 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG4,"gsipm_supply_off_after_meas",0,0,&P.Solus.Flags.gsipm_gate_off_after_meas);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG5,"laser_supply_off_after_meas",0,0,&P.Solus.Flags.laser_off_after_meas);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG6,"turnoff_unused_LD",0,0,&P.Solus.Flags.turnoff_unused_LD);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG7,"trim_method",0,0,&P.Solus.Flags.trim_method);
 	AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_START_PIXEL,"StartPixel",0,0,&P.Solus.StartPixel);
 	AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_STOP_PIXEL,"StopPixel",0,0,&P.Solus.StopPixel);
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;

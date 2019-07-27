@@ -10244,6 +10244,7 @@ void SetInfoSolus(void){
 	
 	//Set Flags
 	UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.laser_off_after_meas) << 4 | (P.Solus.Flags.gsipm_gate_off_after_meas) << 3 | (P.Solus.Flags.override_map) << 2 | (P.Solus.Flags.perform_autocal) << 1 | (P.Solus.Flags.force_laser_off);
+	Flags += P.Solus.Flags.trim_method << 6;
 	for(io=0;io<N_OPTODE;io++){
 		if(P.Solus.OptList[io]){
 			ret = SOLUS_WriteFlags(P.Solus.SolusObj,io,Flags,0x00FF);	
@@ -10259,8 +10260,8 @@ void SetInfoSolus(void){
 	}
 	
 	//Set AutoCal params
-	/*ret = SOLUS_SetAutocalParams(P.Solus.SolusObj,P.Solus.AutocalParams);
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetAutocalParams");}*/
+	ret = SOLUS_SetAutocalParams(P.Solus.SolusObj,P.Solus.AutocalParams);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetAutocalParams");}
 }
 void ValidateMeasSequenceSolus(void){
 	int is;
@@ -10314,6 +10315,7 @@ void GetDataSolus(void){
 			}
 			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-1]=(T_DATA) SingleFrame.intensity_data;
 			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-2]=(T_DATA) SingleFrame.Status;
+			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-3]=(T_DATA) SingleFrame.Area_ON;
 			iro++;
 		}
 		else{

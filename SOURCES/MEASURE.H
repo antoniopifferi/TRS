@@ -1529,6 +1529,7 @@ struct FlagsS{
 	 UINT16 gsipm_gate_off_after_meas;
 	 UINT16 laser_off_after_meas;
 	 UINT16 turnoff_unused_LD;
+	 UINT16 trim_method;
 };
 struct BufferS{
 	 UINT16 SPAD_Voltage;

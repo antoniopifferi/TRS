@@ -379,7 +379,7 @@ extern "C" {
 		UINT16 histogram_data[HISTOGRAM_BINS];		/**<Complete histogram of the acquisition frame*/
 		UINT16 Area_ON;								/**<Number of enabled SPAD during the acquisition*/
 		ADDRESS Optode;								/**<Optode to which the frame refers*/
-		UINT8 Status;								/**<Status of the probe during acquisition*/
+		UINT16 Status;								/**<Status of the probe during acquisition*/
 	} Frame;
 
 	/**Bidimensional array containing the DCR of the detectors.*/
@@ -821,7 +821,7 @@ extern "C" {
 	\param address Address of the optode/control
 	\param data Data read from EEPROM
 	*/
-	DllSDKExport SOLUS_Return SOLUS_ReadEEPROM(SOLUS_H solus, ADDRESS address, unsigned char* data);
+	DllSDKExport SOLUS_Return SOLUS_ReadEEPROM(SOLUS_H solus, ADDRESS address, char* data);
 
 	/**Read optode diagnothic.
 	\param solus SOLUS handle
