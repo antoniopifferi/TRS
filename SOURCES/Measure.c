@@ -9971,8 +9971,8 @@ void ReadInfoFromSolusPanel(void){
 		GetCtrlVal(hSolus, SOLUS_P_OPTODE_AREA_1+io, &P.Solus.OptArea[io]);	
 	GetCtrlVal(hSolus, SOLUS_P_LASER_FREQ,&P.Solus.LaserFrequency);
 	P.Solus.ControlParams.SPAD_Voltage = P.Solus.T_ControlParams.SPAD_Voltage;
-	P.Solus.AutocalParams.goal = P.Solus.T_AutocalParams.goal;
-	P.Solus.AutocalParams.meas_time = P.Solus.T_AutocalParams.meas_time;
+	P.Solus.AutocalParams.meas_time = (UINT16) SEC_TO_100MICROSEC*P.Solus.T_AutocalParams.meas_time;;
+	P.Solus.AutocalParams.goal = P.Solus.T_AutocalParams.goal*P.Solus.AutocalParams.meas_time;
 	P.Solus.AutocalParams.start_pos = P.Solus.T_AutocalParams.start_pos;
 	P.Solus.AutocalParams.steps = P.Solus.T_AutocalParams.steps;
 }
@@ -10705,7 +10705,7 @@ int CVICALLBACK SetControlParams (int panel, int control, int event,void *callba
 	if(event!=EVENT_COMMIT) return 0;
 	CreateSolusObj();
 	P.Solus.ControlParams.LD_Voltage = 0;//P.Solus.T_ControlParams.LD_Voltage;
-	P.Solus.ControlParams.SPAD_Voltage = P.Solus.T_ControlParams.SPAD_Voltage;
+	P.Solus.ControlParams.SPAD_Voltage = (UINT16) P.Solus.T_ControlParams.SPAD_Voltage;
 	P.Solus.ControlParams.GSIPM3v3_Voltage = 0;//P.Solus.T_ControlParams.GSIPM3v3_Voltage;
 	SetInfoSolus();
 	CompleteParmS();

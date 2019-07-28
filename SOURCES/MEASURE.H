@@ -766,6 +766,7 @@
 #define SOLUS_MIN_SPAD_NUM 1
 #define SOLUS_MAX_SPAD_NUM N_PIXEL
 #define SOLUS_MAX_POS_SEQUENCE MAX_SEQUENCE*10
+#define SEC_TO_100MICROSEC 10000
 
 /* TEST CONSTANTS */
 #define TEST_MUS	10.0
@@ -1548,7 +1549,7 @@ struct T_ControlParamsS{
 };
 struct T_AutocalParamsS{
 	 unsigned int goal;	
-	 unsigned int meas_time;
+	 double meas_time;
 	 unsigned int steps;
 	 unsigned int start_pos;
 };

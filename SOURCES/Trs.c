@@ -722,7 +722,7 @@ void CreateTable(void){
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_PARAMS,"ControlParams",2,1,&P.Solus.T_ControlParams.SPAD_Voltage);
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_CONTROL_PARAMS,"ControlParams",3,1,&P.Solus.T_ControlParams.GSIPM3v3_Voltage);
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_AUTOCAL_PARAMS,"AutoCalParams",1,1,&P.Solus.T_AutocalParams.goal);
-	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_AUTOCAL_PARAMS,"AutoCalParams",2,1,&P.Solus.T_AutocalParams.meas_time);
+	AddTab(CT,TDOUBLE,SOLUS_P,SOLUS_P_T_AUTOCAL_PARAMS,"AutoCalParams",2,1,&P.Solus.T_AutocalParams.meas_time);
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_AUTOCAL_PARAMS,"AutoCalParams",3,1,&P.Solus.T_AutocalParams.steps);
 	AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_AUTOCAL_PARAMS,"AutoCalParams",4,1,&P.Solus.T_AutocalParams.start_pos);
 	for(io=0;io<N_OPTODE;io++){
