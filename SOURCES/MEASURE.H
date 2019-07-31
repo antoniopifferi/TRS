@@ -79,7 +79,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1262
+#define MAX_TABLE		1265
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1215,6 +1215,7 @@ struct ActionS{
 	char DoJumpMamm;		//EDO
 	struct ScReinitS ScReInit;			//EDO
 	char CloseMeasure; //EDO
+	char SolusProduceTrim;
 	};
 
 struct LoopS {
@@ -1531,6 +1532,8 @@ struct FlagsS{
 	 UINT16 laser_off_after_meas;
 	 UINT16 turnoff_unused_LD;
 	 UINT16 trim_method;
+	 UINT16 produce_trim_file;
+	 UINT16 use_trim_file;
 };
 struct BufferS{
 	 UINT16 SPAD_Voltage;
@@ -1572,6 +1575,7 @@ struct SolusS{
      CalMap CalibMap[N_OPTODE];
 	 Sequence MeasSequence;
 	 struct _Sequence_Line POSMeasSequence[SOLUS_MAX_POS_SEQUENCE];
+	 int TrimPosValue[SOLUS_MAX_POS_SEQUENCE];
 	 UINT16 OptStatus[N_OPTODE];
 	 LDs_status LDs_Status[N_OPTODE];
 	 UINT16 OptArea[N_OPTODE];
@@ -1606,6 +1610,9 @@ struct SolusS{
 	 char GSIPMParmsFilePath[260];
 	 char LDsParmsFile[260];
 	 char LDsParmsFilePath[260];
+	 char TrimPosFile[260];
+	 char TrimPosFilePath[260];
+	 FILE *TrimPosFileFile;
 	 char LUTFilePath[260];
 	 char Initialized;
 	 char SolusConstructed;
@@ -1620,6 +1627,7 @@ struct SolusS{
 	 UINT16 NLines;
 	 struct FlagsS Flags;
 	 struct BufferS Buffer;
+	 char ProduceTrimFile;
 };
 
 struct SpcS {
@@ -2687,6 +2695,7 @@ void ReadLDsParamsFromFile(void);
 void ReadGSIPMParamsFromFile(void);
 int ReadSolusLDsLUT(int Goal,char Step);
 void GetSolusStatus(void);
+void ManageTrimSolus(void);
 
 
 /* ########################   MOXY PROCEDURES   ########################### */

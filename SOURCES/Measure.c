@@ -237,6 +237,7 @@ void KernelGen(){
 						for(it=0;it<MAX_TRIM;it++)
 							if((P.Action.Trim[it])&&P.Trim[it].Break)
 								AutoTrim(it); // Trim AFTER Break
+						if(P.Action.SolusProduceTrim) ManageTrimSolus();
 						if(P.Action.SpcTime) SpcTime(P.Spc.TimeM);
 						if(P.Action.ScReInit.Measure) ReInitSC1000('M');  
 						if(P.Action.StartOma) StartOma();
@@ -666,6 +667,9 @@ void DecideAction(void){
 				P.Action.SpcReset=(P.Action.SpcReset && first[il]);
 			}
 	}
+	
+	//Solus
+	 P.Action.SolusProduceTrim = first1&&(P.Solus.Flags.produce_trim_file&&P.Solus.Flags.perform_autocal);
 }
 
 
@@ -697,6 +701,10 @@ void CloseMeasure(void){
 		fclose(P.File.File);
 		free(DataRam0);
 		}*/
+	if(P.Solus.ProduceTrimFile){ 
+		fclose(P.Solus.TrimPosFileFile);
+		P.Solus.TrimPosFileFile = NULL;
+	}
 	P.Action.CloseMeasure = FALSE;
 	}
 
@@ -9726,6 +9734,7 @@ void InitSolus(void){
 	ReadInfoFromSolusPanel();
 	SetInfoSolus();
 	UpdatePanel();
+	P.Solus.ProduceTrimFile = FALSE;
 	P.Solus.Initialized = TRUE;
 	P.Solus.NLines = 1;
 	Passed();
@@ -9734,16 +9743,36 @@ void ReadMeasSequenceFromFile(void){
 	FILE *sfile;
 	MakePathname (DIR_SOLUS, P.Solus.SeqFile, P.Solus.SeqFilePath);
 	sfile = fopen (P.Solus.SeqFilePath, "r");
+	if (sfile<0||sfile==NULL){
+		ErrHandler(ERR_SOLUS,-3,"No SequenceFile Present");
+		return;
+	}
 	int is=0,ret=0;
 	char line[STRLEN];
 	float meas_time, attenuation,gate_delay_fine;
-	float gate_delay_coarse,laser_num;
+	float gate_delay_coarse,laser_num; int trash1,trash2,trash3,trash4;
+	
+	for(is=0;is<SOLUS_MAX_POS_SEQUENCE;is++) P.Solus.TrimPosValue[is] = 0;
+	if(P.Solus.Flags.use_trim_file){
+		P.Solus.Flags.perform_autocal = FALSE;
+		P.Solus.Flags.produce_trim_file = FALSE;
+		MakePathname (DIR_SOLUS, P.Solus.TrimPosFile, P.Solus.TrimPosFilePath);
+		FILE *tfile;
+		tfile = fopen (P.Solus.TrimPosFilePath, "r");
+		fgets(line,STRLEN,tfile);
+		is = 0;
+			do{
+				ret=fscanf(tfile, "%d\t%d\t%d\t%d\n",&trash1,&trash2,&trash3,&P.Solus.TrimPosValue[is++]);
+				if(ret==EOF) break;
+			}while(ret!=EOF);	
+	}
 	if(P.Solus.AcqType<2){
-		fgets(line,STRLEN,sfile); 
+		fgets(line,STRLEN,sfile);
+		is = 0;
 		for(is=0;is<MAX_SEQUENCE;is++){
 			ret=fscanf(sfile, "%f\t%f\t%f\t%f\t%f\n",&meas_time,&attenuation,&gate_delay_coarse,&gate_delay_fine,&laser_num);
 			P.Solus.MeasSequence[is].meas_time = meas_time;
-			P.Solus.MeasSequence[is].attenuation = attenuation;
+			P.Solus.MeasSequence[is].attenuation = P.Solus.Flags.use_trim_file?P.Solus.TrimPosValue[is]:attenuation;
 			P.Solus.MeasSequence[is].gate_delay_coarse = gate_delay_coarse;
 			P.Solus.MeasSequence[is].gate_delay_fine = gate_delay_fine;
 			P.Solus.MeasSequence[is].laser_num = laser_num;
@@ -9751,21 +9780,31 @@ void ReadMeasSequenceFromFile(void){
 	}
 	if(P.Solus.AcqType>=2){
 		fgets(line,STRLEN,sfile);
+		is = 0;
 		do{
 			ret=fscanf(sfile, "%f\t%f\t%f\t%f\t%f\n",&meas_time,&attenuation,&gate_delay_coarse,&gate_delay_fine,&laser_num);
 			if(ret==EOF) break;
 			P.Solus.POSMeasSequence[is].meas_time = meas_time;
-			P.Solus.POSMeasSequence[is].attenuation = attenuation;
+			P.Solus.POSMeasSequence[is].attenuation = P.Solus.Flags.use_trim_file?P.Solus.TrimPosValue[is]:attenuation;
 			P.Solus.POSMeasSequence[is].gate_delay_coarse = gate_delay_coarse;
 			P.Solus.POSMeasSequence[is].gate_delay_fine = gate_delay_fine;
 			P.Solus.POSMeasSequence[is++].laser_num = laser_num;
 		}while(ret!=EOF);
-		memcpy(&P.Solus.MeasSequence[0],&P.Solus.POSMeasSequence[0],sizeof(P.Solus.POSMeasSequence[0]));
 		P.Solus.POSAcqActual = 0;
 		P.Solus.POSAcqTot = is;
+		for(is=0;is<MAX_SEQUENCE;is++){
+			P.Solus.MeasSequence[is].meas_time = 0;
+			P.Solus.MeasSequence[is].attenuation = 0;
+			P.Solus.MeasSequence[is].gate_delay_coarse = 0;
+			P.Solus.MeasSequence[is].gate_delay_fine = 0;
+			P.Solus.MeasSequence[is].laser_num = 0;
+		}
+		memcpy(&P.Solus.MeasSequence[0],&P.Solus.POSMeasSequence[0],sizeof(P.Solus.POSMeasSequence[0]));
+		SpcTime(P.Contest.Run?P.Spc.TimeO:P.Spc.TimeM);
+		P.Solus.MeasSequence[0].meas_time = P.Spc.TimeSolus;
 	}
 	fclose(sfile);
-	ValidateMeasSequenceSolus() ;
+	ValidateMeasSequenceSolus();
 }
 /*void ReadLDsInfoFromFile(void){
 	MakePathname (DIR_SOLUS, P.Solus.LDsFile, P.Solus.LDsFilePath);
@@ -9971,8 +10010,8 @@ void ReadInfoFromSolusPanel(void){
 		GetCtrlVal(hSolus, SOLUS_P_OPTODE_AREA_1+io, &P.Solus.OptArea[io]);	
 	GetCtrlVal(hSolus, SOLUS_P_LASER_FREQ,&P.Solus.LaserFrequency);
 	P.Solus.ControlParams.SPAD_Voltage = P.Solus.T_ControlParams.SPAD_Voltage;
-	P.Solus.AutocalParams.meas_time = (UINT16) SEC_TO_100MICROSEC*P.Solus.T_AutocalParams.meas_time;;
-	P.Solus.AutocalParams.goal = P.Solus.T_AutocalParams.goal*P.Solus.AutocalParams.meas_time;
+	P.Solus.AutocalParams.meas_time = (UINT16) SEC_TO_100MICROSEC*P.Solus.T_AutocalParams.meas_time;
+	P.Solus.AutocalParams.goal = P.Solus.T_AutocalParams.goal*P.Solus.T_AutocalParams.meas_time;
 	P.Solus.AutocalParams.start_pos = P.Solus.T_AutocalParams.start_pos;
 	P.Solus.AutocalParams.steps = P.Solus.T_AutocalParams.steps;
 }
@@ -10259,9 +10298,11 @@ void SetInfoSolus(void){
 	P.Solus.Buffer.SPAD_Voltage=P.Solus.ControlParams.SPAD_Voltage;
 	}
 	
-	//Set AutoCal params
-	ret = SOLUS_SetAutocalParams(P.Solus.SolusObj,P.Solus.AutocalParams);
-	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetAutocalParams");}
+	if(P.Solus.Flags.perform_autocal){
+		//Set AutoCal params
+		ret = SOLUS_SetAutocalParams(P.Solus.SolusObj,P.Solus.AutocalParams);
+		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetAutocalParams");}
+	}
 }
 void ValidateMeasSequenceSolus(void){
 	int is;
@@ -10271,7 +10312,19 @@ void ValidateMeasSequenceSolus(void){
 			P.Solus.AcqTot++;
 		else
 			break;
-	P.Solus.SeqLength = P.Solus.AcqTot;
+	P.Solus.SeqLength = P.Solus.AcqType>=2?P.Solus.POSAcqTot:P.Solus.AcqTot;
+}
+void ManageTrimSolus(void){
+	MakePathname (DIR_SOLUS, P.Solus.TrimPosFile, P.Solus.TrimPosFilePath);
+	P.Solus.TrimPosFileFile = fopen (P.Solus.TrimPosFilePath, "w+");	
+	if(P.Solus.TrimPosFileFile<0||P.Solus.TrimPosFileFile==NULL){
+		ErrHandler(ERR_SOLUS,-3,"Error opening TrimPosFile");
+		return;
+	}
+	fclose(P.Solus.TrimPosFileFile); P.Solus.TrimPosFileFile = NULL;
+	P.Solus.TrimPosFileFile = fopen (P.Solus.TrimPosFilePath, "a+");
+	fprintf(P.Solus.TrimPosFileFile,"Opt1\tOpt2\tOpt3\tOpt4\n");
+	P.Solus.ProduceTrimFile = TRUE;
 }
 void StartSolusMeas(void){
 	if(P.Solus.AcqActual>=P.Solus.AcqTot) StopSolusMeas();
@@ -10282,6 +10335,7 @@ void StartSolusMeas(void){
 			P.Solus.MeasSequence[is].meas_time = P.Spc.TimeSolus;
 	if(P.Solus.AcqType>=2){
 		memcpy(&P.Solus.MeasSequence[0],&P.Solus.POSMeasSequence[P.Solus.POSAcqActual],sizeof(P.Solus.POSMeasSequence[P.Solus.POSAcqActual]));	
+		P.Solus.MeasSequence[0].meas_time = P.Spc.TimeSolus;
 	}
 	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
@@ -10303,7 +10357,7 @@ void WaitSolus(void){
 	}while(nlines < P.Solus.NLines);
 }
 void GetDataSolus(void){
-	int io,ic,ib=0,ret,iro=0;
+	int io,ic,ib=0,ret,iro=0, Temperature;
 	Frame SingleFrame;
 	ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,P.Solus.NLines);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");return;}
@@ -10316,12 +10370,26 @@ void GetDataSolus(void){
 			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-1]=(T_DATA) SingleFrame.intensity_data;
 			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-2]=(T_DATA) SingleFrame.Status;
 			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-3]=(T_DATA) SingleFrame.Area_ON;
+			switch (SingleFrame.Status>>13){
+				case 0: Temperature = 22; break;
+				case 1: Temperature = 26; break;
+				case 2: Temperature = 31; break;
+				case 3: Temperature = 35; break;
+				case 4: Temperature = 40; break;
+				case 5: Temperature = 45; break;
+				case 6: Temperature = 50; break;
+				case 7: Temperature = 100; break;
+			}
+			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-4]=(T_DATA) Temperature;
 			iro++;
 		}
 		else{
 			for(ic=0;ic<P.Chann.Num;ic++)
-				D.Buffer[ib][io*P.Chann.Num+ic]	= 0;
+				D.Buffer[ib][io*P.Chann.Num+ic]	= (T_DATA) 0;
 		}
+	}
+	if(P.Solus.ProduceTrimFile){
+		fprintf(P.Solus.TrimPosFileFile,"%d\t%d\t%d\t%d\n",D.Buffer[ib][0*P.Chann.Num+P.Chann.Num-3],D.Buffer[ib][1*P.Chann.Num+P.Chann.Num-3],D.Buffer[ib][2*P.Chann.Num+P.Chann.Num-3],D.Buffer[ib][3*P.Chann.Num+P.Chann.Num-3]);
 	}
 	P.Solus.AcqActual=P.Solus.AcqActual+P.Solus.NLines;
 	if(P.Contest.Function==CONTEST_OSC&&P.Contest.Run==CONTEST_OSC)

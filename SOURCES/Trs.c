@@ -744,6 +744,9 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG7,"trim_method",0,0,&P.Solus.Flags.trim_method);
 	AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_START_PIXEL,"StartPixel",0,0,&P.Solus.StartPixel);
 	AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_STOP_PIXEL,"StopPixel",0,0,&P.Solus.StopPixel);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_USE_TRIM_FILE,"use_trim_file",0,0,&P.Solus.Flags.use_trim_file);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_PRODUCE_TRIM_FILE,"produce_trim_file",0,0,&P.Solus.Flags.produce_trim_file);
+	AddTab(CE,TSTRING,SOLUS_P,SOLUS_P_TRIM_POS_FILE_PATH,"TrimPosFile",0,0,P.Solus.TrimPosFile);
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;
 	}
 
