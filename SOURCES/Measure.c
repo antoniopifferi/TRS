@@ -10337,8 +10337,11 @@ void StartSolusMeas(void){
 		memcpy(&P.Solus.MeasSequence[0],&P.Solus.POSMeasSequence[P.Solus.POSAcqActual],sizeof(P.Solus.POSMeasSequence[P.Solus.POSAcqActual]));	
 		P.Solus.MeasSequence[0].meas_time = P.Spc.TimeSolus;
 	}
-	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
-	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
+	//if(P.Contest.Run == CONTEST_MEAS || P.Contest.Function == CONTEST_MEAS)
+	//	if(P.Loop[3].Idx == 0){
+			ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
+			if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
+	//	}
 	char AcqType = fmod(P.Solus.AcqType,2);
 	ret =  SOLUS_StartSequence(P.Solus.SolusObj,AcqType,P.Solus.AutoCal);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"StartSolusMeas\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
