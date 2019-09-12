@@ -705,6 +705,7 @@ void CloseMeasure(void){
 		fclose(P.Solus.TrimPosFileFile);
 		P.Solus.TrimPosFileFile = NULL;
 	}
+	P.Solus.StopProduceTrimFile = FALSE;
 	P.Action.CloseMeasure = FALSE;
 	}
 
@@ -2045,7 +2046,9 @@ void SpcClose(void){
 		case SPC_SOLUS: 
 				if(!P.Solus.MeasStopped){
 					StopSolusMeas();
-					GetInfoSolus();
+					if(!P.Solus.Abort_error){
+						GetInfoSolus();
+					}
 				}
 				break;
 		case TEST: break;
@@ -9735,15 +9738,17 @@ void InitSolus(void){
 	SetInfoSolus();
 	UpdatePanel();
 	P.Solus.ProduceTrimFile = FALSE;
+	P.Solus.StopProduceTrimFile = FALSE;
 	P.Solus.Initialized = TRUE;
 	P.Solus.NLines = 1;
+	P.Solus.Abort_error=FALSE;
 	Passed();
 }
 void ReadMeasSequenceFromFile(void){
 	FILE *sfile;
 	MakePathname (DIR_SOLUS, P.Solus.SeqFile, P.Solus.SeqFilePath);
 	sfile = fopen (P.Solus.SeqFilePath, "r");
-	if (sfile<0||sfile==NULL){
+	if ((int)sfile<0||sfile==NULL){
 		ErrHandler(ERR_SOLUS,-3,"No SequenceFile Present");
 		return;
 	}
@@ -10020,7 +10025,7 @@ void GetInfoSolus(void){
 	int ret;
 	int io;
 	int iLD;
-	
+	ReadInfoFromSolusPanel();
 	//Check OPTODE is present
 	for(io=0;io<N_OPTODE;io++){
 		if (P.Solus.OptList[io]){
@@ -10065,7 +10070,8 @@ void GetInfoSolus(void){
 				SetCtrlVal(hDisplay,DISPLAY_MESSAGE,message);
 				continue;
 			}
-			ret = SOLUS_GetCalibrationMap(P.Solus.SolusObj,io,&P.Solus.CalibMap[io]);
+			ret = SOLUS_GetCalibrationMap(P.Solus.SolusObj,io,&P.Solus.CalibMap[io],&P.Solus.OptArea[io]);
+			//SetCtrlVal (hSolus, SOLUS_P_OPTODE_AREA_1+io, P.Solus.OptArea[io]);
 		}
 	}
 	
@@ -10118,7 +10124,7 @@ void GetInfoSolus(void){
 	}
 	
 	//Get Optode Area
-	for(io=0;io<N_OPTODE;io++){  
+	/*for(io=0;io<N_OPTODE;io++){  
 		if (P.Solus.OptList[io]){ 
 			ret = SOLUS_GetArea(P.Solus.SolusObj,io,&P.Solus.OptArea[io]);
 			if(ret<0){
@@ -10130,7 +10136,7 @@ void GetInfoSolus(void){
 				//SetCtrlVal (hSolus, SOLUS_P_OPTODE_AREA_1+io, P.Solus.OptArea[io]);	
 			}
 		}	
-	}
+	}*/
 	
 	//Get Laser frequency
 	ret = SOLUS_ReadLaserFrequency(P.Solus.SolusObj);
@@ -10252,7 +10258,7 @@ void SetInfoSolus(void){
 	//Set Calibration Map
 	for(io=0;io<N_OPTODE;io++){
 		if (P.Solus.OptList[io]){ 
-			ret = SOLUS_SetCalibrationMap(P.Solus.SolusObj,io,&P.Solus.CalibMap[io]);
+			ret = SOLUS_SetCalibrationMap(P.Solus.SolusObj,io,&P.Solus.CalibMap[io],P.Solus.OptArea[io]);
 			if(ret<0){
 				ErrHandler(ERR_SOLUS,ret,"SOLUS_SetCalibrationMap");
 				sprintf (message, "Error setting Opt%d calibration map\n",io);
@@ -10317,7 +10323,7 @@ void ValidateMeasSequenceSolus(void){
 void ManageTrimSolus(void){
 	MakePathname (DIR_SOLUS, P.Solus.TrimPosFile, P.Solus.TrimPosFilePath);
 	P.Solus.TrimPosFileFile = fopen (P.Solus.TrimPosFilePath, "w+");	
-	if(P.Solus.TrimPosFileFile<0||P.Solus.TrimPosFileFile==NULL){
+	if((int)P.Solus.TrimPosFileFile<0||P.Solus.TrimPosFileFile==NULL){
 		ErrHandler(ERR_SOLUS,-3,"Error opening TrimPosFile");
 		return;
 	}
@@ -10327,7 +10333,10 @@ void ManageTrimSolus(void){
 	P.Solus.ProduceTrimFile = TRUE;
 }
 void StartSolusMeas(void){
-	if(P.Solus.AcqActual>=P.Solus.AcqTot) StopSolusMeas();
+	if(P.Solus.AcqActual>=P.Solus.AcqTot) {
+		P.Solus.StopProduceTrimFile = TRUE;
+		StopSolusMeas();
+	}
 	if(P.Solus.MeasStarted) return;
 	int ret,is;
 	if(P.Solus.AcqType<2)
@@ -10356,14 +10365,32 @@ void WaitSolus(void){
 	UINT16 nlines=0;
 	do{
 		ret = SOLUS_QueryNLinesAvailable(P.Solus.SolusObj,&nlines);
-		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_QueryNLinesAvailable");return;}
+		if(ret<0) {
+			ErrHandler(ERR_SOLUS,ret,"SOLUS_QueryNLinesAvailable");
+			if(ret==PROBE_ERROR){
+				P.Command.Abort=TRUE;
+				P.Solus.Abort_error=TRUE;
+				MessagePopup ("FATAL ERROR", "The SOLUS Probe has been switched OFF.\nPlease cycle its power supply and restart the TRS.\nSend MPD the dump_error XML file.");
+			}
+			return;
+		}
 	}while(nlines < P.Solus.NLines);
 }
 void GetDataSolus(void){
 	int io,ic,ib=0,ret,iro=0, Temperature;
 	Frame SingleFrame;
-	ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,P.Solus.NLines);
-	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");return;}
+	if(!P.Solus.Abort_error){
+		ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,P.Solus.NLines);
+		if(ret<0){
+			ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");
+			if(ret==PROBE_ERROR){                                                                                                                                                
+				P.Command.Abort=TRUE;                                                                                                                                            
+				P.Solus.Abort_error=TRUE;                                                                                                                                        
+				MessagePopup ("FATAL ERROR", "The SOLUS Probe has been switched OFF.\nPlease cycle its power supply and restart the TRS.\nSend MPD the dump_error XML file.");   
+			}                                        
+			return;
+		}
+	}
 	for(io=0;io<N_OPTODE;io++){
 		if(P.Solus.OptList[io]){
 			SingleFrame = (*P.Solus.DataSolus)[iro];
@@ -10391,7 +10418,7 @@ void GetDataSolus(void){
 				D.Buffer[ib][io*P.Chann.Num+ic]	= (T_DATA) 0;
 		}
 	}
-	if(P.Solus.ProduceTrimFile){
+	if(P.Solus.ProduceTrimFile&&P.Solus.StopProduceTrimFile==FALSE){
 		fprintf(P.Solus.TrimPosFileFile,"%d\t%d\t%d\t%d\n",D.Buffer[ib][0*P.Chann.Num+P.Chann.Num-3],D.Buffer[ib][1*P.Chann.Num+P.Chann.Num-3],D.Buffer[ib][2*P.Chann.Num+P.Chann.Num-3],D.Buffer[ib][3*P.Chann.Num+P.Chann.Num-3]);
 	}
 	P.Solus.AcqActual=P.Solus.AcqActual+P.Solus.NLines;
@@ -10756,6 +10783,7 @@ int CVICALLBACK GetOptodeDiagnParams (int panel, int control, int event,void *ca
 		P.Solus.T_OptodeAnalog[io].gsipmCoreVoltage = P.Solus.OptodeAnalog[io].gsipmCoreVoltage;
 		P.Solus.T_OptodeAnalog[io].laserVoltage = P.Solus.OptodeAnalog[io].laserVoltage;
 		P.Solus.T_OptodeAnalog[io].picTemperature = P.Solus.OptodeAnalog[io].picTemperature;
+		P.Solus.T_OptodeAnalog[io].gsipmTemperature = P.Solus.OptodeAnalog[io].gsipmTemperature;
 	}
 	CompleteParmS();
 	UpdatePanel();
@@ -10778,7 +10806,7 @@ int CVICALLBACK SetControlParams (int panel, int control, int event,void *callba
 	P.Solus.ControlParams.LD_Voltage = 0;//P.Solus.T_ControlParams.LD_Voltage;
 	P.Solus.ControlParams.SPAD_Voltage = (UINT16) P.Solus.T_ControlParams.SPAD_Voltage;
 	P.Solus.ControlParams.GSIPM3v3_Voltage = 0;//P.Solus.T_ControlParams.GSIPM3v3_Voltage;
-	SetInfoSolus();
+	InitSolus();
 	CompleteParmS();
 	UpdatePanel();
 	return 0;

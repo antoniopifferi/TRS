@@ -1564,6 +1564,7 @@ struct T_OptodeAnalogS{
 	 unsigned int gsipmCoreVoltage;
 	 unsigned int laserVoltage;
 	 unsigned int picTemperature;
+	 unsigned int gsipmTemperature;
 };
 struct SolusS{
 	 SOLUS_H SolusObj;
@@ -1628,6 +1629,8 @@ struct SolusS{
 	 struct FlagsS Flags;
 	 struct BufferS Buffer;
 	 char ProduceTrimFile;
+	 char StopProduceTrimFile;
+	 BOOLEAN Abort_error;
 };
 
 struct SpcS {

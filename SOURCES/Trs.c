@@ -733,6 +733,7 @@ void CreateTable(void){
 		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",5,io+1,&P.Solus.T_OptodeAnalog[io].gsipmCoreVoltage);
 		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",6,io+1,&P.Solus.T_OptodeAnalog[io].laserVoltage);
 		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",7,io+1,&P.Solus.T_OptodeAnalog[io].picTemperature);
+		AddTab(CT,TINT,SOLUS_P,SOLUS_P_T_OPTODE_DIAGNOSTIC,"OptodeDiagn",8,io+1,&P.Solus.T_OptodeAnalog[io].gsipmTemperature);
 	}
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_AUTOCAL,"AutoCal",0,0,&P.Solus.AutoCal);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG1,"force_laser_off",0,0,&P.Solus.Flags.force_laser_off);

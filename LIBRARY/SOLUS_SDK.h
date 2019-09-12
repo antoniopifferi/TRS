@@ -107,7 +107,7 @@ extern "C" {
 		COMM_TIMEOUT = -4,						/**<Timeout during communication.*/
 		OUT_OF_RANGE = -5,						/**<Parameters out of range.*/
 		INVALID_OP = -6,                        /**<The required function can not be executed. */
-		PROBE_ERROR = 7,						/**<Probe returned an error code.*/
+		PROBE_ERROR = -7,						/**<Probe returned an error code.*/
 		FIRMWARE_NOT_COMPATIBLE = -8,           /**<Firmware not compatible.*/
 		OPTODE_NOT_PRESENT = -9,				/**<Optode not present or not working.*/
 		FIRMWARE_UPDATE_ERROR = -10,			/**<Error during firmware update.*/
@@ -341,7 +341,7 @@ extern "C" {
 
 	/**Structure containing the analog acquisitions for an optode.	*/
 	typedef struct {
-		INT16 gsipmSPADcurrent;		/**< GSIPM SPAD current in uA*/
+		INT16 gsipmSPADcurrent;		/**< GSIPM SPAD current in tens of uA*/
 		INT16 gsipmCoreCurrent;		/**< GSIPM core current in hundreds of uA*/
 		INT16 laserCurrent;			/**<Laser current in tens of uA*/
 		UINT16 gsipmSPADvoltage;	/**<GSIPM SPAD voltage in mV*/
@@ -485,6 +485,7 @@ extern "C" {
 	\param solus SOLUS handle
 	\param optode Address of the optode
 	\param data Pointer to the array containing the calibration map.
+	\param MaxArea Maximum number of pixel to be activated. Valid range: 1..1728
 	\return OK Calibration map setting was successful.
 	\return OUT_OF_RANGE An invalid optode Address was passed to the function.
 	\return OPTODE_NOT_PRESENT Optode not present or not working.
@@ -492,7 +493,7 @@ extern "C" {
 	\return COMM_ERROR Communication error.
 	\return COMM_TIMEOUT Communication timeout.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_SetCalibrationMap(SOLUS_H solus, ADDRESS optode, CalMap* data);
+	DllSDKExport SOLUS_Return SOLUS_SetCalibrationMap(SOLUS_H solus, ADDRESS optode, CalMap* data, UINT16 MaxArea);
 
 	/**Set autocalibration parameters.
 	\param solus SOLUS handle
@@ -608,12 +609,13 @@ extern "C" {
 	\param solus SOLUS handle
 	\param optode Address of the optode
 	\param data Pointer to the array containing the calibration map.
+	\param MaxArea Pointer to the variable for MaxArea
 	\return OK Calibration map getting was successful.
 	\return OUT_OF_RANGE An invalid optode Address was passed to the function.
 	\return OPTODE_NOT_PRESENT Optode not present or not working.
 	\return INVALID_POINTER An empty SOLUS handle or pointer to data was passed.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_GetCalibrationMap(SOLUS_H solus, ADDRESS optode, CalMap* data);
+	DllSDKExport SOLUS_Return SOLUS_GetCalibrationMap(SOLUS_H solus, ADDRESS optode, CalMap* data, UINT16* MaxArea);
 
 	/**Get measurement Sequence, low level.
 	Gets the locally stored measurement Sequence (for all optodes).
