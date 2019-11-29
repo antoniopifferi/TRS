@@ -58,7 +58,7 @@ int main (int argc, char *argv[])
 	InitPanel();
 	InitPad();								//ALE
 	InitVariable();
-	SetSleepPolicy (VAL_SLEEP_MORE);
+	SetSleepPolicy (VAL_SLEEP_NONE);
 	RunUserInterface ();
 	return 0;
 	}
@@ -743,6 +743,7 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG5,"laser_supply_off_after_meas",0,0,&P.Solus.Flags.laser_off_after_meas);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG6,"turnoff_unused_LD",0,0,&P.Solus.Flags.turnoff_unused_LD);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_FLAG7,"trim_method",0,0,&P.Solus.Flags.trim_method);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_MULTI_LINE_ACQ,"multi_line_acq",0,0,&P.Solus.MultipleLinesAcq);
 	AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_START_PIXEL,"StartPixel",0,0,&P.Solus.StartPixel);
 	AddTab(CE,TSHORT,SOLUS_P,SOLUS_P_STOP_PIXEL,"StopPixel",0,0,&P.Solus.StopPixel);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_USE_TRIM_FILE,"use_trim_file",0,0,&P.Solus.Flags.use_trim_file);

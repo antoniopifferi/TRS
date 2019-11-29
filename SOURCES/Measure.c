@@ -670,6 +670,7 @@ void DecideAction(void){
 	
 	//Solus
 	 P.Action.SolusProduceTrim = first1&&(P.Solus.Flags.produce_trim_file&&P.Solus.Flags.perform_autocal);
+	 P.Solus.WriteTrimFile = new[LOOP5]&&(P.Solus.Flags.produce_trim_file&&P.Solus.Flags.perform_autocal);
 }
 
 
@@ -705,7 +706,7 @@ void CloseMeasure(void){
 		fclose(P.Solus.TrimPosFileFile);
 		P.Solus.TrimPosFileFile = NULL;
 	}
-	P.Solus.StopProduceTrimFile = FALSE;
+	P.Solus.StopProduceTrimFile = TRUE;
 	P.Action.CloseMeasure = FALSE;
 	}
 
@@ -716,6 +717,7 @@ void InitMem(void){
 	
 	D.Osc=DAlloc2D(P.Num.Board*P.Num.Det,P.Chann.Num); 
 	D.Buffer=DAlloc2D(P.Num.Board,P.Num.Det*P.Chann.Num); 
+	P.Solus.DataBuffer=DAlloc2D(MAX_FRAMES,P.Num.Det*P.Chann.Num);
 	if(P.Spc.Subtract) D.Last=DAlloc1D(P.Chann.Num); 
 	
 	if(P.Contest.Run!=CONTEST_MEAS){ Passed(); return;}
@@ -730,7 +732,8 @@ void InitMem(void){
 /* CLOSE MEMORY */
 void CloseMem(void){
 	DFree2D(D.Osc,P.Num.Board*P.Num.Det); 
-	DFree2D(D.Buffer,P.Num.Board); 
+	DFree2D(D.Buffer,P.Num.Board);
+	DFree2D(P.Solus.DataBuffer,MAX_FRAMES);
 	if(P.Spc.Subtract) DFree1D(D.Last); 
 	if(P.Contest.Run!=CONTEST_MEAS) return;
 	if(P.Moxy.Moxy) DFree2D(D.Bank,P.Num.Board); 
@@ -2049,6 +2052,7 @@ void SpcClose(void){
 					if(!P.Solus.Abort_error){
 						GetInfoSolus();
 					}
+					P.Solus.IsSequenceSet = FALSE;
 				}
 				break;
 		case TEST: break;
@@ -8425,7 +8429,7 @@ void DataSave(void){
 	}
 	
 	
-	fflush(P.File.File);
+	//fflush(P.File.File);
 //	fclose(P.File.File);
 	for(ifr=0;ifr<P.Frame.Num;ifr++)
 		for(ip=0;ip<P.Num.Page;ip++)
@@ -9726,6 +9730,7 @@ void DestructSolusObj(void){
 			SetCtrlVal (hSolus, SOLUS_P_OPT1+io, OFF);
 }
 void InitSolus(void){
+	CVIProfSetCurrentThreadProfiling(1); //for code profiling
 	CreateSolusObj();
 	//GetInfoSolus();
 	ReadMeasSequenceFromFile();
@@ -9738,10 +9743,12 @@ void InitSolus(void){
 	SetInfoSolus();
 	UpdatePanel();
 	P.Solus.ProduceTrimFile = FALSE;
-	P.Solus.StopProduceTrimFile = FALSE;
+	P.Solus.StopProduceTrimFile = TRUE;
 	P.Solus.Initialized = TRUE;
 	P.Solus.NLines = 1;
+	P.Solus.CountLines = 0;
 	P.Solus.Abort_error=FALSE;
+	P.Solus.IsSequenceSet = FALSE;
 	Passed();
 }
 void ReadMeasSequenceFromFile(void){
@@ -10338,6 +10345,7 @@ void StartSolusMeas(void){
 		StopSolusMeas();
 	}
 	if(P.Solus.MeasStarted) return;
+
 	int ret,is;
 	if(P.Solus.AcqType<2)
 		for(is=0;is<P.Solus.AcqTot;is++)
@@ -10348,8 +10356,11 @@ void StartSolusMeas(void){
 	}
 	//if(P.Contest.Run == CONTEST_MEAS || P.Contest.Function == CONTEST_MEAS)
 	//	if(P.Loop[3].Idx == 0){
+	if(!P.Solus.IsSequenceSet){
 			ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
 			if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
+			P.Solus.IsSequenceSet = TRUE;
+	}
 	//	}
 	char AcqType = fmod(P.Solus.AcqType,2);
 	ret =  SOLUS_StartSequence(P.Solus.SolusObj,AcqType,P.Solus.AutoCal);
@@ -10359,12 +10370,22 @@ void StartSolusMeas(void){
 		P.Solus.StartError = FALSE;P.Solus.MeasStarted = TRUE;P.Solus.MeasStopped = FALSE;
 	}
 	P.Solus.AcqActual = 0;
+	
+
 }
 void WaitSolus(void){
 	int ret;
-	UINT16 nlines=0;
+	UINT16 nlines=0, nlines2wait = 33; int Cond=0;
+//	double start=Timer(); char message[STRLEN];               
+	if(P.Solus.MultipleLinesAcq)
+		if(P.Solus.CountLines!=0)
+			return;
 	do{
 		ret = SOLUS_QueryNLinesAvailable(P.Solus.SolusObj,&nlines);
+		if(P.Solus.MultipleLinesAcq){
+			P.Solus.NLines = nlines;
+			P.Solus.CountLines = nlines;
+		}
 		if(ret<0) {
 			ErrHandler(ERR_SOLUS,ret,"SOLUS_QueryNLinesAvailable");
 			if(ret==PROBE_ERROR){
@@ -10374,13 +10395,26 @@ void WaitSolus(void){
 			}
 			return;
 		}
-	}while(nlines < P.Solus.NLines);
+	//		}while(nlines < P.Solus.NLines);
+	//		}while(nlines < 1);
+		if(P.Solus.MultipleLinesAcq)
+			Cond = nlines < nlines2wait&&(P.Solus.AcqActual+nlines)<P.Solus.AcqTot;
+		else
+			Cond = nlines < 1;
+	}while(Cond);
+//	sprintf (message, "elapsed: %f\n", (Timer()-start)*1000);
+//	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
 }
 void GetDataSolus(void){
-	int io,ic,ib=0,ret,iro=0, Temperature;
+	int io,ic,ib=0,ret=0,iro=0,il=0, Temperature;
 	Frame SingleFrame;
 	if(!P.Solus.Abort_error){
-		ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,P.Solus.NLines);
+		if(P.Solus.MultipleLinesAcq){
+			if(P.Solus.CountLines==0||P.Solus.NLines==P.Solus.CountLines)
+				ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,P.Solus.NLines);
+		}
+		else
+			ret = SOLUS_GetMeasurement(P.Solus.SolusObj,&P.Solus.DataSolus,P.Solus.NLines);
 		if(ret<0){
 			ErrHandler(ERR_SOLUS,ret,"SOLUS_GetMeasurement");
 			if(ret==PROBE_ERROR){                                                                                                                                                
@@ -10391,37 +10425,81 @@ void GetDataSolus(void){
 			return;
 		}
 	}
-	for(io=0;io<N_OPTODE;io++){
-		if(P.Solus.OptList[io]){
-			SingleFrame = (*P.Solus.DataSolus)[iro];
-			for(ic=0;ic<P.Chann.Num;ic++){
-				D.Buffer[ib][io*P.Chann.Num+ic] = (T_DATA) SingleFrame.histogram_data[P.Chann.Num-1-ic];
+	if(!P.Solus.MultipleLinesAcq){
+		for(io=0;io<N_OPTODE;io++){
+			if(P.Solus.OptList[io]){
+				SingleFrame = (*P.Solus.DataSolus)[iro];
+				for(ic=0;ic<P.Chann.Num;ic++){
+					D.Buffer[ib][io*P.Chann.Num+ic] = (T_DATA) SingleFrame.histogram_data[P.Chann.Num-1-ic];
+				}
+				T_DATA Hbit = SingleFrame.intensity_data>>16;
+				T_DATA Lbit = SingleFrame.intensity_data&0xFFFF;
+				D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-1]=(T_DATA) Hbit;
+				D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-2]=(T_DATA) Lbit;
+				D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-3]=(T_DATA) SingleFrame.Status;
+				D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-4]=(T_DATA) SingleFrame.Area_ON;
+				switch (SingleFrame.Status>>13){
+					case 0: Temperature = 22; break;
+					case 1: Temperature = 26; break;
+					case 2: Temperature = 31; break;
+					case 3: Temperature = 35; break;
+					case 4: Temperature = 40; break;
+					case 5: Temperature = 45; break;
+					case 6: Temperature = 50; break;
+					case 7: Temperature = 100; break;
+				}
+				D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-5]=(T_DATA) Temperature;
+				iro++;
 			}
-			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-1]=(T_DATA) SingleFrame.intensity_data;
-			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-2]=(T_DATA) SingleFrame.Status;
-			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-3]=(T_DATA) SingleFrame.Area_ON;
-			switch (SingleFrame.Status>>13){
-				case 0: Temperature = 22; break;
-				case 1: Temperature = 26; break;
-				case 2: Temperature = 31; break;
-				case 3: Temperature = 35; break;
-				case 4: Temperature = 40; break;
-				case 5: Temperature = 45; break;
-				case 6: Temperature = 50; break;
-				case 7: Temperature = 100; break;
+			else{
+				for(ic=0;ic<P.Chann.Num;ic++)
+					D.Buffer[ib][io*P.Chann.Num+ic]	= (T_DATA) 0;
 			}
-			D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-4]=(T_DATA) Temperature;
-			iro++;
 		}
-		else{
+	}
+	else{
+		if(P.Solus.CountLines==0||P.Solus.NLines==P.Solus.CountLines){
+			for(il=0;il<P.Solus.NLines;il++)
+				for(io=0;io<N_OPTODE;io++){
+					if(P.Solus.OptList[io]){
+						SingleFrame = (*P.Solus.DataSolus)[iro];
+						for(ic=0;ic<P.Chann.Num;ic++){
+							P.Solus.DataBuffer[il][io*P.Chann.Num+ic] = (T_DATA) SingleFrame.histogram_data[P.Chann.Num-1-ic];
+						}
+						T_DATA Hbit = SingleFrame.intensity_data>>16;
+						T_DATA Lbit = SingleFrame.intensity_data&0xFFFF;
+						P.Solus.DataBuffer[il][io*P.Chann.Num+P.Chann.Num-1]=(T_DATA) Hbit;
+						P.Solus.DataBuffer[il][io*P.Chann.Num+P.Chann.Num-2]=(T_DATA) Lbit;
+						P.Solus.DataBuffer[il][io*P.Chann.Num+P.Chann.Num-3]=(T_DATA) SingleFrame.Status;
+						P.Solus.DataBuffer[il][io*P.Chann.Num+P.Chann.Num-4]=(T_DATA) SingleFrame.Area_ON;
+						switch (SingleFrame.Status>>13){
+							case 0: Temperature = 22; break;
+							case 1: Temperature = 26; break;
+							case 2: Temperature = 31; break;
+							case 3: Temperature = 35; break;
+							case 4: Temperature = 40; break;
+							case 5: Temperature = 45; break;
+							case 6: Temperature = 50; break;
+							case 7: Temperature = 100; break;
+						}
+						P.Solus.DataBuffer[il][io*P.Chann.Num+P.Chann.Num-5]=(T_DATA) Temperature;
+						iro++;
+					}
+					else{
+						for(ic=0;ic<P.Chann.Num;ic++)
+							P.Solus.DataBuffer[il][io*P.Chann.Num+ic]	= (T_DATA) 0;
+					}
+				}
+		}
+		for(io=0;io<N_OPTODE;io++)
 			for(ic=0;ic<P.Chann.Num;ic++)
-				D.Buffer[ib][io*P.Chann.Num+ic]	= (T_DATA) 0;
-		}
+				D.Buffer[ib][io*P.Chann.Num+ic] = P.Solus.DataBuffer[P.Solus.NLines-P.Solus.CountLines][io*P.Chann.Num+ic];
 	}
-	if(P.Solus.ProduceTrimFile&&P.Solus.StopProduceTrimFile==FALSE){
-		fprintf(P.Solus.TrimPosFileFile,"%d\t%d\t%d\t%d\n",D.Buffer[ib][0*P.Chann.Num+P.Chann.Num-3],D.Buffer[ib][1*P.Chann.Num+P.Chann.Num-3],D.Buffer[ib][2*P.Chann.Num+P.Chann.Num-3],D.Buffer[ib][3*P.Chann.Num+P.Chann.Num-3]);
+	if(P.Solus.MultipleLinesAcq) P.Solus.CountLines--;
+	if(P.Solus.ProduceTrimFile&&P.Solus.WriteTrimFile){
+		fprintf(P.Solus.TrimPosFileFile,"%d\t%d\t%d\t%d\n",D.Buffer[ib][0*P.Chann.Num+P.Chann.Num-4],D.Buffer[ib][1*P.Chann.Num+P.Chann.Num-4],D.Buffer[ib][2*P.Chann.Num+P.Chann.Num-4],D.Buffer[ib][3*P.Chann.Num+P.Chann.Num-4]);
 	}
-	P.Solus.AcqActual=P.Solus.AcqActual+P.Solus.NLines;
+	P.Solus.AcqActual=P.Solus.AcqActual+1;//P.Solus.NLines;
 	if(P.Contest.Function==CONTEST_OSC&&P.Contest.Run==CONTEST_OSC)
 		P.Solus.POSAcqActual = P.Solus.POSAcqActual + 1;
 	if(P.Contest.Function==CONTEST_MEAS&&P.Contest.Run==CONTEST_MEAS)
@@ -10460,6 +10538,14 @@ void StopSolusMeas(void){
 		P.Solus.StopError = FALSE;P.Solus.MeasStarted = FALSE;P.Solus.MeasStopped = TRUE;
 	}
 	P.Solus.AcqActual = 0;
+	//P.Solus.NLines = 0;
+	P.Solus.CountLines = 0;
+	int ic,il,io;
+	/*for(il=0;il<MAX_FRAMES;il++)
+				for(io=0;io<N_OPTODE;io++)
+						for(ic=0;ic<P.Chann.Num;ic++)
+							P.Solus.DataBuffer[il][io*P.Chann.Num+ic] = (T_DATA) 0;   */
+							
 	if(P.Spc.Trash){
 		if (P.Contest.Run==CONTEST_MEAS){
 		}

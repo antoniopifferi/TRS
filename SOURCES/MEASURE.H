@@ -1626,11 +1626,16 @@ struct SolusS{
 	 UINT16	StartPixel;
 	 UINT16	StopPixel;
 	 UINT16 NLines;
+	 UINT16 CountLines;
 	 struct FlagsS Flags;
 	 struct BufferS Buffer;
 	 char ProduceTrimFile;
 	 char StopProduceTrimFile;
 	 BOOLEAN Abort_error;
+	 char MultipleLinesAcq;
+	 T_DATA **DataBuffer;	// D.Buffer[P.Num.Board][P.Num.Det*P.Num.Chann]
+	 char IsSequenceSet;
+	 char WriteTrimFile;
 };
 
 struct SpcS {
