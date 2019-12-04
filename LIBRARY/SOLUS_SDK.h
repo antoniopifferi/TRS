@@ -72,11 +72,30 @@ extern "C" {
 #define FRAME_SIZE_INT_HIST (2 + 4 + 192 + 2)	/**<Frame size histogram mode.*/
 #define FRAME_SIZE_INT (2 + 4 + 2)				/**<Frame size intensity mode.*/
 #define N_LD 4									/**<Number of laser driver chip per optode.*/
-#define N_OPTODE 4								/**<Number of optode.								TODO: change to 8!!!!*/                             
+#define N_OPTODE 8								/**<Number of optode. */
 #define N_PIXEL 1728							/**<Number of GSIPM pixels.*/
 #define EEPROM_SIZE 4096						/**<EEPROM size.*/
 
-/*@}*/
+	/*@}*/
+
+	/**
+	* \defgroup Flags Measurement flags
+	Measurement flags definitions for SOLUS-SDK. DO NOT CHANGE.
+	*/
+	/*@{*/
+
+#define FORCE_LASER_OFF 1					/**<If 1 force all laser off during the sequence*/
+#define AUTOCAL 2							/**<Specify if autocalibration of attenuation should be performed before each line of the sequence. If 0, the value of attenuation specified in the sequence will be used.*/
+#define OVERRIDE_MAP 4						/**<If 1, the attwnuation field of the sequence specify the sungle SPAD to be switched on instead of the area.*/
+#define	GSIPM_GATE_OFF_AFTER_MEAS 8			/**<If 1, switch the GSIPM gate off after a sequence*/
+#define	laser_OFF_AFTER_MEAS 16				/**<If 1, switch all laser off after a sequence.*/
+#define	TURNOFF_UNUSED_LD 32				/**<If 1, put unused LD in low power mode.*/
+#define	TRIM_METHOD_BITL 64					/**<Set the trim algorith to be used (LSB).*/
+#define	TRIM_METHOD_BITh 128				/**<Set the trim algorith to be used (MSB).*/
+#define	DISABLE_INTERLOCK 256				/**<If 1, bypass contact sensor interlock.*/
+
+
+	/*@}*/
 
 	/**
 	* \defgroup Enum SOLUS-SDK custom Types and structures
@@ -294,11 +313,11 @@ extern "C" {
 	/**High level Sequence line structure containing one line of the measurement sequence.*/
 	struct _Sequence_Line
 	{
-		float meas_time;				/**<Measurement time in seconds. Valid range is 100us..327s. Actual value is rounded with 100us precision up to 3s, then with 10ms precision up to 327s.*/
-		UINT16 attenuation;				/**<Attenuation, i.e. number of disabled SPADs. Valid range: 0..1727.*/
-		UINT8 gate_delay_coarse;		/**<Gate delay coarse. Valid range: 0..15.*/
-		UINT16 gate_delay_fine;			/**<Gate delay fine. Valid range: 0..1023.*/
-		UINT8 laser_num;				/**<Laser to fire. Valid range: 0..63.*/
+		float meas_time;					/**<Measurement time in seconds. Valid range is 100us..327s. Actual value is rounded with 100us precision up to 3s, then with 10ms precision up to 327s.*/
+		UINT16 attenuation[N_OPTODE];		/**<Attenuation, i.e. number of disabled SPADs for each optode. Valid range: 0..1727.*/
+		UINT8 gate_delay_coarse[N_OPTODE];	/**<Gate delay coarse for each optode. Valid range: 0..15.*/
+		UINT16 gate_delay_fine[N_OPTODE];	/**<Gate delay fine for each optode. Valid range: 0..1023.*/
+		UINT8 laser_num;					/**<Laser to fire. Valid range: 0..63.*/
 	};
 
 	/**Low level Sequence union containing all lines of the measurement sequence.	*/
@@ -341,8 +360,8 @@ extern "C" {
 
 	/**Structure containing the analog acquisitions for an optode.	*/
 	typedef struct {
-		INT16 gsipmSPADcurrent;		/**< GSIPM SPAD current in tens of uA*/
-		INT16 gsipmCoreCurrent;		/**< GSIPM core current in hundreds of uA*/
+		INT16 gsipmSPADcurrent;		/**<GSIPM SPAD current in tens of uA*/
+		INT16 gsipmCoreCurrent;		/**<GSIPM core current in hundreds of uA*/
 		INT16 laserCurrent;			/**<Laser current in tens of uA*/
 		UINT16 gsipmSPADvoltage;	/**<GSIPM SPAD voltage in mV*/
 		UINT16 gsipmCoreVoltage;	/**<GSIPM core voltage in mV*/
@@ -507,18 +526,19 @@ extern "C" {
 	DllSDKExport SOLUS_Return SOLUS_SetAutocalParams(SOLUS_H solus, Autocal_params Params);
 
 	/**Set measurement sequence, low level.
-	Sets the measurement sequence (valid for all the optode) at low level. If the effective sequence lenght is less than MAX_SEQUENCE, all fields of unused sequence entries must be set to 0.
+	Sets the measurement sequence for an optode at low level. If the effective sequence lenght is less than MAX_SEQUENCE, all fields of unused sequence entries must be set to 0.
 	\param solus SOLUS handle
 	\param sequence Pointer to a user space structure containing the measurement sequence. 
+	\param optode Address of the optode
 	\return OK Measurement sequence setting was successful.
 	\return INVALID_POINTER An empty SOLUS handle or pointer to sequence structure was passed.
 	\return COMM_ERROR Communication error.
 	\return COMM_TIMEOUT Communication timeout.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_SetSequenceLL(SOLUS_H solus, Sequence_LL* sequence);
+	DllSDKExport SOLUS_Return SOLUS_SetSequenceLL(SOLUS_H solus, Sequence_LL* sequence, ADDRESS optode);
 
 	/**Set measurement sequence, high level.
-	Sets the measurement sequence (valid for all the optode) at high level. If the effective sequence lenght is less than MAX_SEQUENCE, all fields of unused sequence entries must be set to 0.
+	Sets the measurement sequence at high level. If the effective sequence lenght is less than MAX_SEQUENCE, all fields of unused sequence entries must be set to 0.
 	\param solus SOLUS handle
 	\param sequence Pointer to a user space structure containing the measurement sequence.
 	\return OK Measurement sequence setting was successful.
@@ -527,6 +547,17 @@ extern "C" {
 	\return COMM_TIMEOUT Communication timeout.
 	*/
 	DllSDKExport SOLUS_Return SOLUS_SetSequence(SOLUS_H solus, Sequence* sequence);
+
+	/**Set measurement flags. See defines for flags meaning. Flags are set or reset according the mask word.
+	\param solus SOLUS handle
+	\param flags Flag word
+	\param mask Mask word
+	\return OK Measurement sequence setting was successful.
+	\return INVALID_POINTER An empty SOLUS handle or pointer to sequence structure was passed.
+	\return COMM_ERROR Communication error.
+	\return COMM_TIMEOUT Communication timeout.
+	*/
+	DllSDKExport SOLUS_Return SOLUS_SetFlags(SOLUS_H solus, UINT16 flags, UINT16 mask);
 
 	/**Setlaser frequency.
 	Sets the laser frequency.
@@ -618,22 +649,33 @@ extern "C" {
 	DllSDKExport SOLUS_Return SOLUS_GetCalibrationMap(SOLUS_H solus, ADDRESS optode, CalMap* data, UINT16* MaxArea);
 
 	/**Get measurement Sequence, low level.
-	Gets the locally stored measurement Sequence (for all optodes).
+	Gets the locally stored measurement Sequence for the optode.
 	\param solus SOLUS handle
 	\param sequence Pointer to a user space structure for storing the measurement sequence.
+	\param optode Address of the optode
 	\return OK Measurement sequence setting was successful.
 	\return INVALID_POINTER An empty SOLUS handle or pointer to sequence structure was passed.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_GetSequenceLL(SOLUS_H solus, Sequence_LL* sequence);
+	DllSDKExport SOLUS_Return SOLUS_GetSequenceLL(SOLUS_H solus, Sequence_LL* sequence, ADDRESS optode);
 
 	/**Get measurement Sequence, high level.
-	Gets the locally stored measurement Sequence (for all optodes).
+	Gets the locally stored measurement Sequence.
 	\param solus SOLUS handle
 	\param sequence Pointer to a user space structure for storing the measurement sequence.
 	\return OK Measurement sequence setting was successful.
 	\return INVALID_POINTER An empty SOLUS handle or pointer to sequence structure was passed.
 	*/
 	DllSDKExport SOLUS_Return SOLUS_GetSequence(SOLUS_H solus, Sequence* sequence);
+
+	/**Get measurement flags. See defines for flags meaning.
+	\param solus SOLUS handle
+	\param flags Flag word
+	\return OK Measurement sequence setting was successful.
+	\return INVALID_POINTER An empty SOLUS handle or pointer to sequence structure was passed.
+	\return COMM_ERROR Communication error.
+	\return COMM_TIMEOUT Communication timeout.
+	*/
+	DllSDKExport SOLUS_Return SOLUS_GetFlags(SOLUS_H solus, UINT16* flags);
 
 	/**Read the status for an Optode.
 	Reads the status for an optode an save it into the SOLUS object.
@@ -712,14 +754,13 @@ extern "C" {
 	\ref SOLUS_GetMeasurement().
 	\param solus SOLUS handle
 	\param type Specify the datatype of the measurement (only intensity or complete histogram and intensity)
-	\param autocal Specify if autocalibration of attenuation should be performed before each line of the sequence. If FALSE, the value of attenuation specified in the sequence will be used.
 	\return OK Measurement started successfully.
 	\return INVALID_POINTER An empty SOLUS handle was passed.
 	\return INVALID_OP Acquisition already running.
 	\return COMM_ERROR Communication error.
 	\return COMM_TIMEOUT Communication timeout.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_StartSequence(SOLUS_H solus, DataType type, BOOLEAN autocal);
+	DllSDKExport SOLUS_Return SOLUS_StartSequence(SOLUS_H solus, DataType type);
 
 	/**Stop measurement sequence.
 	Stops the running measurement. It must be called in any case before starting a new one.
@@ -761,44 +802,6 @@ extern "C" {
 	*/
 	DllSDKExport SOLUS_Return SOLUS_GetMeasurement(SOLUS_H solus, Data_H* data, UINT16 NLines);
 
-	/**Start the DCR measurement.
-	Starts the DCR measurement with the specified integration time and pixel range. Once the acquisition started data must be downloaded calling repeatedly the function \ref SOLUS_GetDCRMeasurement().
-	\param solus SOLUS handle
-	\param IntegrationTime Specify the integration time for the measurement in s.
-	\param StartPixel Specity the first pixel to be acquired
-	\param StopPixel Specity the last pixel to be acquired
-	\return OK Measurement started successfully.
-	\return INVALID_POINTER An empty SOLUS handle was passed.
-	\return INVALID_OP Acquisition already running.
-	\return COMM_ERROR Communication error.
-	\return COMM_TIMEOUT Communication timeout.
-	*/
-	DllSDKExport SOLUS_Return SOLUS_StartDCRMeasurement(SOLUS_H solus, float IntegrationTime, UINT16 StartPixel, UINT16 StopPixel);
-
-	/**Get DCR Measurement.
-	Gets the DCR measurement and save data into the passed DCRmap. For each call of the function only the DCR for 1 pixel are acquired and thre corresponding entry in the DCRmap is polulated,
-	thus the function must be called as many times as the required number of pixels, and it will scan automatically through them. Further call after the last pixel has been acquired will generate an error.
-	\param solus SOLUS handle
-	\param DCR Pointer to the DCRmap array.
-	\return OK DCR acquired successfully.
-	\return INVALID_POINTER An empty SOLUS of data handle was passed.
-	\return INVALID_OP Acquisition not running.
-	\return COMM_ERROR Communication error.
-	\return COMM_TIMEOUT Communication timeout.
-	*/
-	DllSDKExport SOLUS_Return SOLUS_GetDCRMeasurement(SOLUS_H solus, DCRmap* DCR);
-
-	/**Stop DCR measurement sequence.
-	Stops the running DCR measurement. It must be called in any case befora starting a new sequence.
-	\param solus SOLUS handle
-	\return OK Measurement stopped successfully.
-	\return INVALID_POINTER An empty SOLUS handle was passed.
-	\return INVALID_OP Acquisition not running.
-	\return COMM_ERROR Communication error.
-	\return COMM_TIMEOUT Communication timeout.
-	*/
-	DllSDKExport SOLUS_Return SOLUS_StopDCRSequence(SOLUS_H solus);
-
 	/*@}*/
 	//------------ Service methods -----------------------------------------
 	/**
@@ -823,7 +826,7 @@ extern "C" {
 	\param address Address of the optode/control
 	\param data Data read from EEPROM
 	*/
-	DllSDKExport SOLUS_Return SOLUS_ReadEEPROM(SOLUS_H solus, ADDRESS address, char* data);
+	DllSDKExport SOLUS_Return SOLUS_ReadEEPROM(SOLUS_H solus, ADDRESS address, UINT8* data);
 
 	/**Read optode diagnothic.
 	\param solus SOLUS handle
@@ -876,13 +879,12 @@ extern "C" {
 	*/
 	DllSDKExport SOLUS_Return SOLUS_ReadMCU_ID(SOLUS_H solus, ADDRESS address);
 
-	/**Write flags.
+	/**Get MCU ID.
 	\param solus SOLUS handle
 	\param address Address of the optode/control
-	\param flags Flag word
-	\param mask Mask word
+	\param id Pointer to the ID of MCU at the selected address
 	*/
-	DllSDKExport SOLUS_Return SOLUS_WriteFlags(SOLUS_H solus, ADDRESS address, UINT16 flags, UINT16 mask);
+	DllSDKExport SOLUS_Return SOLUS_GetMCU_ID(SOLUS_H solus, ADDRESS address, UINT16 *id);
 
 	/**Turn ON power supplies.
 	\param solus SOLUS handle
@@ -926,57 +928,27 @@ extern "C" {
 	\param solus SOLUS handle
 	\param temperature Calibration temperature.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_InitialSystemConfig(SOLUS_H solus, float temperature);
+	DllSDKExport SOLUS_Return SOLUS_CompensateTemperature(SOLUS_H solus, float temperature);
 
-	/*@}*/
-	//------------ Deprecated methods -----------------------------------------
-	/**
-	* \defgroup Deprecated Deprecated methods
-	Deprecated functions for the SOLUS probe. DO NOT USE!
-	*/
-	/*@{*/
-
-	/**Get actual active area for an optode. DEPRECATED! DO NOT USE!
-	Reads the actual active area from an optode, store it locally an return it to user.
+	/**Trim CTMU.
 	\param solus SOLUS handle
-	\param optode Address of the optode
-	\param area Pointer to an UINT16 variable to hold the area.
-	\return OK Status getting was successful.
-	\return INVALID_POINTER An empty SOLUS handle or pointer to structures was passed.
-	\return OUT_OF_RANGE An invalid optode Address was passed to the function.
-	\return OPTODE_NOT_PRESENT Optode not present or not working.
-	\return COMM_ERROR Communication error.
-	\return COMM_TIMEOUT Communication timeout.
+	\param address Optode to be calibrated
+	\param ctmu_en enable/disable the calibration state
+	\param ctmu_trim value used to trim the CTMU (between -31 and 31 - 2% nominal steps)
 	*/
-	DllSDKExport SOLUS_Return SOLUS_GetArea(SOLUS_H solus, ADDRESS optode, UINT16* area);
+	DllSDKExport SOLUS_Return SOLUS_TrimCTMU(SOLUS_H solus, ADDRESS address, BOOLEAN ctmu_en, INT16 ctmu_trim);
 
-	/**Set GSIPM area. DEPRECATED! DO NOT USE!
-	Sets the active area of the GSIPM for a specific optode according to the calibration map.
+	/**Program STUSB4500.
+	Program USB-PD sink controller with proper settings for The SOLUS Probe. 
 	\param solus SOLUS handle
-	\param optode Address of the optode
-	\param area Area to be activated in number of SPAD cells. Accepted values: 1..1728
-	\return OK Active area setting was successful.
-	\return OUT_OF_RANGE An invalid optode Address or area value was passed to the function.
-	\return OPTODE_NOT_PRESENT Optode not present or not working.
-	\return INVALID_POINTER An empty SOLUS handle was passed.
-	\return COMM_ERROR Communication error.
-	\return COMM_TIMEOUT Communication timeout.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_SetArea(SOLUS_H solus, ADDRESS optode, UINT16 area);
+	DllSDKExport SOLUS_Return SOLUS_ProgramSTUSB4500(SOLUS_H solus);
 
-	/**Activate single SPAD. DEPRECATED! DO NOT USE!
-	Enables only a single SPAD of the GSIPM for a specific optode.
+	/**Read Analog Logs.
+	Get last acquired analog acquisitions from control and optodes
 	\param solus SOLUS handle
-	\param Optode Address of the optode
-	\param spad_number SPAD to be enabled. All other SPADs will be disabled. Accepted values: 1..1728
-	\return OK SPAD setting was successful.
-	\return OUT_OF_RANGE An invalid optode Address or spad_number value was passed to the function.
-	\return OPTODE_NOT_PRESENT Optode not present or not working.
-	\return INVALID_POINTER An empty SOLUS handle was passed.
-	\return COMM_ERROR Communication error.
-	\return COMM_TIMEOUT Communication timeout.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_SetSingleSPAD(SOLUS_H solus, ADDRESS Optode, UINT16 spad_number);
+	DllSDKExport SOLUS_Return SOLUS_ReadAnalogLogs(SOLUS_H solus);
 
 	/*@}*/
 

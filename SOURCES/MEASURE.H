@@ -79,7 +79,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1265
+#define MAX_TABLE		1600 //1265
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1534,6 +1534,7 @@ struct FlagsS{
 	 UINT16 trim_method;
 	 UINT16 produce_trim_file;
 	 UINT16 use_trim_file;
+	 UINT16 use_legacy_seq;
 };
 struct BufferS{
 	 UINT16 SPAD_Voltage;

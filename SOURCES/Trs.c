@@ -52,13 +52,13 @@ int main (int argc, char *argv[])
 	if ((hSolus = LoadPanel (hTrs, PATH_UIR, SOLUS_P)) < 0) return -1;
 	
 	CreateTable();
-	
+
 	DisplayPanel(hTrs);
 	DisplayPanel(hParm);
 	InitPanel();
 	InitPad();								//ALE
 	InitVariable();
-	SetSleepPolicy (VAL_SLEEP_NONE);
+	SetSleepPolicy(VAL_SLEEP_NONE);// (VAL_SLEEP_MORE);
 	RunUserInterface ();
 	return 0;
 	}
@@ -749,6 +749,8 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_USE_TRIM_FILE,"use_trim_file",0,0,&P.Solus.Flags.use_trim_file);
 	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_PRODUCE_TRIM_FILE,"produce_trim_file",0,0,&P.Solus.Flags.produce_trim_file);
 	AddTab(CE,TSTRING,SOLUS_P,SOLUS_P_TRIM_POS_FILE_PATH,"TrimPosFile",0,0,P.Solus.TrimPosFile);
+	AddTab(CE,TCHAR,SOLUS_P,SOLUS_P_USE_LEGACY_SEQ,"use_legacy_seq",0,0,&P.Solus.Flags.use_legacy_seq);
+	
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;
 	}
 
