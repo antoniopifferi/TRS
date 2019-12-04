@@ -1005,7 +1005,7 @@ void CompleteParmS(void){
 		}
 	}
 	for(ir=0;ir<P.Spc.RoutingBits;ir++) P.Num.Det*=2;
-	
+
 	// Filter-Page-Acq
 	P.Acq.Frame=1; //TODO: sistemare per Oxym+Spectra..
 	if(P.Layout.Layout){
@@ -10333,11 +10333,11 @@ void SetInfoSolus(void){
 	P.Solus.Buffer.SPAD_Voltage=P.Solus.ControlParams.SPAD_Voltage;
 	}
 	
-	if(P.Solus.Flags.perform_autocal){
+	//if(P.Solus.Flags.perform_autocal){
 		//Set AutoCal params
 		ret = SOLUS_SetAutocalParams(P.Solus.SolusObj,P.Solus.AutocalParams);
 		if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetAutocalParams");}
-	}
+	//}
 }
 void ValidateMeasSequenceSolus(void){
 	int is;
@@ -10375,14 +10375,11 @@ void StartSolusMeas(void){
 		memcpy(&P.Solus.MeasSequence[0],&P.Solus.POSMeasSequence[P.Solus.POSAcqActual],sizeof(P.Solus.POSMeasSequence[P.Solus.POSAcqActual]));	
 		P.Solus.MeasSequence[0].meas_time = P.Spc.TimeSolus;
 	}
-	//if(P.Contest.Run == CONTEST_MEAS || P.Contest.Function == CONTEST_MEAS)
-	//	if(P.Loop[3].Idx == 0){
 	if(!P.Solus.IsSequenceSet){
-			ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
-			if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
-			P.Solus.IsSequenceSet = TRUE;
+		ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
+		if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
+		P.Solus.IsSequenceSet = TRUE;
 	}
-	//	}
 	char AcqType = fmod(P.Solus.AcqType,2);
 	ret =  SOLUS_StartSequence(P.Solus.SolusObj,AcqType);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"StartSolusMeas\n");P.Solus.StartError = TRUE;P.Solus.MeasStarted = FALSE;return;}
@@ -10551,7 +10548,7 @@ void StopSolusDCRMeasure(void){
 void StopSolusMeas(void){
 	if(!P.Solus.MeasStarted) return;
 	int ret;
-	ret = SOLUS_StopSequence(P.Solus.SolusObj);
+	ret = SOLUS_StopSequence(P.Solus.SolusObj, P.Solus.Flags.save_dump);
 	if(ret<0){ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");P.Solus.StopError = TRUE;P.Solus.MeasStopped=FALSE;return;}
 	else {
 		//SetCtrlVal(hDisplay,DISPLAY_MESSAGE,"Solus Meas Stopped\n");
@@ -11018,7 +11015,7 @@ void InitSipmStepSolus(char Step){
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence");}
 	ret = SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
-	ret = SOLUS_StopSequence(P.Solus.SolusObj);
+	ret = SOLUS_StopSequence(P.Solus.SolusObj, P.Solus.Flags.save_dump);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");}
 	
 }
@@ -11029,7 +11026,7 @@ void CloseSipmStepSolus(char Step){
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence");}
 	ret = SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
-	ret = SOLUS_StopSequence(P.Solus.SolusObj);
+	ret = SOLUS_StopSequence(P.Solus.SolusObj, P.Solus.Flags.save_dump);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");}
 	/*ret = SOLUS_SetArea(P.Solus.SolusObj,P.Step[Step].Com-1,SOLUS_MIN_SPAD_NUM);
 	if (ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetArea");}*/
@@ -11043,7 +11040,7 @@ void MoveSipmStepSolus(char Step,long Goal,char Wait){
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_SetSequence");}
 	ret = SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StartSequence");}
-	ret = SOLUS_StopSequence(P.Solus.SolusObj);
+	ret = SOLUS_StopSequence(P.Solus.SolusObj, P.Solus.Flags.save_dump);
 	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"SOLUS_StopSequence");}
 	ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
 	/*ret = SOLUS_SetArea(P.Solus.SolusObj,P.Step[Step].Com-1,(UINT16) Goal);

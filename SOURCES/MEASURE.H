@@ -1535,6 +1535,7 @@ struct FlagsS{
 	 UINT16 produce_trim_file;
 	 UINT16 use_trim_file;
 	 UINT16 use_legacy_seq;
+	 UINT16 save_dump;
 };
 struct BufferS{
 	 UINT16 SPAD_Voltage;

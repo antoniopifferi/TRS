@@ -763,15 +763,16 @@ extern "C" {
 	DllSDKExport SOLUS_Return SOLUS_StartSequence(SOLUS_H solus, DataType type);
 
 	/**Stop measurement sequence.
-	Stops the running measurement. It must be called in any case before starting a new one.
+	Stops the running measurement. It must be called in any case before starting a new one. Optionally, status and analog acquisitions of the system can be acquired and stored in an external XML file.
 	\param solus SOLUS handle
+	\param enable_dump enable saving XML file
 	\return OK Measurement stopped successfully.
 	\return INVALID_POINTER An empty SOLUS handle was passed.
 	\return INVALID_OP Acquisition not running.
 	\return COMM_ERROR Communication error.
 	\return COMM_TIMEOUT Communication timeout.
 	*/
-	DllSDKExport SOLUS_Return SOLUS_StopSequence(SOLUS_H solus);
+	DllSDKExport SOLUS_Return SOLUS_StopSequence(SOLUS_H solus, BOOLEAN enable_dump);
 
 	/**Query Available Lines
 	Gets the number of acquired sequence lines. Call this function before \ref SOLUS_GetMeasurement() to know if all the desired lines has been measured.
