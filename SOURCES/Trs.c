@@ -56,7 +56,7 @@ int main (int argc, char *argv[])
 	InitPanel();
 	InitPad();								//ALE
 	InitVariable();
-	SetSleepPolicy (VAL_SLEEP_MORE);
+	SetSleepPolicy (VAL_SLEEP_NONE);
 	RunUserInterface ();
 	return 0;
 	}
@@ -208,7 +208,6 @@ void CVICALLBACK Quit (int menuBar, int menuItem, void *callbackData,int panel){
 								  VAL_GENERIC_POPUP_BTN1,
 								  VAL_GENERIC_POPUP_BTN2);
     	if(button==VAL_GENERIC_POPUP_BTN2) return; 
-		else exit(1);
 		CloseMH150();
 		}
 	}
@@ -365,7 +364,6 @@ int CVICALLBACK ClosePanel (int panel, int event, void *callbackdata, int eventd
 								  VAL_GENERIC_POPUP_BTN1,
 								  VAL_GENERIC_POPUP_BTN2);
     	if(button==VAL_GENERIC_POPUP_BTN2) return(0); 
-		else exit(1);
 		CloseMH150();
 		}
 	}

@@ -23,7 +23,7 @@
 														  
 /* GENERAL CONSTANTS */
 #define STRLEN 		  128
-#define PATHLEN		  30
+#define PATHLEN		  128
 #define PACKLENGTH 	  6
 #define SLI           sizeof(long)
 #define SCH           sizeof(char)
@@ -123,7 +123,7 @@
 #define TIME_TIOMAMM	1
 
 /* STEPPER CONSTANTS */
-#define STEP_HOLD_ON	2
+#define STEP_HOLD_ON	2		 
 #define STEP_HOLD_OFF_OSC	3
 #define STEP_SIGN_POS	0
 #define STEP_SIGN_NEG	1
@@ -712,16 +712,16 @@
 #define MH_USE_GET_ALL_HIST_FUN 1
 
 /* SC1000 CONSTANTS */
-#define SC1000_TYPE unsigned long			// data type of hystogram SC1000 data (non-lin)
+#define SC1000_TYPE unsigned short			// data type of hystogram SC1000 data (non-lin)
 #define SC1000_TIME_INFINITY 1000000       // sec
-#define SC1000_BINDEPTH BS32					// max size of the bin (BS32=unsigned int)
+#define SC1000_BINDEPTH BS16					// max size of the bin (BS32=unsigned int)
 #define SC1000_LINEARISE  1					// 1 = use background file to linearise time scale, 0 = do not linearise
 #define SC1000_HARDREFOLD  5					// hardware refolding using SC and Modulo
 #define SC1000_NODATAOPERATION -1
 #define SC1000_MAXBIN	40800		// max number of channels (bin) in SC1000 // 10 mhz
 #define SC1000_REBIN 32
 #define SC1000_MAX_COUNT_RATE 30000000
-#define SC1000_MIN_COUNT_RATE 7000
+#define SC1000_MIN_COUNT_RATE 800000
 
 /* SPADLAB CONSTANTS */
 #define SPADLAB_TDC_WRITE  "\\\\localhost\\MyProcess\\tdc-write"
@@ -803,7 +803,6 @@
 #define	MAMM_NIR_IDX_MAX_BORDER	360	
 #define MAMM_NIR_STEP_MAX   400
 #define	MAMM_NUM_BOARD		2
-#define MAMM_NUM_DET		8 //EDO
 #define	MAMM_NUM_ROW		240
 #define D2				(char) 2
 #define X				(char) 0
@@ -824,6 +823,7 @@
 #define MAMM_EAST_DET		5
 #define MAMM_NORTHEAST_DET	6
 #define MAMM_NORTH_DET		7
+#define MAMM_MIN_COUNT_RATE 1000000
 
 
 
@@ -1111,14 +1111,7 @@ struct MammAttS{
 	};
 
 struct MammRefMeaS{	   //EDO
-	double Width;
-	double BaricentrePos;
-	long MaxPos;
-	long MaxVal;
 	long Area;
-	long First;
-	long Last;
-	double Treshold;
 };
 struct ScReinitS{  //EDO
 	int Measure;
@@ -1133,7 +1126,7 @@ struct NumAcqS{		  //EDO
 	float Tot;
 	char Active;
 };
-struct ExtraFrameS{
+struct ExtraFrameS{   //EDO
 	int Num;
 	int IsActiveOnLoopYNum;
 };
@@ -1166,8 +1159,9 @@ struct MammS {
 	struct NumAcqS NumAcq;		  //EDO
 	struct ExtraFrameS ExtraFrame;             //EDO
 	int IsRefMeas;
-	double NegativeTreshold;
-	long DarkCountRateValue;
+	double NegativeTreshold; //EDO
+	long DarkCountRateValue; //EDO
+	double TimeStart;
 	};
 
 struct ActionS{
@@ -1201,12 +1195,14 @@ struct ActionS{
 	char WaitAdc;
 	char ReadUIR;
 	char SpcTime;			//EDO
-	char InitMamm;         //EDO
-	char StartMamm;			 //EDO
+	char InitMamm;          //EDO
+	char StartMamm;			//EDO
+	char CloseMamm;			//EDO
 	char CheckMamm;         //EDO
 	char StopMamm;		    //EDO
 	char DoJumpMamm;		//EDO
-	char ThresholdMammot;
+	char ThresholdMammot;   //EDO
+	char UseCalcGoalMamm[MAX_STEP];		//EDO
 	struct ScReinitS ScReInit;			//EDO
 	};
 
@@ -1312,7 +1308,7 @@ struct StepS {
 	char DiffHome;
 	char Lcd;
 	char Hold;
-	char Inizialized;
+	char Inizialized; 
 	long Actual;
 	long Actual_mean_pow;
 	long Actual_std;
@@ -1335,7 +1331,6 @@ struct StepS {
 	char  FPath[STRLEN];
 	struct Delay_GateS Delay_Gate;
 	struct Standa2S Standa2;
-	long StopGoal; // EDO
 	};
 
 struct SwitchS {
@@ -1483,7 +1478,7 @@ struct LucaSpcS{
 	int	InitializedBox;
 	int InitializedLaser;
 	};
-struct SurfaceConceptS{
+struct SurfaceConceptS{		//to do: use this struct for SC operations instead of P.Spc
 	int	 Refolding; //EDO
 	int	 ScBoard[MAX_BOARD];	 //EDO
 	int  ScBoardInitialized[MAX_BOARD];   //EDO
@@ -1497,7 +1492,7 @@ struct SurfaceConceptS{
 	int ScFirstBin;			//EDO
 	int ScLastBin;			//EDO
 	int ScDeinit;		   //EDO
-	char ScWait;
+	char ScWait;			//EDO
 	int	 Pipe[MAX_BOARD][MAX_DET];
 	unsigned int ScNumBin; //EDO
 	char DCR_files[MAX_BOARD][MAX_DET][STRLEN];
@@ -1515,6 +1510,8 @@ struct SurfaceConceptS{
 	double Binsize;								// temporal width of the mean bin
 	double Period;									// period between two IRF peaks (used in rebinning)
 	double Rebin;
+	char ReinitMeas;
+	long DarkCountRateValue;
 };
 struct SpcS {
 	char   Type;
@@ -1536,10 +1533,9 @@ struct SpcS {
 	int    TimeMH150;
 	int	   TH260HistLen;
 	int    MH150HistLen;
-	int MH150HistLenCodeUser;
-	int MH150MeasType;
-	int MH150_WaitTrigger;
-	MH_DATA *DataMH150;
+	int MH150HistLenCodeUser; //EDO
+	int MH150MeasType;		  //EDO
+	MH_DATA *DataMH150;		  //EDO
 	int	   TimeSC1000;
 	long   Count;
 	char   TdcDcrFileRoot[260];
@@ -1565,15 +1561,16 @@ struct SpcS {
 	int ScLastBin;			//EDO
 	int ScDeinit;		   //EDO
 	char ScWait;			//EDO
+	int ScStopLoop;			//EDO
 	int	 Pipe[MAX_BOARD][MAX_DET];//EDO
 	unsigned int ScNumBin; //EDO
 	struct SurfaceConceptS SC;   //EDO
 	struct SpadS Spad[MAX_BOARD];
 	struct NirsS Nirs[MAX_BOARD];
 	struct LucaSpcS Luca[MAX_BOARD];
-	double MH150_Start;
-	char MH150_Initialized;
-	char MH150_Started;
+	double MH150_Start;		  //EDO
+	char MH150_Initialized;   //EDO
+	char MH150_Started;		  //EDO
 	};
 
 struct AcqS{
@@ -1602,6 +1599,7 @@ struct FrameS{
 	int Half;		 //EDO
 	int Dir;		 //EDO
 	int Last;		 //EDO
+	int Counter;	 //EDO
 	};
 
 struct FilterS{
@@ -1633,8 +1631,8 @@ struct PlotS{
 struct GraphS{
 	char Type;
 	char Scale;
-	char HighLimit;
-	char LowLimit;
+	char HighLimit; //EDO
+	char LowLimit;  //EDO
 	};
 
 struct TProtS{
@@ -1940,7 +1938,7 @@ struct DataS {
 	T_DATA **Bank;		// D.Bank[P.Num.Board][SPC_BANK_DIM] 
 	T_DATA *Curve;		// D.Curve[P.Num.Chann] 
 	T_DATA *Last;		// D.Last[P.Num.Chann]
-	SC1000_TYPE ***BufferTDC;
+	SC1000_TYPE ***BufferTDC;  //EDO
 	};
 
 struct TableS {
@@ -2019,13 +2017,13 @@ double ProfT[PROF_MAX_ID];
 char tempString[PROF_MAX_ID];
 //#endif
 
-/* SC1000 GLOBAL VARIABLES */ 
+/* SC1000 GLOBAL VARIABLES */ 	  //EDO
 // move to std code when finished debugging
 char DCR_files[MAX_BOARD][MAX_DET][STRLEN];
 double *LinArray;
 FILE *FID;
 SC1000_TYPE *NonLinArray;
-SC1000_TYPE *DCR_raw_count;
+unsigned long *DCR_raw_count;
 double *DCR_raw_time;
 SC1000_TYPE *IRF_raw_count;
 double *IRF_raw_time;
@@ -2136,7 +2134,7 @@ void ClearTH260(void);
 void InitTimeharp(void);
 void GetDataTimeharp(void);
 
-/* ########################   SC1000 FUNCTIONS   ####################### */
+/* ########################   SC1000 FUNCTIONS   ####################### */		   //EDO
 void InitSC1000(int Board);
 float StartSC1000(int Board,float AcqTime);
 void CloseSC1000(void);
@@ -2149,7 +2147,7 @@ void LinRefoldSC1000(int Refold,int Board,int Det,SC1000_TYPE *NonLinArray, doub
 void FlushSC1000(int Board);
 int PipeRead(int Board,int Det,int Timeout);
 
-/* ####################### MH150 FUNCTIONS ##########################*/
+/* ####################### MH150 FUNCTIONS ##########################*/  //EDO
 void InitMH150(int Board);
 void CloseMH150();
 void GetDataMH150();
@@ -2525,9 +2523,9 @@ void ErrHandler(int Device, int Code, char* Function);
 T_DATA *DAlloc1D(int Num1);
 T_DATA **DAlloc2D(int Num1, int Num2);
 T_DATA ***DAlloc3D(int Num1, int Num2, int Num3);
-SC1000_TYPE ***DAlloc3D_SC1000(int Num1, int Num2, int Num3);
+SC1000_TYPE ***DAlloc3D_SC1000(int Num1, int Num2, int Num3); //EDO
 T_SUB **SAlloc2D(int Num1, int Num2);
-SC1000_TYPE *SC1000Alloc1D(int Num1);
+SC1000_TYPE *SC1000Alloc1D(int Num1);						  //EDO
 double *doubleAlloc1D(int Num1);
 double ***doubleAlloc3D(int Num1, int Num2, int Num3);
 void DFree1D(T_DATA *D);
@@ -2556,13 +2554,15 @@ void InitLegend(void);
 void AddLabel(int IdName);
 void AddThick(int ID);
 void InitMammot(void);			//EDO
+void GetRefValueMammot(void);	//EDO
 void StartMammot(void);			//EDO
-void GetRefValueMammot(void);    //EDO
+void CloseMammot(void);			//EDO
 void StopMammot(void);			//EDO
 void CheckMammot(void);			//EDO
 void AnalysisMamm_new(void);	//EDO
 void ShiftCorrection(void);		//EDO
 void BackShift(void);			//EDO
+long CalcGoalMamm(char Step);   //EDO
 
 
 /* ########################   MOXY PROCEDURES   ########################### */

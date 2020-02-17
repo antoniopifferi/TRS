@@ -139,6 +139,7 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 		InitSync();
 		InitOma();
 		InitOphir();
+		InitLegend();
 		SpcInit();
 		switch (P.Info.Appl){
 			case APPL_MAMM: 
@@ -218,12 +219,14 @@ void KernelGen(){
 						if(P.Action.ReadUIR) GetUserEvent (0, &panel, &control);
 						if(P.Command.Abort) break;
 						if(P.Action.DoJump) if(P.Jump.Break) break;
+						if(P.Action.CloseMamm&&P.Action.DoJumpMamm) CloseMammot();
 						if(P.Action.DoJumpMamm)	break;
+						if(P.Action.ThresholdMammot) GetRefValueMammot();
 						for(isw=0;isw<MAX_SWITCH;isw++)
 				    		if(P.Action.MoveSwitch[isw]) MoveSwitch(CalcGoalSwitch(isw),isw);
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.MoveStep[is])
-							MoveStep(&P.Step[is].Actual,CalcGoal(is),is,(char)(P.Step[is].Mode!=STEP_MULTI),P.Action.Status);
+							MoveStep(&P.Step[is].Actual,P.Action.UseCalcGoalMamm[is]?CalcGoalMamm(is):CalcGoal(is),is,(char)(P.Step[is].Mode!=STEP_MULTI),P.Action.Status);
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.WaitStep[is]) WaitStep(&P.Step[is].Actual,CalcGoal(is),is,P.Action.Status);
 						if(P.Action.ScReInit.TrimmerPreBreak) ReInitSC1000('T'); // EDO
@@ -245,7 +248,7 @@ void KernelGen(){
 						if(P.Action.InitMamm) {if(P.Command.Abort) break; InitMammot();}	   
 						if(P.Action.StartMamm) StartMammot();
 						if(P.Action.WaitChrono) WaitChrono();
-						if(P.Action.StartAdc) {StartAdc(); P.Time.Start=clock();}		 // se � attivo ADC e power
+						if(P.Action.StartAdc) {StartAdc(); P.Time.Start=clock();}		 // se ? attivo ADC e power
 			    		if(P.Action.StartSync) StartSync();
 	                    if(P.Action.SpcReset) 
 							SpcReset(P.Action.Status,P.Meas.Clear,P.Meas.Stop);
@@ -255,14 +258,15 @@ void KernelGen(){
 						if(P.Action.WaitEnd) WaitEnd(P.Spc.TimeM,P.Wait.Pos,P.Wait.Type,P.Wait.Step);
 						if(P.Action.StopSync) StopSync();
 						if(P.Action.SpcStop) SpcStop(P.Action.Status);
-						if(P.Action.WaitAdc) {P.Time.Stop=clock();WaitAdc();}		 // se � attivo ADC e power
+						if(P.Action.WaitAdc) {P.Time.Stop=clock();WaitAdc();}		 // se ? attivo ADC e power
 		    		    //if(P.Action.StopAdc) StopAdc();		 // mi da errore...Andrea F
 						if(P.Action.StopOma) StopOma();
 						if(P.Action.SpcOut) SpcOut(P.Action.Status);
 						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
 						if(P.Action.DisplayRoi) DisplayRoi();
-						if(P.Action.StopMamm) StopMammot();  
+						if(P.Action.StopMamm) StopMammot();
+						if(P.Action.CloseMamm) CloseMammot();
 						if(P.Action.DataSave) DataSave();	 
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.WaitCont[is]) WaitCont(is,P.Action.Status);
@@ -329,13 +333,13 @@ void Oscilloscope(void){
 	SpcTime(P.Spc.TimeO);
 	// Needed for "OFF-OSC" hold selection mode
 	char IsInitStep[MAX_STEP];
-	for(int is=0;is<MAX_STEP;is++) 
-		if(P.Step[is].Hold==STEP_HOLD_OFF_OSC&&P.Step[is].Inizialized){
+	for(int is=0;is<MAX_STEP;is++){
+		IsInitStep[is] = FALSE;
+		if(P.Step[is].Hold==STEP_HOLD_OFF_OSC&&P.Step[is].Inizialized&&P.Contest.Run==CONTEST_MEAS){
     		CloseStep(is);
 			IsInitStep[is]=TRUE;
-		}
-		else
-			IsInitStep[is] = FALSE;
+		}							   
+	}  
 	while(!P.Command.Continue && !P.Command.Abort){
 		GetUserEvent (0, &panel, &control);
 		SpcReset(status,P.Meas.Clear,P.Meas.Stop);
@@ -364,8 +368,8 @@ void Oscilloscope(void){
 	P.Spc.Trash=TRUE;
 	P.Contest.Function = CONTEST_MEAS;
 	for(is=0;is<MAX_STEP;is++)
-		if(P.Step[is].Hold==STEP_HOLD_OFF_OSC&&IsInitStep[is])
-			InitMicro(is);
+		if(P.Step[is].Hold==STEP_HOLD_OFF_OSC&&IsInitStep[is]&&P.Contest.Run==CONTEST_MEAS)
+			InitStep(is);
 	}		
 
 
@@ -432,10 +436,11 @@ void DecideAction(void){
 
 	// Move Step
    	for(is=0;is<MAX_STEP;is++){
-   		if(P.Step[is].Step)
+		P.Action.UseCalcGoalMamm[is] = FALSE;
+		if(P.Step[is].Step)
 			switch (P.Loop[P.Step[is].Loop].Cont) {
-				case CONT_NONE:
-				case CONT_STEP: action=new[P.Step[is].Loop]; break;
+				case CONT_NONE: action=new[P.Step[is].Loop]; break;
+				case CONT_STEP: break;//action=new[P.Step[is].Loop]; break;
 				case CONT_RANGE: action=P.Loop[P.Step[is].Loop].Invert?first[P.Step[is].Loop-1]:first[P.Step[is].Loop]; break;
 				//case CONT_RANGE: action=first[P.Step[is].Loop-1]; break;// action=(first[P.Step[is].Loop]&&first4) || ( P.Loop[3].Num==P.Loop[3].Actual); break;  
 				}
@@ -606,17 +611,25 @@ void DecideAction(void){
 	P.Action.ReadUIR=P.Command.ReadUIR;
 	
 	// MAMMOT
-	P.Action.ScReInit.InitMammot = FALSE;
-	P.Spc.ScWait = FALSE;
+	if(first1&&first2&&first3&&first4&&first5){
+		P.Action.DoJumpMamm=FALSE;
+		P.Mamm.IsTop = FALSE;
+		P.Mamm.OverTreshold = FALSE;
+		P.Action.StopMamm = FALSE;
+		P.Action.CloseMamm = FALSE;
+		P.Action.InitMamm=FALSE;
+		P.Action.ThresholdMammot = FALSE;
+		P.Action.StartMamm=FALSE;
+		P.Action.CheckMamm= FALSE;
+		P.Action.UseCalcGoalMamm[P.Mamm.Step[X]] = FALSE;
+	}
 	if(P.Mamm.Status){		   //EDO	 //controllare
-		P.Mamm.CorrShift=1;
 		char is_checkmamm;
 		int HalfFrame=0;
-	
+		P.Mamm.DarkCountRateValue = MAMM_MIN_COUNT_RATE;
 		if(P.Mamm.FindTop){
-			P.Mamm.Roi = 2; P.Mamm.Fract = 0.4;
 			if(first[P.Mamm.Loop[Y]]) {
-				P.Mamm.TopLim=5;
+				P.Mamm.TopLim=15/abs(P.Loop[P.Mamm.Loop[X]].Delta);
 				P.Frame.Min = 0; P.Frame.Max = P.Frame.Num;
 				P.Frame.First = 0; P.Frame.Last = P.Frame.Max -1;
 				P.Mamm.OverTreshold = FALSE; P.Mamm.IsTop = FALSE;
@@ -627,30 +640,24 @@ void DecideAction(void){
 				is_checkmamm = P.Frame.Actual>=P.Frame.Half;
 			else
 				is_checkmamm = P.Frame.Actual<=P.Frame.Half;
-		//is_checkmamm = is_checkmamm||((P.Frame.Last-P.Frame.First) <= P.Mamm.TopLim*5); //controllare continous check if Frames are really close
-		if((P.Frame.Last-P.Frame.First+1)<=P.Mamm.TopLim) P.Mamm.IsTop = TRUE;
+		
+			if((P.Frame.Last-P.Frame.First+1)<=P.Mamm.TopLim) P.Mamm.IsTop = TRUE;
 			else P.Mamm.IsTop = FALSE;
 		}
 		else is_checkmamm=0;
-		P.Mamm.ExtraFrame.Num = 20;
-		if(P.Mamm.ExtraFrame.IsActiveOnLoopYNum){
-			//P.Mamm.IsTop = FALSE;
-			//is_checkmamm = TRUE;
-			P.Mamm.ExtraFrame.Num = P.Frame.Num;
-			if(P.Mamm.ExtraFrame.IsActiveOnLoopYNum == P.Loop[P.Mamm.Loop[Y]].Idx){
-				P.Mamm.ExtraFrame.Num = P.Frame.Num;
-				P.Mamm.ExtraFrame.IsActiveOnLoopYNum = FALSE;
-			}
-		}
 		P.Action.DoJumpMamm=(P.Mamm.OverTreshold||P.Mamm.IsTop||P.Action.StopMamm);
-		P.Action.ScReInit.InitMammot = first[P.Mamm.Loop[Y]];
 		if(new[P.Mamm.Loop[Y]]) {P.Mamm.OverTreshold = FALSE; P.Action.DoJumpMamm = P.Mamm.IsTop;}
-		if(P.Mamm.IsTop&&(!new[P.Mamm.Loop[Y]])&&P.Mamm.Shrink[Y])
-			D.Head.LoopLast[P.Mamm.Loop[Y]-2] = P.Loop[P.Mamm.Loop[Y]].Actual;
+		//if(P.Mamm.IsTop&&(!new[P.Mamm.Loop[Y]])&&P.Mamm.Shrink[Y])
+		//	D.Head.LoopLast[P.Mamm.Loop[Y]-2] = P.Loop[P.Mamm.Loop[Y]].Actual;
+		P.Action.CloseMamm = FALSE;
+		if(P.Mamm.IsTop&&(!new[P.Mamm.Loop[Y]])||last1)
+			P.Action.CloseMamm = TRUE;
 		P.Action.InitMamm=first[P.Mamm.Loop[Y]];
-		P.Action.MoveStep[P.Mamm.Step[X]]=first[P.Mamm.Loop[Y]]?0:P.Action.MoveStep[P.Mamm.Loop[X]];
+		P.Action.ThresholdMammot = first[P.Mamm.Loop[Y]]; 
+		P.Action.MoveStep[P.Mamm.Step[X]]=first[P.Mamm.Loop[Y]]?0:P.Action.MoveStep[P.Mamm.Step[X]];
 		P.Action.StartMamm=new[P.Mamm.Loop[Y]];
 		P.Action.CheckMamm=is_checkmamm;
+		P.Action.UseCalcGoalMamm[P.Mamm.Step[X]] = P.Loop[P.Mamm.Loop[X]].Cont==CONT_RANGE?FALSE:TRUE;
 		P.Action.StopMamm=last[P.Mamm.Loop[X]];
 		P.Action.StopMamm=P.Action.StopMamm||(new[P.Mamm.Loop[Y]]?0:(P.Frame.Actual==P.Frame.Min||P.Frame.Actual==(P.Frame.Max-1)));//controllare
 		P.Action.DataSave=P.Action.StopMamm;
@@ -690,7 +697,10 @@ void CloseMeasure(void){
 	for(isw=0;isw<MAX_SWITCH;isw++)
 		if(P.Switch[isw].Switch) MoveSwitch(P.Switch[isw].Home,isw);
 	for(is=MAX_STEP-1;is>=0;is--)
-		if(P.Step[is].Step) MoveStep(&P.Step[is].Actual,P.Step[is].Home,is,TRUE,TRUE);
+		if(P.Step[is].Step){
+			TellPos(is,&P.Step[is].Actual);
+			MoveStep(&P.Step[is].Actual,P.Step[is].Home,is,TRUE,TRUE);
+		}
 //	for(is=0;is<MAX_STEP;is++)
 //		if(P.Step[is].Step&&(P.Step[is].Mode!=STEP_SINGLE)) WaitStep(&P.Step[is].Actual,P.Step[is].Home,is,TRUE);
 	Delay(1.0);
@@ -2042,7 +2052,7 @@ void SpcClose(void){
 		case SPC130: CloseSpcm(); break;
 		case HYDRA: CloseHydra(); break;
 		case TH260: CloseTH260(); break;
-		case MH150: CloseMH150(); break;
+		//case MH150: CloseMH150(); break;
 		case SPC_SC1000: CloseSC1000(); break;
 		case SPC_SPADLAB: CloseSpad(); break;
 		case SPC_NIRS: CloseNirs(); break;
@@ -2225,7 +2235,7 @@ void SpcStop(char Status){
 void SpcWait(void){
 	short mod_state;
 	int mod_state2;
-	int ib;
+	int ib,iter = 0;
     unsigned char statusmeas;
 	switch(P.Spc.Type){
 		case NONE:  break;  
@@ -3274,7 +3284,7 @@ void InitMH150(int Board){
 	int ret,id;
 	char HW_Serial[16];
   	double Resolution;
-	int SyncDivider, SyncTriggerLevel,SyncTiggerEdge, SyncChannelOffset,InputTriggerLevel[MAXINPCHAN],InputTriggerEdge,ChannelOffset,ChannelEnable[MAXINPCHAN],Binning,HistLenCodeUser,Offset,MeasType,StartEdge,StopEdge;
+	int NumChannels,SyncDivider, SyncTriggerLevel,SyncTiggerEdge,SyncChannelOffset,InputTriggerLevel[MAXINPCHAN],InputTriggerEdge,ChannelOffset[MAXINPCHAN],ChannelEnable[MAXINPCHAN],Binning,HistLenCodeUser,Offset,MeasType,StartEdge,StopEdge;
 	char line[STRLEN];
 	FILE *pfile;
 	
@@ -3292,7 +3302,9 @@ void InitMH150(int Board){
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&SyncTiggerEdge);
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&SyncChannelOffset);
 	fgets(line,STRLEN,pfile); sscanf(line,"%d",&InputTriggerEdge);
-	fgets(line,STRLEN,pfile); sscanf(line,"%d",&ChannelOffset);
+	for(id=0;id<MAXINPCHAN;id++){
+		fgets(line,STRLEN,pfile); sscanf(line,"%d",&ChannelOffset[id]);
+	}
 	for(id=0;id<MAXINPCHAN;id++){
 		fgets(line,STRLEN,pfile); sscanf(line,"%d",&InputTriggerLevel[id]);
 	}
@@ -3322,7 +3334,7 @@ void InitMH150(int Board){
 	ret=MH_SetSyncChannelOffset(Board,SyncChannelOffset);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetSyncChannelOffset");	
 	for(id=0;id<P.Num.Det;id++){
 		ret=MH_SetInputEdgeTrg(Board,id,InputTriggerLevel[id],InputTriggerEdge);
-		ret=MH_SetInputChannelOffset(Board,id,ChannelOffset);
+		ret=MH_SetInputChannelOffset(Board,id,ChannelOffset[id]);
 		ret=MH_SetInputChannelEnable(Board,id,ChannelEnable[id]);
 	}
 	P.Spc.MH150HistLenCodeUser = HistLenCodeUser;
@@ -3330,10 +3342,15 @@ void InitMH150(int Board){
 	ret=MH_SetBinning(Board,Binning); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetBinning");
 	ret=MH_SetOffset(Board,Offset); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetOffset");
 	ret=MH_GetResolution(Board,&Resolution); if(ret<0) ErrHandler(ERR_MH150,ret,"MH_GetResolution");
-	ret=MH_SetMeasControl(Board,MeasType,StartEdge,StopEdge);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetMeasControl");  
-	
+	ret=MH_SetMeasControl(Board,MeasType,StartEdge,StopEdge);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetMeasControl");
+	ret=MH_GetNumOfInputChannels(Board, &NumChannels);
+	/*ret=MH_SetSyncDeadTime(Board,0,EXTDEADMIN);
+	for(id=0;id<P.Num.Det;id++)
+		ret=MH_SetInputDeadTime(Board,id,0,EXTDEADMIN); */
+	P.Spc.MH150MeasType = MeasType;
 	P.Spc.Calib = Resolution;
     P.Spc.Factor = P.Spc.Calib;
+	UpdatePanel();
 
 	P.Spc.TimeInit=TimerN();   // era Timer() 
 
@@ -3360,7 +3377,10 @@ void StopMH150(int Board){ //This way the measure is not actually stopped
 }
 /* CLOSE MH150 */	
 void CloseMH150(){
-	short ret;
+	int ret=MH_SetMeasControl(0,MEASCTRL_SINGLESHOT_CTC,0,0);
+	if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetMeasControl");
+	P.Spc.MH150MeasType=MEASCTRL_SINGLESHOT_CTC;
+	P.Frame.Counter = 0;
 	for(int ib = 0;ib<MAXDEVNUM;ib++){
 		ret=MH_CloseDevice(ib);
 		if(ret<0) ErrHandler(ERR_MH150,ret,"MH_CloseDevice");
@@ -3375,17 +3395,36 @@ void GetDataMH150(){
 	//short state;
 	int id;
 	int ic;
-	int ib;
+	int ib=0;
 	int ret=0;
-
+	if(P.Contest.Function==CONTEST_OSC&&P.Contest.Run==CONTEST_OSC&&P.Spc.TimeO>0.1){
+	int SyncRate,CountRates[P.Num.Det],Warnings;
+	char warningstext[16384];memset(warningstext, 0x00, sizeof(warningstext));
+	//ret = MH_GetAllCountRates(ib,&SyncRate,&CountRates);
+	ret = MH_GetSyncRate(ib,&SyncRate);
+	for(id=0;id<P.Num.Det;id++){
+		ret = MH_GetCountRate(ib, id, &CountRates[id]);
+	}
+	if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_GetCountRate");
+	ret = MH_GetWarnings(ib,&Warnings);
+	if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_GetWarnings");
+	if(Warnings&&ret>=0){
+		char message[16384];
+		ret=MH_GetWarningsText(ib, warningstext, Warnings);
+		sprintf (message, "Warning ...\n%s", warningstext);
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
+	}
+	
+	}								 
+	
 	if(MH_USE_GET_ALL_HIST_FUN){
 	
 	P.Spc.Overflow=FALSE;
 	for(ib=0;ib<P.Num.Board;ib++){
-		ret=MH_GetAllHistograms(ib,P.Spc.DataMH150);
+		ret=MH_GetAllHistograms(ib,P.Spc.DataMH150); if(ret<0) ErrHandler(ERR_MH150,ret,"MH150_GetHistogram");
 		for(id=0;id<P.Num.Det;id++)
 			for(ic=0;ic<P.Chann.Num;ic++){ 
-				D.Buffer[ib][id*P.Chann.Num+ic] = (T_DATA) P.Spc.DataMH150[id*P.Spc.MH150HistLen+ic]; 
+				D.Buffer[ib][id*P.Chann.Num+ic] = (T_DATA) P.Spc.DataMH150[id*P.Spc.MH150HistLen+ic];
 			}
 		}
 	}
@@ -5279,7 +5318,7 @@ int CVICALLBACK ClientTCPCB (unsigned handle, int event, int error,
             		break;
             	}
             	
-            /*ricezione conferma della modalit� col nomefile automatico*/	
+            /*ricezione conferma della modalit? col nomefile automatico*/	
             	if(strcmp (receiveBuf, "YES!")==0){
             		P.Oma.FileYes=1;
             		break;
@@ -5402,6 +5441,9 @@ void StartCont(char Step, char Status){
 	int iloop = P.Loop[loop].Actual;
 	long start[MAXPOS];
 	long stop[MAXPOS];
+	double ExtraTime = 0;
+	if(P.Mamm.Status&&P.Spc.Type==MH150) ExtraTime = 0.030;
+			
 	
 	char invert=(P.Loop[loop].Invert)&&REMINDER(P.Loop[loop-1].Idx,2);
 	for(il=P.Step[Step].Loop+1;il<MAX_LOOP;il++) num_meas*=P.Loop[il].Num;
@@ -5424,7 +5466,7 @@ void StartCont(char Step, char Status){
 			stopgoal=stop[iloop];
 			break;
 		case CONT_RANGE:
-			freq=fabs(P.Step[Step].Delta)/(num_meas*P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num);
+			freq=fabs(P.Step[Step].Delta)/(num_meas*(P.Spc.TimeM+ExtraTime)*P.Loop[P.Step[Step].Loop].Num);
 			stopgoal=stop[P.Loop[P.Step[Step].Loop].Num-1];
 			break;
 		}
@@ -5434,7 +5476,7 @@ void StartCont(char Step, char Status){
 		P.Wait.Pos=start[iloop]+(imeas*delta/num_meas);
 		}
 	
-	MoveStep(&P.Step[Step].Actual,stopgoal,Step,FALSE,Status);	
+	MoveStep(&P.Step[Step].Actual,P.Action.UseCalcGoalMamm[Step]?CalcGoalMamm(Step):stopgoal,Step,FALSE,Status);	
 }
 
 
@@ -5460,13 +5502,18 @@ void WaitCont(char Step, char Status){
 			stopgoal=stop[P.Loop[P.Step[Step].Loop].Num-1];
 			break;
 		}
-	WaitStep(&P.Step[Step].Actual,stopgoal,Step,Status);
+	WaitStep(&P.Step[Step].Actual,P.Action.UseCalcGoalMamm[Step]?CalcGoalMamm(Step):stopgoal,Step,Status);
 	}
 
 
 /* INITIALIZE STEPPER MOTOR */
 void InitStep(char Step){
 	P.Step[Step].Moving = FALSE;
+	char message[STRLEN];
+	if (OpenCom(P.Step[Step].Com,NULL)==-6){
+		sprintf(message,"Port COM %d, (Step %d). Switch on the device and THEN press ok",P.Step[Step].Com,Step+1);
+		MessagePopup("Warning",message);
+	}
 	switch(P.Step[Step].Type){
 		case LPT: InitLpt(); break;
 		case NEWP: InitNewp(P.Step[Step].Speed,P.Step[Step].Axis,Step); break;
@@ -5714,7 +5761,19 @@ long CalcGoal(char Step){
 	//index = P.Loop[loop].Idx;
 	return(P.Step[Step].Start[index]);
 	}
-
+/* CALCULATE GOAL FOR STEPPER */
+long CalcGoalMamm(char Step){
+	long StopGoal;
+	if(P.Loop[P.Step[Step].Loop].Cont!=CONT_NONE){
+		if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
+			StopGoal = P.Step[Step].Stop[P.Frame.Actual]; // controllare il +1
+		else
+			StopGoal = P.Step[Step].Start[P.Frame.Actual]; // controllare il +1
+	}
+	else
+		StopGoal = P.Step[Step].Start[P.Frame.Actual];
+	return(StopGoal);
+	}
 
 /* MOVE STEPPER MOTOR */
 void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
@@ -6346,6 +6405,8 @@ void InitMicro(char Step){
     TalkMicro(Step,MICRO_HOLD,P.Step[Step].Hold==STEP_HOLD_OFF_OSC?STEP_HOLD_ON:P.Step[Step].Hold,&ret);
     TalkMicro(Step,MICRO_FMIN,P.Step[Step].FreqMin,&ret);
 	TalkMicro(Step,MICRO_VEL,(int) P.Step[Step].Freq,&ret);
+	if(P.Mamm.Status&&Step==P.Mamm.Step[X])
+		P.Step[Step].FreqDelta = abs(P.Loop[P.Mamm.Loop[X]].Delta)*P.Step[Step].Factor;	
 	TalkMicro(Step,MICRO_FDELTA,P.Step[Step].FreqDelta,&ret);
 //**    TalkMicro(com,MICRO_HOME,P.Step[Step].Home,&ret);
     
@@ -6368,6 +6429,7 @@ void CloseMicro(char Step){
 void SetVelMicro(char Step, double Freq){
 	int ret;
 //	int com=P.Step[Step].Com;
+	TalkMicro(Step,MICRO_FMIN,(int) Freq,&ret);
     TalkMicro(Step,MICRO_VEL,(int) Freq,&ret);
 	}
 
@@ -6855,8 +6917,8 @@ void InitPi(char Step){
 void ClosePi(){
 	
 	if (MCRS_close()!=0)
-		SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PI: CLOSE DEVICE ERROR\n");	   //Chiude la COM aperta prima. Potrebbe creare conflitti se ci fossero pi�
-					 //driver PI su COM differenti. In tal caso conviene sfruttare la possibilit�
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PI: CLOSE DEVICE ERROR\n");	   //Chiude la COM aperta prima. Potrebbe creare conflitti se ci fossero pi?
+					 //driver PI su COM differenti. In tal caso conviene sfruttare la possibilit?
 					 //di collegare i dispositivi in cascata e comandarli da un'unica COM.
 	}
 
@@ -8511,13 +8573,25 @@ void CloseDataFile(void) {
 /* INITIALIZE FILE */
 void InitDataFile(void){
     long size;
-	
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Initializing File ");
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, P.File.Path);
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, " ...");
 	if(GetFileInfo (P.File.Path, &size))  EnterName();
 	P.File.File = fopen(P.File.Path,"wb");
-	if(P.File.File == NULL) Failure("Error Creating File Data"); else Passed();
+	if(P.File.File == NULL){
+		if (errno==ENOENT){
+			MakeDir(P.File.Dir);
+			char message[STRLEN];
+			sprintf(message,"Created DIR: %s",P.File.Dir);
+			MessagePopup ("Warning", message);
+			P.File.File = fopen(P.File.Path,"wb");
+			if(P.File.File==NULL)
+				Failure("Error Creating File Data");
+		}
+		else
+			Failure("Error Creating File Data");
+	}
+	else Passed();
 	CompileHeader();
 	while(fwrite(&D.Head,sizeof(D.Head),1,P.File.File)<1);
 	fflush(P.File.File);
@@ -8548,31 +8622,12 @@ void DataSave(void){
 		}
 	while(P.File.File == NULL);
 */	
-	if(P.Mamm.Shrink[X]&&P.Mamm.Status){
 	
-    int IdY=P.Loop[P.Mamm.Loop[Y]].Idx;
-	for(ifr=P.Frame.First;ifr<=P.Frame.Last;ifr++)
-		for(ip=0;ip<P.Num.Page;ip++){
-			if(P.Info.SubHeader) while(fwrite (&D.Sub[ifr][ip], sizeof(T_SUB), 1, P.File.File)<1);
-			while(fwrite((D.Data[ifr][ip]),sizeof(T_DATA),P.Chann.Num,P.File.File)<P.Chann.Num);
-		}	
-	
-	FILE *fid;
-	char path[STRLEN];
-	sprintf(path, "%s\\%s.%s",P.File.Dir,P.File.Name,"txt");
-	if(IdY==0) {fid=fopen(path,"w+"); fprintf(fid,"FrameFirst\tFrameLast\tIdY\n");}
-	else fid=fopen(path,"a+");
-	fprintf(fid,"%d\t%d\t%d\n",P.Frame.First,P.Frame.Last,IdY);
-	fclose(fid);
-	}
-	else{
 	for(ifr=0;ifr<P.Frame.Num;ifr++)
 		for(ip=0;ip<P.Num.Page;ip++){
 			if(P.Info.SubHeader) while(fwrite (&D.Sub[ifr][ip], sizeof(T_SUB), 1, P.File.File)<1);
 			while(fwrite(D.Data[ifr][ip],sizeof(T_DATA),P.Chann.Num,P.File.File)<P.Chann.Num);
 		}	
-	}
-	
 	
 	fflush(P.File.File);
 //	fclose(P.File.File);
@@ -9151,7 +9206,7 @@ void AddLabel(int IdName){
 	char *LabelContent=T.Addr[IdContent];
 	char Answer[LABEL_CONTENTLEN];
 
-	sprintf(Message,"%s\n\n press enter to confirm or edit to modify",LabelContent);
+	sprintf(Message,"Label: %s\nContent: %s\n press OK to confirm or edit to modify",LabelName,LabelContent);
 	PromptPopup (LabelName,Message,Answer,LABEL_CONTENTLEN-1);
 	if(strlen(Answer)>0) strcpy(LabelContent,Answer);
 	SetCtrlAttribute (hPanel[T.Panel[IdContent]],T.Ctrl[IdContent],ATTR_CTRL_VAL,LabelContent);
@@ -9164,7 +9219,7 @@ void AddThick(int ID){
 	double *actualValue=T.Addr[ID];
 	char Answer[STRLEN];
 
-	sprintf(Message,"Please Enter THICKNESS in cm, use . (dot)\n   Actual value is %f\n Press Enter to Confirm or Modify",*actualValue);
+	sprintf(Message,"Please Enter THICKNESS in cm, use . (dot)\n   Actual value is %f\n Press OK to Confirm or Modify",*actualValue);
 	PromptPopup ("THICKNESS",Message,Answer,LABEL_CONTENTLEN-1);
 	if(strlen(Answer)>0) Scan (Answer,"%f",actualValue);
 	SetCtrlAttribute (hPanel[T.Panel[ID]],T.Ctrl[ID],ATTR_CTRL_VAL,*actualValue);
@@ -9370,12 +9425,12 @@ void FindTop(void){
 	P.Mamm.Idx[Y].Last = (P.Mamm.Shrink[Y]?P.Mamm.Idx[Y].Top[MAMM_VIS]:P.Mamm.Idx[Y].Num-1);
 	
 //	Find Top NIR
-//	Indietreggia di una quantit� fissa
+//	Indietreggia di una quantit? fissa
 	if(P.Mamm.BackTopNIR>0) {
 		P.Mamm.Idx[Y].Top[MAMM_NIR] = P.Mamm.Idx[Y].Top[MAMM_NIR]-P.Mamm.BackTopNIR;
 		MoveStep(&stepy->Actual,stepy->Start[P.Mamm.Idx[Y].Top[MAMM_NIR]], P.Mamm.Step[Y],WAIT_TRUE, status);
 		}
-//	Indietreggia finch� conteggi VIS > RateLow
+//	Indietreggia finch? conteggi VIS > RateLow
 	do {
 		P.Mamm.Idx[Y].Top[MAMM_NIR]--;
 		MoveStep(&stepy->Actual,stepy->Start[P.Mamm.Idx[Y].Top[MAMM_NIR]], P.Mamm.Step[Y],WAIT_TRUE, status);	
@@ -9510,63 +9565,14 @@ void AnalysisMamm(void){
 /* IS OVERTHRESHODLS? */
 void AnalysisMamm_new(void){
 	
-	int ib,id=0,ic;
-	long Area, MaxVal, MaxPos, First, Last;
-	double Treshold, BaricentrePos, Width, Target1, Target2, Target3;
-	char Cond1, Cond2, Cond3;
-	
-	P.Mamm.OverTreshold = FALSE; 
-	id = (P.Step[P.Mamm.Step[X]].Dir==1)?MAMM_WEST_DET:MAMM_EAST_DET;  //most right or most left detector according to step movement
-	if(P.Mamm.IsRefMeas){
-	int FirstNeighb = 1; int iframe;
-	long Frames[FirstNeighb+1]; long Areas[FirstNeighb+1]; double Derivatives[FirstNeighb];
-	for(iframe=0;iframe<(FirstNeighb+1);iframe++){
-		Frames[iframe]=P.Frame.Actual-P.Frame.Dir*iframe;
-		if(Frames[iframe]<0) Frames[iframe] = 0;
-		D.Curve = D.Data[Frames[iframe]][id];
-		Areas[iframe]=CalcArea(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi])-CalcArea(P.Roi.First[P.Mamm.Roi]-10,P.Roi.First[P.Mamm.Roi]);		
-	}
-	for(iframe=1;iframe<(FirstNeighb+1);iframe++){
-		Derivatives[iframe-1]=(Areas[iframe-1]-Areas[iframe])/((double) P.Mamm.RefMeas.Area);
-	}
-	
-	D.Curve = D.Data[P.Frame.Actual][id];
-	Area = CalcArea(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi])-CalcArea(P.Roi.First[P.Mamm.Roi]-10,P.Roi.First[P.Mamm.Roi]);
-	//GetRange(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi],P.Mamm.Fract,&MaxVal,&MaxPos,&First,&Last,&Treshold);
-	
-	Target1 =  (Area-P.Mamm.RefMeas.Area)/((double) P.Mamm.RefMeas.Area);
-	Cond1 = Target1 <= P.Mamm.NegativeTreshold;
-	Target2 = (double) Derivatives[0];
-	Cond2 = Target2 <= -0.5;
-	
-	if(Cond1&&Cond2) P.Mamm.OverTreshold = TRUE;
-	else{
-		Cond1 = Target1 <= P.Mamm.NegativeTreshold;
-		Cond2 = TRUE;
-		for(iframe=0;iframe<FirstNeighb;iframe++)
-			Cond2=Cond2&&(Derivatives[iframe]<=-0.5?1:0);
-		if(Cond1||Cond2) P.Mamm.OverTreshold = TRUE;
-			else P.Mamm.OverTreshold = FALSE; 
-	}
-	}
-	else{
-	for(ib=0;ib<P.Num.Board;ib++) P.Mamm.Count.Actual[ib]=0; 
+	int ib,id,ic;
+	long countrate=0;
 	for(ib=0;ib<P.Num.Board;ib++)
 		for(id=0;id<P.Num.Det;id++)
 		 	for(ic=0;ic<P.Chann.Num;ic++)
-			  P.Mamm.Count.Actual[ib]+=D.Buffer[ib][ic+id*P.Chann.Num];
-	for(ib=0;ib<P.Num.Board;ib++){
-			P.Mamm.Rate.Actual[ib]=P.Mamm.Count.Actual[ib]/P.Spc.TimeM; //Antonio. P.Spc.TimeM o P.Spc.EffTime[ib]
-			P.Mamm.OverTreshold=P.Mamm.Rate.Actual[ib]>P.Mamm.Rate.High[ib]||P.Mamm.Rate.Actual[ib]<P.Mamm.Rate.Low[ib];
-	}
-	}
-	if(!P.Mamm.OverTreshold){
-		D.Curve = D.Data[P.Frame.Actual][id];
-		Area = CalcArea(P.Chann.First,P.Chann.Last)*P.Num.Det;
-		if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)>=SC1000_MAX_COUNT_RATE) P.Mamm.OverTreshold = TRUE; 
-	}
-	if(Area/((double) MILLISEC_2_SEC*P.Spc.TimeSC1000)<=SC1000_MIN_COUNT_RATE)
-		P.Mamm.ExtraFrame.IsActiveOnLoopYNum = P.Loop[P.Mamm.Loop[Y]].Idx+2;
+			  countrate +=D.Buffer[ib][ic+id*P.Chann.Num];
+	countrate=countrate/P.Spc.TimeM; //Antonio. P.Spc.TimeM o P.Spc.EffTime[ib]
+	P.Mamm.OverTreshold=countrate<P.Mamm.DarkCountRateValue;
 }
 
 /* INIT MAMMOT */
@@ -9574,47 +9580,128 @@ void InitMammot(void){	   //EDO
 	char StepX=P.Mamm.Step[X];
 	char StepY=P.Mamm.Step[Y];
 	char LoopX=P.Mamm.Loop[X];
-	int ib=0,ifr,ip,id = MAMM_SOUTH_DET; 
-
-	if(P.Mamm.IsRefMeas){
-	/*
-	MoveStep(&P.Step[StepX].Actual,P.Step[StepX].Home,StepX,TRUE,P.Action.Status);
-	ReInitSC1000('S');
-	StartMammot();
-	MoveStep(&P.Step[StepX].Actual,CalcGoal(StepX),StepX,TRUE,P.Action.Status);
-	int ic=0;
-	do{
-		SpcOut(TRUE);
-		CheckMammot();
-		ic++;
-	}while(ic<P.Mamm.NumAcq.Tot&&P.Mamm.OverTreshold==FALSE);
-	StopMammot();
-	D.Curve = D.Data[P.Frame.Actual][id];
-	P.Mamm.RefMeas.Area = CalcArea(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi])-CalcArea(P.Roi.First[P.Mamm.Roi]-10,P.Roi.First[P.Mamm.Roi]);
-	GetRange(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi],P.Mamm.Fract,&P.Mamm.RefMeas.MaxVal,&P.Mamm.RefMeas.MaxPos,&P.Mamm.RefMeas.First,&P.Mamm.RefMeas.Last,&P.Mamm.RefMeas.Treshold);
-	P.Mamm.RefMeas.BaricentrePos = CalcBaricentre(P.Mamm.RefMeas.First,P.Mamm.RefMeas.Last);
-	P.Mamm.RefMeas.Width=CalcWidth(P.Mamm.RefMeas.First,P.Mamm.RefMeas.Last,P.Mamm.RefMeas.Treshold);
-	P.Frame.Min = 0; P.Frame.Max = P.Frame.Num;
-	P.Frame.Last = P.Frame.Max-1;
-	P.Mamm.IgnoreTrash = TRUE; P.Spc.ScWait = TRUE;
-	P.Frame.Actual = ic--; P.Frame.First = P.Frame.Actual;
-	*/
-	MoveStep(&P.Step[StepX].Actual,P.Step[StepX].Home,StepX,TRUE,P.Action.Status);
-	P.Spc.ScWait = FALSE;
-	ReInitSC1000('M');
-	//for(ib=0;ib<P.Num.Board;ib++) FlushSC1000(ib);
-	SpcOut(TRUE);
-	MoveStep(&P.Step[StepX].Actual,CalcGoal(StepX),StepX,TRUE,P.Action.Status);
-	D.Curve = D.Data[P.Frame.Actual][id];
-	P.Mamm.RefMeas.Area = CalcArea(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi])-CalcArea(P.Roi.First[P.Mamm.Roi]-10,P.Roi.First[P.Mamm.Roi]);
-	GetRange(P.Roi.First[P.Mamm.Roi],P.Roi.Last[P.Mamm.Roi],P.Mamm.Fract,&P.Mamm.RefMeas.MaxVal,&P.Mamm.RefMeas.MaxPos,&P.Mamm.RefMeas.First,&P.Mamm.RefMeas.Last,&P.Mamm.RefMeas.Treshold);
-	P.Mamm.RefMeas.BaricentrePos = CalcBaricentre(P.Mamm.RefMeas.First,P.Mamm.RefMeas.Last);
-	P.Mamm.RefMeas.Width=CalcWidth(P.Mamm.RefMeas.First,P.Mamm.RefMeas.Last,P.Mamm.RefMeas.Treshold);
+	long PosX;
+	int ib=0;
+	int NumIter = 0;
+	int MaxMeas = abs(P.Loop[LoopX].First/P.Loop[LoopX].Delta);
+	char DebugFilePath[STRLEN];
+	sprintf(DebugFilePath, "%s\\%s_info.txt",P.File.Dir,P.File.Name);
+	
+	FID = fopen(DebugFilePath,"a+");
+	fprintf(FID,"Trimmer Time (s)\t%f\n",Timer()-P.Spc.MH150_Start);
+	fclose(FID);
+	P.Spc.MH150_Start = Timer();
+	
+	FID = fopen(DebugFilePath,"a+");
+	for(int is=0;is<MAX_STEP;is++){
+		if(P.Step[is].Type==NONE) continue;
+		TellPos(is,&PosX);
+		fprintf(FID,"Step %d\t%d\n",is+1,(long) abs(PosX/P.Step[is].Factor));
 	}
-	if(P.Action.ScReInit.InitMammot) ReInitSC1000('S'); 
+	fclose(FID);
+	
+	
+	if(P.Loop[LoopX].Cont == CONT_STEP){
+		TellPos(StepX,&P.Step[StepX].Actual);
+		MoveStep(&P.Step[StepX].Actual,P.Step[StepX].Home,StepX,TRUE,P.Action.Status);
+		long Goal=0;
+		char keepin = 1;
+		do{
+			SpcClear();
+			SpcIn();
+			WaitEnd(P.Spc.TimeM,P.Wait.Pos,P.Wait.Type,P.Wait.Step);
+			SpcStop(P.Action.Status);
+			SpcGet();
+			CheckMammot();
+			keepin = !P.Mamm.OverTreshold&&(NumIter<MaxMeas);
+			if(keepin){
+				Goal = -(++NumIter)*P.Step[StepX].Factor*P.Loop[LoopX].Delta;
+				MoveStep(&P.Step[StepX].Actual,Goal,StepX,TRUE,P.Action.Status);
+			}
+		}while(keepin);
+	}
+	if(P.Loop[LoopX].Cont == CONT_RANGE){
+		TellPos(StepX,&P.Step[StepX].Actual);
+		MoveStep(&P.Step[StepX].Actual,P.Step[StepX].Home,StepX,TRUE,P.Action.Status);
+		double freq,ExtraTime = 0; int il,num_meas = 1;
+		if(P.Mamm.Status&&P.Spc.Type==MH150) ExtraTime = 0.030;
+		for(il=P.Step[StepX].Loop+1;il<MAX_LOOP;il++) num_meas*=P.Loop[il].Num;
+		freq=fabs(P.Step[StepX].Delta)/(num_meas*(P.Spc.TimeM+ExtraTime)*P.Loop[LoopX].Num);
+		if(freq!=P.Step[StepX].FreqActual) SetVel(StepX,freq);
+		//int ret=MH_SetMeasControl(0,MEASCTRL_C1_START_CTC_STOP,1,0);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetMeasControl");
+		//P.Spc.MH150MeasType=MEASCTRL_C1_START_CTC_STOP;
+		MoveStep(&P.Step[StepX].Actual,P.Step[StepX].Start[1],StepX,FALSE,P.Action.Status);
+		char keepin = 1;
+		do{
+			SpcClear();
+			SpcIn();
+			WaitEnd(P.Spc.TimeM,P.Wait.Pos,P.Wait.Type,P.Wait.Step);
+			SpcStop(P.Action.Status);
+			SpcGet();
+			CheckMammot();
+			keepin = !P.Mamm.OverTreshold&&(NumIter<MaxMeas);
+			++NumIter;
+		}while(keepin);
+		StopStep(StepX);
+		TellPos(StepX,&PosX);
+		long StopGoal = PosX+P.Frame.Dir*P.Step[StepX].Factor*abs(P.Loop[LoopX].Delta)*8.58/(P.Spc.TimeM*SEC_2_MILLISEC);
+		MoveStep(&PosX,StopGoal,StepX,TRUE,P.Action.Status);
+		P.Step[StepX].Actual = PosX;
+	}
+		
+	
+	P.Mamm.OverTreshold=FALSE;
+	P.Action.DataSave = 0; P.Action.StopMamm = 0;
+	P.Frame.Actual = MaxMeas - NumIter;
+	if(P.Frame.Actual<0) P.Frame.Actual = 0;
+	
+	//MoveStep(&PosX,P.Step[StepX].Start[P.Frame.Actual],StepX,TRUE,P.Action.Status);
+	TellPos(StepX,&PosX);
+	
+	FID = fopen(DebugFilePath,"a+");
+	fprintf(FID,"Trimmer position in pixels from right breast border\t%d\n",abs(PosX/P.Step[StepX].Factor/P.Loop[LoopX].Delta));
+	fclose(FID);
+
 	P.Frame.Min = 0; P.Frame.Max = P.Frame.Num;
-	P.Frame.First = 0; P.Frame.Last = P.Frame.Max-1;
+	P.Frame.First = P.Frame.Actual; P.Frame.Last = P.Frame.Max-1;
 	P.Mamm.IgnoreTrash = TRUE; P.Spc.ScWait = TRUE;
+	if(P.Loop[P.Mamm.Loop[X]].Cont == CONT_RANGE){
+	//	int ret=MH_SetMeasControl(0,MEASCTRL_C1_START_CTC_STOP,1,0);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetMeasControl");
+	//	P.Spc.MH150MeasType=MEASCTRL_C1_START_CTC_STOP;
+	}
+	P.Frame.Counter = 0;
+	//int redprof = CVIProfSetCurrentThreadProfiling(1);   
+}
+void GetRefValueMammot(void){
+ 	char StepX=P.Mamm.Step[X];
+	TellPos(StepX,&P.Step[StepX].Actual);
+	MoveStep(&P.Step[StepX].Actual,P.Step[StepX].Home,StepX,TRUE,P.Action.Status);	
+	SpcTime(P.Spc.TimeM);
+	SpcClear();
+	SpcIn();
+	WaitEnd(P.Spc.TimeM,P.Wait.Pos,P.Wait.Type,P.Wait.Step);
+	SpcStop(P.Action.Status);
+	SpcGet();
+
+		
+	int ib,id=0,ic;
+	for(ib=0;ib<P.Num.Board;ib++) P.Mamm.Count.Actual[ib]=0; 
+	for(ib=0;ib<P.Num.Board;ib++)
+		for(id=0;id<P.Num.Det;id++)
+		 	for(ic=0;ic<P.Chann.Num;ic++)
+			  P.Mamm.Count.Actual[ib]+=D.Buffer[ib][ic+id*P.Chann.Num];
+    long DarkCountRateValue = P.Mamm.Count.Actual[0]/P.Spc.TimeM;
+	//if(DarkCountRateValue>SC1000_MIN_COUNT_RATE) DarkCountRateValue = SC1000_MIN_COUNT_RATE;
+	//	else DarkCountRateValue = min(DarkCountRateValue*(1+0.2),SC1000_MIN_COUNT_RATE);
+	char DebugFilePath[STRLEN];
+	sprintf(DebugFilePath, "%s\\%s_info.txt",P.File.Dir,P.File.Name);	
+	FID = fopen(DebugFilePath,"w+");
+	fprintf(FID,"Background noise (total countrate)\t%d\n",DarkCountRateValue);
+	fprintf(FID,"Background noise (counts)\t%f\n",DarkCountRateValue*P.Spc.TimeM);
+	fclose(FID);
+	P.Mamm.TimeStart = Timer();
+	P.Spc.MH150_Start = Timer();
+	
 }
 
 /* RESUME MAMMOT PROCEDURE */
@@ -9629,53 +9716,90 @@ void StartMammot(void){
 		for(ip=0; ip<P.Num.Page;ip++)
 			CompileSub(P.Ram.Actual, ifr, ip);
 	
-	float AcqTime = min((P.Frame.Last-P.Frame.First)+(P.Mamm.ExtraFrame.Num)/abs(P.Loop[P.Mamm.Loop[X]].Delta),P.Frame.Num)*P.Spc.TimeM; //controllare  //20 � in mm
-	if(!P.Spc.Started)
-		for(ib=0;ib<P.Num.Board;ib++)
-			P.Spc.ScAcqTime=StartSC1000(ib,AcqTime);
-	P.Spc.Started = TRUE;
-	P.Mamm.IgnoreTrash = TRUE;
-	P.Spc.ScWait = TRUE;
-	P.Mamm.NumAcq.Active = TRUE;
+}
+void CloseMammot(void){
+	char DebugFilePath[STRLEN];
+	sprintf(DebugFilePath, "%s\\%s_info.txt",P.File.Dir,P.File.Name);	
+	FID = fopen(DebugFilePath,"a+");
+	fprintf(FID,"Scan Time (s)\t%f\nNum Acq\t%d\nTimePerAcq\t%f\n",Timer()-P.Spc.MH150_Start,P.Frame.Counter,(Timer()-P.Spc.MH150_Start)/P.Frame.Counter);
+	fprintf(FID,"Total Time (s)\t%f",Timer()-P.Mamm.TimeStart);
+	fclose(FID);
+	// Clear DATA
+	for(int il=P.Loop[P.Mamm.Loop[Y]].Idx+1;il<P.Loop[P.Mamm.Loop[Y]].Num;il++){
+	int ifr,ip,ib;
+	for(ifr=0; ifr<P.Frame.Num;ifr++)
+		for(ip=0; ip<P.Num.Page;ip++)
+			for(ic=0; ic<P.Chann.Num;ic++)
+				D.Data[ifr][ip][ic]=0;
+	for(ifr=0; ifr<P.Frame.Num;ifr++)
+		for(ip=0; ip<P.Num.Page;ip++)
+			CompileSub(P.Ram.Actual, ifr, ip);
+	DataSave();
+	}
+	if(P.Loop[P.Mamm.Loop[X]].Cont == CONT_RANGE){
+		int ret=MH_SetMeasControl(0,MEASCTRL_SINGLESHOT_CTC,0,0);if(ret<0) ErrHandler(ERR_MH150,ret,"MH_SetMeasControl");
+		P.Spc.MH150MeasType=MEASCTRL_SINGLESHOT_CTC;
+	}
 }
 
 /* STOP STEP AND PREPARE FOR DATA SAVE */
 void StopMammot(void){	  //EDO
-	StopStep(P.Mamm.Step[X]);
-	double stop;
-	int ib,ifr,ip;
-	for(ib=0;ib<P.Num.Board;ib++) FlushSC1000(ib);
-	
-	if(P.Mamm.CorrShift) ShiftCorrection();
-	if(P.Mamm.ShiftBack) BackShift();
+	if(P.Loop[P.Mamm.Loop[X]].Cont==CONT_RANGE){
+		StopStep(P.Mamm.Step[X]);	
+		//ShiftCorrection();
+		P.Action.WaitCont[P.Mamm.Step[X]] = FALSE;
+		
+		/**/
+		char StepX=P.Mamm.Step[X];
+		char LoopX=P.Mamm.Loop[X];
+		long PosX, StopGoal;
+		TellPos(StepX,&PosX);
+		StopGoal = PosX-P.Frame.Dir*P.Step[StepX].Factor*abs(P.Loop[LoopX].Delta)*8.58/(P.Spc.TimeM*SEC_2_MILLISEC);
+		MoveStep(&PosX,StopGoal,StepX,TRUE,P.Action.Status);
+		
+		/**/
+	}
+	if(P.Loop[P.Mamm.Loop[X]].Cont==CONT_STEP){
+	/*char StepX=P.Mamm.Step[X];
+	char LoopX=P.Mamm.Loop[X];
+	long PosX, StopGoal;
+	TellPos(StepX,&PosX);
+	if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
+		StopGoal = P.Step[StepX].Stop[P.Frame.Actual+P.Frame.Dir*2]; // controllare il +1
+	else
+		StopGoal = P.Step[StepX].Start[P.Frame.Actual]; // controllare il +1
+	MoveStep(&PosX,StopGoal,StepX,TRUE,P.Action.Status);
+	P.Action.WaitCont[StepX] = FALSE;*/
+	}
+	//if(P.Mamm.CorrShift) ShiftCorrection();
+	//if(P.Mamm.ShiftBack) BackShift();
 	if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
 		P.Frame.Last = P.Frame.Actual;
 	else
 		P.Frame.First = P.Frame.Actual;
-	P.Spc.Started=FALSE;
 	P.Frame.Dir = 0;
-	P.Mamm.NumAcq.Active = FALSE;
-	P.Mamm.IgnoreTrash=FALSE;
+	P.Frame.Counter +=(P.Frame.Last-P.Frame.First+1); 
 }
 
 /* OVERTHRESHOLDS OPERATIONS */
 void CheckMammot(void){
-AnalysisMamm_new();			
-if(P.Mamm.OverTreshold){P.Action.DataSave=1;P.Action.StopMamm=1;}
+	AnalysisMamm_new();			
+	if(P.Mamm.OverTreshold){
+		P.Action.DataSave=1;P.Action.StopMamm=1;
+	}
 }
 
 /* APPLY CORRECTION SHIFT */
 void ShiftCorrection(void){
 	char StepX=P.Mamm.Step[X];
 	char LoopX=P.Mamm.Loop[X];
-	long PosX, StopGoal; float Shift;
+	long PosX, StopGoal;
 	TellPos(StepX,&PosX);
 	if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
 		StopGoal = P.Step[StepX].Stop[P.Frame.Actual]; // controllare il +1
 	else
 		StopGoal = P.Step[StepX].Start[P.Frame.Actual]; // controllare il +1
 	MoveStep(&PosX,StopGoal,StepX,TRUE,P.Action.Status);
-
 }
 
 /* BACK SHIFT */
@@ -9686,7 +9810,7 @@ void BackShift(void){
 	int ShiftBack=P.Mamm.ShiftBack,id,ib,ic,iframe;
 	
 	TellPos(P.Mamm.Step[X],&PosX);
-	long Frame = P.Frame.Actual-P.Frame.Dir*(P.Mamm.ShiftBack-1);
+	long Frame = P.Frame.Actual-P.Frame.Dir*(P.Mamm.ShiftBack);
 	if(Frame < 0) return;
 	if (REMINDER(P.Loop[P.Mamm.Loop[Y]].Idx,2)==0)
 		StopGoal = P.Step[StepX].Stop[Frame]; // controllare il +1
