@@ -13,7 +13,12 @@
 
      /* Panels and Controls: */
 
-#define  DISPLAY                          1       /* callback function: ClosePanel */
+#define  DCS                              1       /* callback function: ClosePanel */
+#define  DCS_TITLE                        2       /* control type: textMsg, callback function: (none) */
+#define  DCS_LASER_POWER                  3       /* control type: numeric, callback function: Setting */
+#define  DCS_INFO                         4       /* control type: ring, callback function: Setting */
+
+#define  DISPLAY                          2       /* callback function: ClosePanel */
 #define  DISPLAY_CONTPAUSE                2       /* control type: textButton, callback function: GetCommand */
 #define  DISPLAY_ABORT                    3       /* control type: command, callback function: GetCommand */
 #define  DISPLAY_T_OSCILL                 4       /* control type: table, callback function: Setting */
@@ -68,7 +73,7 @@
 #define  DISPLAY_OSCILL_ZOOM_LAST         53      /* control type: numeric, callback function: Setting */
 #define  DISPLAY_ZOOM                     54      /* control type: textMsg, callback function: (none) */
 
-#define  DO_STEP                          2       /* callback function: ClosePanel */
+#define  DO_STEP                          3       /* callback function: ClosePanel */
 #define  DO_STEP_TITLE                    2       /* control type: textMsg, callback function: (none) */
 #define  DO_STEP_TEXTMSG_1                3       /* control type: textMsg, callback function: (none) */
 #define  DO_STEP_TEXTMSG_2                4       /* control type: textMsg, callback function: (none) */
@@ -95,7 +100,7 @@
 #define  DO_STEP_EXECUTE_2                25      /* control type: command, callback function: RunDoStep */
 #define  DO_STEP_EXECUTE_3                26      /* control type: command, callback function: RunDoStep */
 
-#define  GEOMETRY                         3       /* callback function: ClosePanel */
+#define  GEOMETRY                         4       /* callback function: ClosePanel */
 #define  GEOMETRY_RING_PAD_1              2       /* control type: ring, callback function: CreatePad */
 #define  GEOMETRY_RING_PAD_2              3       /* control type: ring, callback function: CreatePad */
 #define  GEOMETRY_RING_PAD_3              4       /* control type: ring, callback function: CreatePad */
@@ -174,7 +179,7 @@
 #define  GEOMETRY_PADACTUAL               77      /* control type: numeric, callback function: ShowPad */
 #define  GEOMETRY_TITLE                   78      /* control type: textMsg, callback function: (none) */
 
-#define  LABEL                            4       /* callback function: ClosePanel */
+#define  LABEL                            5       /* callback function: ClosePanel */
 #define  LABEL_TITLE                      2       /* control type: textMsg, callback function: (none) */
 #define  LABEL_TITLE_2                    3       /* control type: textMsg, callback function: (none) */
 #define  LABEL_TITLE_3                    4       /* control type: textMsg, callback function: (none) */
@@ -228,20 +233,20 @@
 #define  LABEL_AUTO_15                    52      /* control type: radioButton, callback function: Setting */
 #define  LABEL_AUTO_16                    53      /* control type: radioButton, callback function: Setting */
 
-#define  LAYOUT                           5       /* callback function: ClosePanel */
+#define  LAYOUT                           6       /* callback function: ClosePanel */
 #define  LAYOUT_T_SOURCE                  2       /* control type: table, callback function: Setting */
 #define  LAYOUT_T_FIBER                   3       /* control type: table, callback function: Setting */
 #define  LAYOUT_T_PROT                    4       /* control type: table, callback function: Setting */
 #define  LAYOUT_TITLE                     5       /* control type: textMsg, callback function: (none) */
 #define  LAYOUT_ORDER                     6       /* control type: ring, callback function: Setting */
 
-#define  LUCA                             6
+#define  LUCA                             7
 #define  LUCA_TITLE                       2       /* control type: textMsg, callback function: (none) */
 #define  LUCA_LASERS                      3       /* control type: textButton, callback function: LucaLasersCbk */
 #define  LUCA_BOX                         4       /* control type: textButton, callback function: LucaBoxCbk */
 #define  LUCA_FREQ                        5       /* control type: numeric, callback function: Setting */
 
-#define  MAMM                             7       /* callback function: ClosePanel */
+#define  MAMM                             8       /* callback function: ClosePanel */
 #define  MAMM_LOOP_X                      2       /* control type: ring, callback function: Setting */
 #define  MAMM_STEP_X                      3       /* control type: ring, callback function: Setting */
 #define  MAMM_LOOP_Y                      4       /* control type: ring, callback function: Setting */
@@ -294,13 +299,13 @@
 #define  MAMM_TAKE_REF_MEAS               51      /* control type: binary, callback function: Setting */
 #define  MAMM_NEG_PER_VAR_COUNTS          52      /* control type: numeric, callback function: Setting */
 
-#define  MOXY                             8       /* callback function: ClosePanel */
+#define  MOXY                             9       /* callback function: ClosePanel */
 #define  MOXY_TITLE                       2       /* control type: textMsg, callback function: (none) */
 #define  MOXY_DISP_DIV                    3       /* control type: numeric, callback function: Setting */
 #define  MOXY_EXT_TRIG                    4       /* control type: ring, callback function: Setting */
 #define  MOXY_PRES_EDGE                   5       /* control type: ring, callback function: Setting */
 
-#define  NIRS                             9
+#define  NIRS                             10
 #define  NIRS_TITLE                       2       /* control type: textMsg, callback function: (none) */
 #define  NIRS_LASERS                      3       /* control type: textButton, callback function: NirsLasersCbk */
 #define  NIRS_BOX                         4       /* control type: textButton, callback function: NirsBoxCbk */
@@ -308,7 +313,7 @@
 #define  NIRS_FREQ                        6       /* control type: numeric, callback function: Setting */
 #define  NIRS_LAMBDA                      7       /* control type: ring, callback function: Setting */
 
-#define  PARM                             10      /* callback function: ClosePanel */
+#define  PARM                             11      /* callback function: ClosePanel */
 #define  PARM_LOOP_HOME_1                 2       /* control type: numeric, callback function: Setting */
 #define  PARM_LOOP_HOME_2                 3       /* control type: numeric, callback function: Setting */
 #define  PARM_LOOP_HOME_3                 4       /* control type: numeric, callback function: Setting */
@@ -437,7 +442,7 @@
 #define  PARM_SC1000_FIRST                127     /* control type: numeric, callback function: Setting */
 #define  PARM_SC1000_LAST                 128     /* control type: numeric, callback function: Setting */
 
-#define  PRESENT                          11      /* callback function: ClosePanel */
+#define  PRESENT                          12      /* callback function: ClosePanel */
 #define  PRESENT_TBLOCK_DEF               2       /* control type: table, callback function: Setting */
 #define  PRESENT_TBLOCK_SEQUENCE          3       /* control type: table, callback function: Setting */
 #define  PRESENT_ALIGN                    4       /* control type: radioButton, callback function: Setting */
@@ -451,7 +456,7 @@
 #define  PRESENT_PRES_INIT_FILETEXT       12      /* control type: textMsg, callback function: (none) */
 #define  PRESENT_PRES_INIT_FILETEXT_2     13      /* control type: textMsg, callback function: (none) */
 
-#define  STEP                             12      /* callback function: ClosePanel */
+#define  STEP                             13      /* callback function: ClosePanel */
 #define  STEP_TEXTMSG_1                   2       /* control type: textMsg, callback function: (none) */
 #define  STEP_TEXTMSG_2                   3       /* control type: textMsg, callback function: (none) */
 #define  STEP_TEXTMSG_3                   4       /* control type: textMsg, callback function: (none) */
@@ -652,7 +657,7 @@
 #define  STEP_SORT_11                     199     /* control type: binary, callback function: Setting */
 #define  STEP_TITLE                       200     /* control type: textMsg, callback function: (none) */
 
-#define  SWITCH                           13      /* callback function: ClosePanel */
+#define  SWITCH                           14      /* callback function: ClosePanel */
 #define  SWITCH_TEXTMSG_1                 2       /* control type: textMsg, callback function: (none) */
 #define  SWITCH_TEXTMSG_2                 3       /* control type: textMsg, callback function: (none) */
 #define  SWITCH_TEXTMSG_3                 4       /* control type: textMsg, callback function: (none) */
@@ -765,7 +770,7 @@
 #define  SWITCH_FNAME_10                  111     /* control type: string, callback function: Setting */
 #define  SWITCH_TITLE                     112     /* control type: textMsg, callback function: (none) */
 
-#define  TRIM                             14      /* callback function: ClosePanel */
+#define  TRIM                             15      /* callback function: ClosePanel */
 #define  TRIM_STEP_1                      2       /* control type: ring, callback function: Setting */
 #define  TRIM_STEP_2                      3       /* control type: ring, callback function: Setting */
 #define  TRIM_STEP_3                      4       /* control type: ring, callback function: Setting */
@@ -978,7 +983,7 @@
 #define  TRIM_TEXTMSG_10                  211     /* control type: textMsg, callback function: (none) */
 #define  TRIM_TITLE                       212     /* control type: textMsg, callback function: (none) */
 
-#define  TRS                              15      /* callback function: ClosePanel */
+#define  TRS                              16      /* callback function: ClosePanel */
 
 
      /* Control Arrays: */
@@ -1008,49 +1013,52 @@
 #define  MENU_FILE_SAVE_NIRS              18      /* callback function: SaveSetting */
 #define  MENU_FILE_SAVE_LUCA              19      /* callback function: SaveSetting */
 #define  MENU_FILE_SAVE_GEOMETRY          20      /* callback function: SaveSetting */
-#define  MENU_FILE_LOAD                   21
-#define  MENU_FILE_LOAD_SUBMENU           22
-#define  MENU_FILE_LOAD_ALL               23      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_SEPARATOR_4       24
-#define  MENU_FILE_LOAD_DISPLAY           25      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_DOSTEP            26      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LABEL             27      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LAYOUT            28      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_MAMM              29      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_PARM              30      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_PRESENT           31      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_MOXY              32      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_TRIM              33      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_STEP              34      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_SWITCH            35      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_NIRS              36      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LUCA              37      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_GEOMETRY          38      /* callback function: LoadSetting */
-#define  MENU_FILE_SEPARATOR              39
-#define  MENU_FILE_PRINT                  40      /* callback function: Print */
-#define  MENU_FILE_SEPARATOR_2            41
-#define  MENU_FILE_QUIT                   42      /* callback function: Quit */
-#define  MENU_WINDOW                      43
-#define  MENU_WINDOW_PARM                 44      /* callback function: ShowPanel */
-#define  MENU_WINDOW_DISPLAY              45      /* callback function: ShowPanel */
-#define  MENU_WINDOW_TRIM                 46      /* callback function: ShowPanel */
-#define  MENU_WINDOW_STEP                 47      /* callback function: ShowPanel */
-#define  MENU_WINDOW_SWITCH               48      /* callback function: ShowPanel */
-#define  MENU_WINDOW_GEOMETRY             49      /* callback function: ShowPanel */
-#define  MENU_WINDOW_LAYOUT               50      /* callback function: ShowPanel */
-#define  MENU_WINDOW_PRESENT              51      /* callback function: ShowPanel */
-#define  MENU_WINDOW_LABEL                52      /* callback function: ShowPanel */
-#define  MENU_WINDOW_DO_STEP              53      /* callback function: ShowPanel */
-#define  MENU_DEVICE                      54
-#define  MENU_DEVICE_MOXY                 55      /* callback function: ShowPanel */
-#define  MENU_DEVICE_MAMM                 56      /* callback function: ShowPanel */
-#define  MENU_DEVICE_NIRS                 57      /* callback function: ShowPanel */
-#define  MENU_DEVICE_LUCA                 58      /* callback function: ShowPanel */
-#define  MENU_RUN                         59
-#define  MENU_RUN_MEASURE                 60      /* callback function: Measure */
-#define  MENU_RUN_OSCILLOSCOPE            61      /* callback function: RunOscilloscope */
-#define  MENU_HELP                        62
-#define  MENU_HELP_ABOUT                  63      /* callback function: About */
+#define  MENU_FILE_SAVE_DCS               21      /* callback function: SaveSetting */
+#define  MENU_FILE_LOAD                   22
+#define  MENU_FILE_LOAD_SUBMENU           23
+#define  MENU_FILE_LOAD_ALL               24      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SEPARATOR_4       25
+#define  MENU_FILE_LOAD_DISPLAY           26      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_DOSTEP            27      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LABEL             28      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LAYOUT            29      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_MAMM              30      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_PARM              31      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_PRESENT           32      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_MOXY              33      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_TRIM              34      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_STEP              35      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SWITCH            36      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_NIRS              37      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LUCA              38      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_GEOMETRY          39      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_DCS               40      /* callback function: LoadSetting */
+#define  MENU_FILE_SEPARATOR              41
+#define  MENU_FILE_PRINT                  42      /* callback function: Print */
+#define  MENU_FILE_SEPARATOR_2            43
+#define  MENU_FILE_QUIT                   44      /* callback function: Quit */
+#define  MENU_WINDOW                      45
+#define  MENU_WINDOW_PARM                 46      /* callback function: ShowPanel */
+#define  MENU_WINDOW_DISPLAY              47      /* callback function: ShowPanel */
+#define  MENU_WINDOW_TRIM                 48      /* callback function: ShowPanel */
+#define  MENU_WINDOW_STEP                 49      /* callback function: ShowPanel */
+#define  MENU_WINDOW_SWITCH               50      /* callback function: ShowPanel */
+#define  MENU_WINDOW_GEOMETRY             51      /* callback function: ShowPanel */
+#define  MENU_WINDOW_LAYOUT               52      /* callback function: ShowPanel */
+#define  MENU_WINDOW_PRESENT              53      /* callback function: ShowPanel */
+#define  MENU_WINDOW_LABEL                54      /* callback function: ShowPanel */
+#define  MENU_WINDOW_DO_STEP              55      /* callback function: ShowPanel */
+#define  MENU_DEVICE                      56
+#define  MENU_DEVICE_MOXY                 57      /* callback function: ShowPanel */
+#define  MENU_DEVICE_MAMM                 58      /* callback function: ShowPanel */
+#define  MENU_DEVICE_NIRS                 59      /* callback function: ShowPanel */
+#define  MENU_DEVICE_LUCA                 60      /* callback function: ShowPanel */
+#define  MENU_DEVICE_DCS                  61      /* callback function: ShowPanel */
+#define  MENU_RUN                         62
+#define  MENU_RUN_MEASURE                 63      /* callback function: Measure */
+#define  MENU_RUN_OSCILLOSCOPE            64      /* callback function: RunOscilloscope */
+#define  MENU_HELP                        65
+#define  MENU_HELP_ABOUT                  66      /* callback function: About */
 
 
      /* Callback Prototypes: */

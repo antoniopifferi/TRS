@@ -4342,6 +4342,7 @@ void InitSwitch(char Switch){
 		case SWITCH_LUCA:	InitSwitchLuca(Switch); break;
 		case SWITCH_LEONI:	InitSwitchLeoni(Switch); break;
 		case SWITCH_THORWHEEL:	InitSwitchThorWheel(Switch); break;
+		case SWITCH2_2X2:     break;
 		default:break; 
 		}
 }
@@ -8939,6 +8940,12 @@ void SFree2D(T_SUB **D, int Num1){
 		free((char*) (D[i1]));
 	free((char*) (D));
 	}
+
+/* ########################   DCS PROCEDURES   ########################### */
+
+void InitDcs(int Board){
+	
+}
 
 
 /* ########################   MAMM PROCEDURES   ########################### */

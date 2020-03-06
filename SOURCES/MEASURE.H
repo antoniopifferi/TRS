@@ -79,7 +79,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1180
+#define MAX_TABLE		1184
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -89,7 +89,7 @@
 #define CT				1
 #define MAX_TTABLE		13
 #define STRLEN_TTABLE	20
-#define MAX_PANEL		15
+#define MAX_PANEL		18
 
 
 /* FILE CONSTANTS AND ENVIRONMENT SETTINGS */  
@@ -527,6 +527,7 @@
 #define SWITCH_LUCA  6
 #define SWITCH_LEONI 7
 #define SWITCH_THORWHEEL 8
+#define SWITCH2_2X2	9
 
 #define LPT			 1
 #define NEWP	 	 2
@@ -1842,6 +1843,11 @@ struct MoxyS {
 	int PresentationRise;
 	int ExternalTrigger;
 	};
+
+struct DcsS {
+	int LaserPower;
+	int Info;
+};
 	
 struct LayoutS {
 	int Layout;
@@ -1903,6 +1909,7 @@ struct ParmS {
 	struct WaitS Wait;
 	struct InfoS Info;
 	struct MoxyS Moxy;
+	struct DcsS Dcs;
 	struct LayoutS Layout;
 	struct PresentationS Presentation;
 	struct TBlockS TBlock;
@@ -1959,6 +1966,7 @@ int hParm;
 int hLayout;
 int hPresent;
 int hMoxy;
+int hDcs;
 int hTrim;
 int hStep;
 int hSwitch;
@@ -2512,7 +2520,8 @@ void SC1000Free1D(SC1000_TYPE *D);
 void doubleFree1D(double *D);
 void doubleFree3D(double ***D, int Num1, int Num2);
 
-
+/* ########################   MAMM PROCEDURES   ########################### */
+void InitDcs(int Board);
 
 /* ########################   MAMM PROCEDURES   ########################### */
 void KernelMamm(void);

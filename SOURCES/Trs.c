@@ -46,6 +46,7 @@ int main (int argc, char *argv[])
 	if ((hDoStep = LoadPanel (hTrs, PATH_UIR, DO_STEP)) < 0) return -1;
 	if ((hStep = LoadPanel (hTrs, PATH_UIR, STEP)) < 0) return -1;
 	if ((hGeom = LoadPanel (hTrs, PATH_UIR, GEOMETRY)) < 0) return -1;//ALE
+	if ((hDcs = LoadPanel (hTrs, PATH_UIR, DCS)) < 0) return -1;	//CATERINA
 	if ((hNirs = LoadPanel (hTrs, PATH_UIR, NIRS)) < 0) return -1;
 	if ((hLuca = LoadPanel (hTrs, PATH_UIR, LUCA)) < 0) return -1;
 	
@@ -74,6 +75,7 @@ void CVICALLBACK SaveSetting (int menuBar, int menuItem, void *callbackData, int
 		case MENU_FILE_SAVE_LAYOUT:			c_panel=LAYOUT; break;
 		case MENU_FILE_LOAD_PRESENT:		c_panel=PRESENT; break;
 		case MENU_FILE_LOAD_MOXY:		    c_panel=MOXY; break;
+		case MENU_FILE_LOAD_DCS:		    c_panel=DCS; break;
 		case MENU_FILE_SAVE_MAMM: 			c_panel=MAMM; break;
 		case MENU_FILE_SAVE_PARM: 			c_panel=PARM; break;
 		case MENU_FILE_SAVE_TRIM: 			c_panel=TRIM; break;
@@ -136,7 +138,8 @@ void CVICALLBACK LoadSetting (int menuBar, int menuItem, void *callbackData,int 
 		case MENU_FILE_LOAD_LABEL: 			c_panel=LABEL; break;
 		case MENU_FILE_LOAD_LAYOUT:			c_panel=LAYOUT; break;
 		case MENU_FILE_LOAD_PRESENT:		c_panel=PRESENT; break;
-		case MENU_FILE_LOAD_MOXY:	    	c_panel=MOXY; break;		
+		case MENU_FILE_LOAD_MOXY:	    	c_panel=MOXY; break;	
+		case MENU_FILE_LOAD_DCS:	    	c_panel=DCS; break;
 		case MENU_FILE_LOAD_MAMM: 			c_panel=MAMM; break;
 		case MENU_FILE_LOAD_PARM: 			c_panel=PARM; break;
 		case MENU_FILE_LOAD_TRIM: 			c_panel=TRIM; break;
@@ -210,6 +213,7 @@ void CVICALLBACK ShowPanel (int menuBar, int menuItem, void *callbackData,
 		case MENU_WINDOW_LAYOUT:  DisplayPanel (hLayout); break;
 		case MENU_WINDOW_PRESENT: DisplayPanel (hPresent); break;
 		case MENU_DEVICE_MOXY:    DisplayPanel (hMoxy); break;
+		case MENU_DEVICE_DCS:     DisplayPanel (hDcs); break;
 		case MENU_WINDOW_TRIM:    DisplayPanel (hTrim); break;
 		case MENU_WINDOW_STEP:    DisplayPanel (hStep); break;
 		case MENU_WINDOW_SWITCH:  DisplayPanel (hSwitch); break;
@@ -236,6 +240,7 @@ void InitPanel(void){
 	hPanel[LAYOUT]=hLayout;    
 	hPanel[PRESENT]=hPresent;
 	hPanel[MOXY]=hMoxy;
+	hPanel[DCS]=hDcs;
 	hPanel[TRIM]=hTrim;    
 	hPanel[STEP]=hStep;    
 	hPanel[SWITCH]=hSwitch;    		
@@ -664,6 +669,10 @@ void CreateTable(void){
 	AddTab(CE,TINT,MOXY,MOXY_DISP_DIV,"DisplayDivisor",0,0,&P.Moxy.DisplayDivisor);
 	AddTab(CE,TINT,MOXY,MOXY_PRES_EDGE,"PresentationRise",0,0,&P.Moxy.PresentationRise);
 	AddTab(CE,TINT,MOXY,MOXY_EXT_TRIG,"ExternalTrigger",0,0,&P.Moxy.ExternalTrigger);
+	
+	//2
+	AddTab(CE,TINT,DCS,DCS_INFO,"Info",0,0,&P.Dcs.Info); 		//Caterina
+	AddTab(CE,TINT,DCS,DCS_LASER_POWER,"LaserPower",0,0,&P.Dcs.LaserPower);	//Caterina
 	
 	//3
 	AddTab(CE,TINT,NIRS,NIRS_FREQ,"NirsFreq",0,0,&P.Spc.Nirs[0].Freq);
