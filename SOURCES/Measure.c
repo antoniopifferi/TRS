@@ -247,6 +247,7 @@ void KernelGen(){
 						if(P.Action.WaitChrono) WaitChrono();
 						if(P.Action.StartAdc) {StartAdc(); P.Time.Start=clock();}		 // se � attivo ADC e power
 			    		if(P.Action.StartSync) StartSync();
+						if (P.Action.Dcs) StartDcs();						// Caterina
 	                    if(P.Action.SpcReset) 
 							SpcReset(P.Action.Status,P.Meas.Clear,P.Meas.Stop);
 						for(is=0;is<MAX_STEP;is++)
@@ -258,7 +259,9 @@ void KernelGen(){
 						if(P.Action.WaitAdc) {P.Time.Stop=clock();WaitAdc();}		 // se � attivo ADC e power
 		    		    //if(P.Action.StopAdc) StopAdc();		 // mi da errore...Andrea F
 						if(P.Action.StopOma) StopOma();
+						if(P.Command.Abort) StopDcs();  	// Caterina
 						if(P.Action.SpcOut) SpcOut(P.Action.Status);
+						
 						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
 						if(P.Action.DisplayRoi) DisplayRoi();
@@ -273,6 +276,7 @@ void KernelGen(){
 	    		}
 			}
 		}
+		StopDcs();		// Caterina
 	}
 
 
@@ -592,6 +596,10 @@ void DecideAction(void){
 	// ReadUIR
 	P.Action.ReadUIR=P.Command.ReadUIR;
 	
+	//DCS
+	if(P.Dcs.Info && index == 1) P.Action.Dcs=TRUE; 	//Caterina
+	else P.Action.Dcs = FALSE;
+	
 	// MAMMOT
 	P.Action.ScReInit.InitMammot = FALSE;
 	P.Spc.ScWait = FALSE;
@@ -668,6 +676,8 @@ void DecideAction(void){
 			}
 	}
 }
+
+
 
 
 /* RESTORE INITIAL CONDITIONS */
@@ -8943,9 +8953,169 @@ void SFree2D(T_SUB **D, int Num1){
 
 /* ########################   DCS PROCEDURES   ########################### */
 
-void InitDcs(int Board){
+
+void EnableDcsLaser(void){
+	char enable[7];
+	char pow[9];
+	char a[3];
+	int com;
+	sprintf(a, "%f", P.Dcs.LaserPower);
+	
+	enable[0]='l'; // Controlla stringa da mandare
+	enable[1]='a';
+	enable[2]=' ';
+	enable[3]='o';
+	enable[4]='n';
+	enable[5]='\r';
+	enable[6]='\n';
+	
+	pow[0]='p';
+	pow[1]='o';
+	pow[2]='w';
+	pow[3]=' ';
+	pow[4]=a[0];
+	pow[5]=a[1];
+	pow[6]=a[2];
+	pow[7]='\r';
+	pow[8]='\n';
+	
+	
+	com = P.Dcs.LaserCom;
+	OpenComConfig(com,"",9600,0,8,1,512,512);
+	ComWrt(com,pow,9);
+    Delay (0.006); 
+	SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "Serial Port inizialized: COM\n");
+	OpenComConfig(com,"",9600,0,8,1,512,512);
+	ComWrt(com,enable,7);
+    Delay (0.006); 
+	SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "DCS Laser ON");
+		
+}
+
+void DisableDcsLaser(void){
+	int com;
+	char disable[7];
+	disable[0]='l'; // Controlla stringa da mandare
+	disable[1]='a';
+	disable[2]=' ';
+	disable[3]='o';
+	disable[4]='f';
+	disable[5]='\r';
+	disable[6]='\n';
+	
+	com = P.Dcs.LaserCom;
+	OpenComConfig(com,"",9600,0,8,1,512,512);
+	ComWrt(com,disable,7);
+    Delay (0.006); 
+	SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "DCS Laser OFF");
 	
 }
+
+void StartDcsAquisition(void){
+ 
+    INPUT input[3];
+ 	POINT pts;
+
+
+    // Get total screen coordinates
+    int screen_x = GetSystemMetrics(SM_CXSCREEN);
+    int screen_y = GetSystemMetrics(SM_CYSCREEN);
+    pts.x = 7.8*screen_x/ 10;
+    pts.y = 0.12*screen_y;
+    // Get location of window
+    POINT wp;
+    GetCursorPos(&wp);
+
+    // MOUSEINPUT struct uses a truely bizarre coordinate system
+    //   the screen is mapped to a scale from 0 to 65535 in both axis.
+    //Rectangle screen = Screen.PrimaryScreen.Bounds;
+    int x = (pts.x * 0xFFFF) / (GetSystemMetrics(SM_CXSCREEN) - 1);
+    int y = (pts.y * 0xFFFF) / (GetSystemMetrics(SM_CYSCREEN) - 1);
+    
+
+ 
+    input[0].type = INPUT_MOUSE;
+    input[0].mi.dx = x;
+    input[0].mi.dy = y;
+
+    input[0].mi.dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE;
+    
+    input[0].mi.time = 10;
+     
+    input[1].type = INPUT_MOUSE;
+
+    input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+    input[1].mi.time = 10;
+ 
+ 
+    input[2].type = INPUT_MOUSE;
+
+    input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+    input[2].mi.time = 0;
+ 
+ 
+    SendInput(3, (LPINPUT)input, sizeof(INPUT));
+	return;
+	}
+
+
+void StopDcsAquisition(void){
+	INPUT input[3];
+ 	POINT pts;
+
+
+    // Get total screen coordinates
+    int screen_x = GetSystemMetrics(SM_CXSCREEN);
+    int screen_y = GetSystemMetrics(SM_CYSCREEN);
+    pts.x = 7.8*screen_x/ 10;
+    pts.y = 0.12*screen_y;
+    // Get location of window
+    POINT wp;
+    GetCursorPos(&wp);
+
+    // MOUSEINPUT struct uses a truely bizarre coordinate system
+    //   the screen is mapped to a scale from 0 to 65535 in both axis.
+    //Rectangle screen = Screen.PrimaryScreen.Bounds;
+    int x = (pts.x * 0xFFFF) / (GetSystemMetrics(SM_CXSCREEN) - 1);
+    int y = (pts.y * 0xFFFF) / (GetSystemMetrics(SM_CYSCREEN) - 1);
+    
+
+ 
+    input[0].type = INPUT_MOUSE;
+    input[0].mi.dx = x;
+    input[0].mi.dy = y;
+
+    input[0].mi.dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE;
+    
+    input[0].mi.time = 10;
+     
+    input[1].type = INPUT_MOUSE;
+
+    input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+    input[1].mi.time = 10;
+ 
+ 
+    input[2].type = INPUT_MOUSE;
+
+    input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+    input[2].mi.time = 0;
+ 
+ 
+    SendInput(3, (LPINPUT)input, sizeof(INPUT));
+	return;
+}
+
+void StartDcs(void){
+	EnableDcsLaser();
+	StartDcsAquisition();
+	
+}
+
+
+void StopDcs(void){
+	DisableDcsLaser();
+	StopDcsAquisition();
+	}
 
 
 /* ########################   MAMM PROCEDURES   ########################### */

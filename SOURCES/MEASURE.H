@@ -1195,6 +1195,7 @@ struct ActionS{
 	char StartAdc;
 	char WaitAdc;
 	char ReadUIR;
+	char Dcs; //Caterina
 	char SpcTime;			//EDO
 	char InitMamm;         //EDO
 	char StartMamm;			 //EDO
@@ -1847,6 +1848,7 @@ struct MoxyS {
 struct DcsS {
 	int LaserPower;
 	int Info;
+	int LaserCom;
 };
 	
 struct LayoutS {
@@ -2520,8 +2522,13 @@ void SC1000Free1D(SC1000_TYPE *D);
 void doubleFree1D(double *D);
 void doubleFree3D(double ***D, int Num1, int Num2);
 
-/* ########################   MAMM PROCEDURES   ########################### */
-void InitDcs(int Board);
+/* ########################   DCS PROCEDURES   ########################### */
+void StartDcs(void);
+void StopDcs(void);
+void EnableDcsLaser(void);
+void DiableDcsLaser(void);
+void StartDcsAquisition(void);
+void StopDcsAquisition(void);
 
 /* ########################   MAMM PROCEDURES   ########################### */
 void KernelMamm(void);

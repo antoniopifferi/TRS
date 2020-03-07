@@ -673,6 +673,7 @@ void CreateTable(void){
 	//2
 	AddTab(CE,TINT,DCS,DCS_INFO,"Info",0,0,&P.Dcs.Info); 		//Caterina
 	AddTab(CE,TINT,DCS,DCS_LASER_POWER,"LaserPower",0,0,&P.Dcs.LaserPower);	//Caterina
+	AddTab(CE,TINT,DCS,DCS_LASER_COM,"LaserCom",0,0,&P.Dcs.LaserCom);	//Caterina
 	
 	//3
 	AddTab(CE,TINT,NIRS,NIRS_FREQ,"NirsFreq",0,0,&P.Spc.Nirs[0].Freq);

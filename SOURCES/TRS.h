@@ -15,8 +15,9 @@
 
 #define  DCS                              1       /* callback function: ClosePanel */
 #define  DCS_TITLE                        2       /* control type: textMsg, callback function: (none) */
-#define  DCS_LASER_POWER                  3       /* control type: numeric, callback function: Setting */
-#define  DCS_INFO                         4       /* control type: ring, callback function: Setting */
+#define  DCS_LASER_COM                    3       /* control type: numeric, callback function: Setting */
+#define  DCS_LASER_POWER                  4       /* control type: numeric, callback function: Setting */
+#define  DCS_INFO                         5       /* control type: ring, callback function: Setting */
 
 #define  DISPLAY                          2       /* callback function: ClosePanel */
 #define  DISPLAY_CONTPAUSE                2       /* control type: textButton, callback function: GetCommand */
