@@ -201,15 +201,25 @@ void KernelGen(){
 	long il;
 	char is,isw,it;
 	if(!P.Meas.SkipOscill) Oscilloscope();
+	if(P.Command.Abort) StopDcs();  	// Caterina
 	if(P.Command.Abort) return;
+	
 	for(is=0;is<MAX_STEP;is++) DefineHome(is);
+	
 	for(P.Loop[LOOP1].Idx=0;P.Loop[LOOP1].Idx<P.Loop[LOOP1].Num;P.Loop[LOOP1].Idx++){
+		if(P.Command.Abort) StopDcs();  	// Caterina
 		if(P.Command.Abort) break;
+		
 		for(P.Loop[LOOP2].Idx=0;P.Loop[LOOP2].Idx<P.Loop[LOOP2].Num;P.Loop[LOOP2].Idx++){
+			if(P.Command.Abort) StopDcs();  	// Caterina
 			if(P.Command.Abort) break;
+			
 			for(P.Loop[LOOP3].Idx=0;P.Loop[LOOP3].Idx<P.Loop[LOOP3].Num;P.Loop[LOOP3].Idx++){
+				if(P.Command.Abort) StopDcs();  	// Caterina
 				if(P.Command.Abort) break;
+				
 				for(P.Loop[LOOP4].Idx=0;P.Loop[LOOP4].Idx<P.Loop[LOOP4].Num;P.Loop[LOOP4].Idx++){
+					if(P.Command.Abort) StopDcs();  	// Caterina
 					if(P.Command.Abort) break;
 					for(P.Loop[LOOP5].Idx=0;P.Loop[LOOP5].Idx<P.Loop[LOOP5].Num;P.Loop[LOOP5].Idx++){
 						
@@ -217,6 +227,7 @@ void KernelGen(){
 						DecideAction();
 						if(P.Action.ReadUIR) GetUserEvent (0, &panel, &control);
 						if(P.Command.Abort) break;
+						
 						if(P.Action.DoJump) if(P.Jump.Break) break;
 						if(P.Action.DoJumpMamm)	break;
 						for(isw=0;isw<MAX_SWITCH;isw++)
@@ -247,7 +258,8 @@ void KernelGen(){
 						if(P.Action.WaitChrono) WaitChrono();
 						if(P.Action.StartAdc) {StartAdc(); P.Time.Start=clock();}		 // se � attivo ADC e power
 			    		if(P.Action.StartSync) StartSync();
-						if (P.Action.Dcs) StartDcs();						// Caterina
+						if (P.Action.DcsStart) StartDcs();						// Caterina
+						if (P.Action.DcsStop) StopDcs(); 	//Caterina
 	                    if(P.Action.SpcReset) 
 							SpcReset(P.Action.Status,P.Meas.Clear,P.Meas.Stop);
 						for(is=0;is<MAX_STEP;is++)
@@ -259,9 +271,9 @@ void KernelGen(){
 						if(P.Action.WaitAdc) {P.Time.Stop=clock();WaitAdc();}		 // se � attivo ADC e power
 		    		    //if(P.Action.StopAdc) StopAdc();		 // mi da errore...Andrea F
 						if(P.Action.StopOma) StopOma();
-						if(P.Command.Abort) StopDcs();  	// Caterina
-						if(P.Action.SpcOut) SpcOut(P.Action.Status);
 						
+						if(P.Action.SpcOut) SpcOut(P.Action.Status);
+						if (P.Action.DcsStop) StopDcs();  	// Caterina
 						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
 						if(P.Action.DisplayRoi) DisplayRoi();
@@ -270,13 +282,14 @@ void KernelGen(){
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.WaitCont[is]) WaitCont(is,P.Action.Status);
 						if(P.Action.CheckJump) CheckJump();
-						NewAcq();		 
+						NewAcq();	
+						
 						}
 	 	    		}
 	    		}
 			}
 		}
-		StopDcs();		// Caterina
+		
 	}
 
 
@@ -597,8 +610,11 @@ void DecideAction(void){
 	P.Action.ReadUIR=P.Command.ReadUIR;
 	
 	//DCS
-	if(P.Dcs.Info && index == 1) P.Action.Dcs=TRUE; 	//Caterina
-	else P.Action.Dcs = FALSE;
+	if(P.Dcs.Info && index == 1) P.Action.DcsStart=TRUE; 	//Caterina
+	else P.Action.DcsStart = FALSE;
+	
+	if(index == P.Loop[LOOP5].Num+(P.Loop[LOOP5].Num)*(P.Loop[LOOP4].Num-1)+(P.Loop[LOOP5].Num)*(P.Loop[LOOP4].Num-1)*(P.Loop[LOOP3].Num-1)+(P.Loop[LOOP5].Num)*(P.Loop[LOOP4].Num-1)*(P.Loop[LOOP3].Num-1)*(P.Loop[LOOP2].Num)+(P.Loop[LOOP5].Num)*(P.Loop[LOOP4].Num-1)*(P.Loop[LOOP3].Num-1)*(P.Loop[LOOP2].Num)*(P.Loop[LOOP1].Num-1)) P.Action.DcsStop=TRUE; 	//Caterina
+	else P.Action.DcsStop = FALSE;
 	
 	// MAMMOT
 	P.Action.ScReInit.InitMammot = FALSE;

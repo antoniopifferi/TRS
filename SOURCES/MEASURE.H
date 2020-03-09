@@ -1195,7 +1195,8 @@ struct ActionS{
 	char StartAdc;
 	char WaitAdc;
 	char ReadUIR;
-	char Dcs; //Caterina
+	char DcsStart; //Caterina
+	char DcsStop; //Caterina
 	char SpcTime;			//EDO
 	char InitMamm;         //EDO
 	char StartMamm;			 //EDO
