@@ -4368,7 +4368,7 @@ void InitSwitch(char Switch){
 		case SWITCH_LUCA:	InitSwitchLuca(Switch); break;
 		case SWITCH_LEONI:	InitSwitchLeoni(Switch); break;
 		case SWITCH_THORWHEEL:	InitSwitchThorWheel(Switch); break;
-		case SWITCH2_2X2:     break;
+		case SWITCH2_2X2:   InitSwitchLeoni2x_2x2(Switch); break;
 		default:break; 
 		}
 }
@@ -4391,6 +4391,7 @@ void CloseSwitch(char Switch){
 		case SWITCH_LUCA:	break;
 		case SWITCH_LEONI:	break;
 		case SWITCH_THORWHEEL:	CloseSwitchThorWheel(Switch); break;
+		case SWITCH2_2X2: break;
 		default:break; 
 		}
 }
@@ -4409,6 +4410,7 @@ void MoveSwitch(long Goal, char Switch){
 		case SWITCH_LUCA:	MoveSwitchLuca(Goal,Switch); break;
 		case SWITCH_LEONI:	MoveSwitchLeoni(Goal,Switch); break;
 		case SWITCH_THORWHEEL:	MoveSwitchThorWheel(Goal,Switch); break;
+		case SWITCH2_2X2:   MoveSwitchLeoni2x_2x2(Goal,Switch); break;
 		default:break; 
 		}
 	}
@@ -4888,6 +4890,65 @@ void MoveSwitchLeoni(long Goal,char Switch){
 	if(ret<0) Failure("Error MoveSwitchLeoni TIMEOUT on Communication");
 	}
 
+
+/* ########################    SWITCH LEONI 2x(2x2) ####################### */ //Caterina
+
+/* INITIALIZE SWITCH 2x(2x2) LEONI */
+void InitSwitchLeoni2x_2x2(char Switch){
+	/*int SWITCH_LEONI_2x2x2_BAUDRATE=9600;
+	int SWITCH_LEONI_2x2x2_PARITY=0;
+	int SWITCH_LEONI_2x2x2_DATABITS=8;
+	int SWITCH_LEONI_2x2x2_STOPBITS=1;*/
+	int ret;
+	int com=P.Switch[Switch].Com;
+	char message[STRLEN];
+	sprintf(message,"Initializing Switch #%d LEONI on COM%d, Max Freq=30Hz higher damage",Switch+1,com);
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+	ret=OpenComConfig(P.Switch[Switch].Com,NULL,SWITCH_LEONI_2x2x2_BAUDRATE,SWITCH_LEONI_2x2x2_PARITY,SWITCH_LEONI_2x2x2_DATABITS,SWITCH_LEONI_2x2x2_STOPBITS,0,-1);
+	if(ret<0) Failure("Failure to open serial port communication for Switch Leoni"); else Passed();
+	FlushInQ (com);
+	FlushOutQ (com);
+	}
+
+
+/* MOVE SWITCH LEONI 2x(2x2) */  
+void MoveSwitchLeoni2x_2x2(long Goal,char Switch){
+	int ret;
+	char command[STRLEN];
+	
+	command[0]='P'; command[1]='0'; command[2]='0'; command[3]='F';
+	
+	if (P.Switch[Switch].Home==0) {
+
+		switch (Goal) {		
+			case FIBER_IIA_IIB:   command[1]='0';  command[2]='0'; break; //Channels parallel     
+			case FIBER_XA_XB:    command[1]='1';  command[2]='1'; break; //Channels crossed     
+			case FIBER_IIA_XB:   command[1]='0';  command[2]='1'; break; //Channels parallel     
+			case FIBER_XA_IIB:    command[1]='1';  command[2]='0'; break; //Channels crossed     
+			default: break;
+						}
+		ret=ComWrt(P.Switch[Switch].Com,command,strlen(command));
+		if(ret<0) Failure("Error MoveSwitchLeoni TIMEOUT on Communication");
+		
+		}
+		
+		else {
+			switch (Goal) {		
+			   
+			case FIBER_IIA_IIB:   command[1]='1';  command[2]='1'; break; //Channels parallel     
+			case FIBER_XA_XB:    command[1]='0';  command[2]='0'; break; //Channels crossed     
+			case FIBER_IIA_XB:   command[1]='1';  command[2]='0'; break; //Channels parallel     
+			case FIBER_XA_IIB:    command[1]='0';  command[2]='1'; break; //Channels crossed     
+			
+						}
+		ret=ComWrt(P.Switch[Switch].Com,command,strlen(command));
+		if(ret<0) Failure("Error MoveSwitchLeoni TIMEOUT on Communication");
+		   
+		}
+
+
+	
+	}
 
 /* ########################    SWITCH THORLABS WHEEL  ####################### */
 
@@ -8972,12 +9033,12 @@ void SFree2D(T_SUB **D, int Num1){
 
 void EnableDcsLaser(void){
 	char enable[7];
-	char pow[9];
+	char pow[14];
 	char a[3];
 	int com;
 	sprintf(a, "%f", P.Dcs.LaserPower);
 	
-	enable[0]='l'; // Controlla stringa da mandare
+	enable[0]='l'; 
 	enable[1]='a';
 	enable[2]=' ';
 	enable[3]='o';
@@ -8985,23 +9046,28 @@ void EnableDcsLaser(void){
 	enable[5]='\r';
 	enable[6]='\n';
 	
-	pow[0]='p';
-	pow[1]='o';
-	pow[2]='w';
-	pow[3]=' ';
-	pow[4]=a[0];
-	pow[5]=a[1];
-	pow[6]=a[2];
-	pow[7]='\r';
-	pow[8]='\n';
+	pow[0]='c';
+	pow[1]='h';
+	pow[2]=' ';
+	pow[3]='1';
+	pow[4]=' ';
+	pow[5]='p';
+	pow[6]='o';
+	pow[7]='w';
+	pow[8]=' ';	
+	pow[9]=a[0];
+	pow[10]=a[1];
+	pow[11]=a[2];
+	pow[12]='\r';
+	pow[13]='\n';
 	
 	
 	com = P.Dcs.LaserCom;
-	OpenComConfig(com,"",9600,0,8,1,512,512);
-	ComWrt(com,pow,9);
+	OpenComConfig(com,"",115200,0,8,1,0,-1);
+	ComWrt(com,pow,14);
     Delay (0.006); 
 	SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "Serial Port inizialized: COM\n");
-	OpenComConfig(com,"",9600,0,8,1,512,512);
+	OpenComConfig(com,"",115200,0,8,1,0,-1);
 	ComWrt(com,enable,7);
     Delay (0.006); 
 	SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "DCS Laser ON");
@@ -9020,7 +9086,7 @@ void DisableDcsLaser(void){
 	disable[6]='\n';
 	
 	com = P.Dcs.LaserCom;
-	OpenComConfig(com,"",9600,0,8,1,512,512);
+	OpenComConfig(com,"",115200,0,8,1,0,-1);
 	ComWrt(com,disable,7);
     Delay (0.006); 
 	SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "DCS Laser OFF");

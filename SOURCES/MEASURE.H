@@ -457,6 +457,10 @@
 #define FIBER_9      9
 #define FIBER_II     0
 #define FIBER_X      1
+#define FIBER_IIA_IIB     00
+#define FIBER_IIA_XB      01
+#define FIBER_XA_IIB     10
+#define FIBER_XA_XB      11
 
 #define SWITCH_LEONI_BAUDRATE	57600	
 #define SWITCH_LEONI_PARITY		0		
@@ -464,6 +468,11 @@
 #define SWITCH_LEONI_STOPBITS	1
 
 #define SWITCH_THORWHEEL_BAUDRATE	115200	
+
+#define SWITCH_LEONI_2x2x2_BAUDRATE 9600
+#define SWITCH_LEONI_2x2x2_PARITY 0
+#define SWITCH_LEONI_2x2x2_DATABITS 8
+#define SWITCH_LEONI_2x2x2_STOPBITS 1
 
 
 // SYNC CONSTANT
@@ -2230,6 +2239,8 @@ void MoveSwitchLeoni(long Goal,char Switch);
 void InitSwitchThorWheel(char Switch);
 void CloseSwitchThorWheel(char Switch);
 void MoveSwitchThorWheel(long Goal,char Switch);
+void InitSwitchLeoni2x_2x2(char Switch);
+void MoveSwitchLeoni2x_2x2(long Goal,char Switch);
 
 /* ########################   SYNC PROCEDURES   ######################## */
 void InitSync(void);
