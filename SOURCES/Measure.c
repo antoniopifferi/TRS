@@ -4187,6 +4187,8 @@ void AutoTrim(int Trim){
 	//if((T->Wait==TRIM_WAIT_POS)||!T->Success) MoveStep(&P.Step[si].Actual,T->PosBest-T->Dir*T->Delta/2,si,TRUE,TRUE);  //T->PosBest da sostituire con P.Step[si].Actual? 
 	if(T->Wait==TRIM_WAIT_POS) MoveStep(&P.Step[si].Actual,T->PosBest-T->Dir*T->Delta/2,si,TRUE,TRUE);  // OK ONLY FOR MONOTONOUS CASES
 	else TellPos(si,&P.Step[si].Actual);
+	if((T->Scan==TRIM_SCAN_RANGE)&&(T->Success))
+		MoveStep(&P.Step[si].Actual,Origin+(int)(T->Dir*(T->Trial-0.5)*T->Delta),si,TRUE,TRUE); // set back the stepper to the best position, compensating stop latency
 	if(P.Action.Status) SetCtrlVal (hDisplay, DISPLAY_TRIM, OFF);
 	loop_index=P.Loop[loop].Actual;
 	label = loop_index*P.Loop[loop].Delta+P.Loop[loop].First;
