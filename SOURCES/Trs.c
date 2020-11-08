@@ -151,6 +151,7 @@ void CVICALLBACK LoadSetting (int menuBar, int menuItem, void *callbackData,int 
 	CompleteParmS();
 	UpdatePanel();
 	}
+
 	
 void LoadSet(char *FilePath,int Panel){
 	char line[STRLEN],label[STRLEN];
