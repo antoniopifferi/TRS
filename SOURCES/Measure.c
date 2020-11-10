@@ -2129,9 +2129,11 @@ void SpcRestart(void){  //TODO: check
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StartLuca(ib); break;
+		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) StartSwab(ib); break;
 		case TEST: break;
 		case DEMO: break;
 		}
+	//P.Spc.Zero=TimerN();	  // WARNING: DO YOU NEED TO INSERT THIS?
 	}
 
 
@@ -2166,6 +2168,7 @@ void SpcTime(float Time){
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) TimeSpad(ib,Time); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) TimeNirs(ib,Time); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) TimeLuca(ib,Time); break;
+		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) TimeSwab(ib,Time); break;
 		case TEST: break;
 		case DEMO: break;
 		}
@@ -2560,7 +2563,7 @@ void InitSwab(int Board){
 	int id;
 	
 	// DEFINE
-	SWAB_REPLAY_SPEED=1.0; // replay at real speed
+	SWAB_REPLAY_SPEED=0.2; // replay at SWAB_REPLAY_SPEED*real speed
 	
 	// COMPLETE SWAB !!!! TRANSFER TO CompleteParm
 	SW->NumDet=P.Num.Det+1; // the total number of detectors (channels in SWAB) is Det+1Sync
@@ -2575,15 +2578,15 @@ void InitSwab(int Board){
 	
 	// Initialise
 	ret = Initialize_SwabianInstruments_TimeTagger ();
-	if(ret<0) ErrHandler(ERR_SWAB,ret,"Initialise"); 
+	if(ret<0) ErrHandler(ERR_SWAB,ret,"INITIALISE"); 
 	
 	// Create Virtual Time Tagger
 	ret=SwabianInstruments_TimeTagger_TT_createTimeTaggerVirtual(&SW->Ttv,&T.Spc.Swab.Except);
-	if(ret<0) ErrHandler(ERR_SWAB,ret,"CreateVirtual"); 
+	if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE VIRTUAL"); 
 	
 	//Create the measurements (here Correlation)
 	ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr,SW->Ttv,SW->Detectors[0],SW->Detectors[1],lround(P.Spc.TimeM),P.Num.Chann,&SW->Except);
-	if(ret<0) ErrHandler(ERR_SWAB,ret,"CreateCorr"); 
+	if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE CORR"); 
 
 	////crate = Countrate(ttv, channels=[CHAN_A, CHAN_B])
 	//status = SwabianInstruments_TimeTagger_Countrate__Create(&crate,ttv,channels,NUM_CHAN,&except);
@@ -2591,13 +2594,13 @@ void InitSwab(int Board){
 	
 	//Open the FileWrite for writing the stream (always needed???)
 	ret=SwabianInstruments_TimeTagger_FileWriter__Create(&SW->Fw,SW->Ttv,SW->FPathTags,SW->Detectors,SW->NumDet,&SW->Except);
-	if(ret<0) ErrHandler(ERR_SWAB,ret,"FileWriter"); 
+	if(ret<0) ErrHandler(ERR_SWAB,ret,"FILE WRITER"); 
 
 	//Open File to read Virtual Tagger
 	ret = SwabianInstruments_TimeTagger_TimeTaggerVirtual_setReplaySpeed(SW->Ttv,SWAB_REPLAY_SPEED,&SW->Except);
-	if(ret<0) ErrHandler(ERR_SWAB,ret,"ReplaySpeed"); 
+	if(ret<0) ErrHandler(ERR_SWAB,ret,"REPLAY SPEED"); 
 	ret=SwabianInstruments_TimeTagger_TimeTaggerVirtual_replay_3(SW->Ttv,SW->FPathVirt,&returnReplay,&SW->Except);
-	if(ret<0) ErrHandler(ERR_SWAB,ret,"Replay"); 
+	if(ret<0) ErrHandler(ERR_SWAB,ret,"REPLAY"); 
 	
 	Passed();
 	} 
@@ -2663,11 +2666,16 @@ void PauseSwab(int Board){
 	
 /* START SWAB */	
 void StartSwab(int Board){
-	double speed=1;
-	
 	//
 	}
 
+
+/* TIME SWAB */	
+void TimeSwab(int Board){
+	//
+	}
+
+	
 /* ########################   HYDRA HARP FUNCTIONS (Hydra)  ####################### */
 
 /* INIT HYDRA */	
