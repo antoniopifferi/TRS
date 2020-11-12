@@ -4,8 +4,11 @@
 //#define _NIRS	// Enable NIRS compilation, load also NIRS_DLL_v2.lib
 //#define _LUCA	// Enable LUCA compilation, load also LUCA_TRS.lib
 
+// INCLUDE
+#include "SwabNet.h"	// needed for type definitions in SWAB Structure
+
 // VERSION
-#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 17.4\nDate: June 2019"
+#define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 18.0\nDate: November 2020"
 
 // TYPE OF DATA
 // USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards.
@@ -569,7 +572,8 @@
 #define SPC_SC1000		 10
 #define SPC_SPADLAB		 11
 #define SPC_NIRS		 12
-#define SPC_LUCA		 13
+#define SPC_LUCA		 14  // set then to 13
+#define SPC_SWAB		 13  // set then to 14
 
 #define WAIT_DELAY	 0
 #define WAIT_TIME	 1
@@ -915,6 +919,7 @@
 #define ERR_TH260		3
 #define ERR_SC1000	4
 #define ERR_GENERIC	5
+#define ERR_SWAB	6
 
 
 /* GEOMETRY CONSTANTS */													//ALE
@@ -1508,6 +1513,21 @@ struct SurfaceConceptS{
 	double Period;									// period between two IRF peaks (used in rebinning)
 	double Rebin;
 };
+
+struct SwabS{
+	__int64 Binwidth; // channel (bin) width in ps (ps/ch)
+	ssize_t NumDet; // number of detectors in Swab
+	int Detectors[MAX_DET+1]; // code identifying detector in use (0=SYNC)
+	SwabianInstruments_TimeTagger_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
+	SwabianInstruments_TimeTagger_Correlation Corr; // handle to Correlation object
+	SwabianInstruments_TimeTagger_FileWriter Fw; // handle to File Write object
+	CDotNetHandle Except; // handle to Exception raised by the .NET function in the Swab library
+	char* FPathVirt[STRLEN]; // complete file path for reading the TimeTags
+	char* FPathOut[STRLEN]; // complete file path for writing the TimeTags 
+	__int64 TimeSW; // duration in ps of acquisition
+	};
+
+
 struct SpcS {
 	char   Type;
 	char   Control;
@@ -1557,6 +1577,7 @@ struct SpcS {
 	struct SpadS Spad[MAX_BOARD];
 	struct NirsS Nirs[MAX_BOARD];
 	struct LucaSpcS Luca[MAX_BOARD];
+	struct SwabS Swab[MAX_BOARD];
 	};
 
 struct AcqS{
@@ -2169,6 +2190,19 @@ void StopLuca(int Board);
 void GetDataLuca(void);
 void WaitLuca(int Board);
 
+
+/* ########################    SWAB TDC FUNCTIONS (LUCA)  ####################### */
+
+void InitSwab(int Board);
+void CloseSwab(void);
+void GetDataSwab(void);
+void ClearSwab(void);
+void PauseSwab(int Board);
+void StartSwab(int Board);
+void TimeSwab(int Board,double Time);
+void StopSwab(int Board);
+void WaitSwab(int Board);
+void GetSwabElapsedTime(double *Elapsed_Time);
 
 /* ########################   VARRO SPC FUNCTIONS   ####################### */
 void InitVarro(void);

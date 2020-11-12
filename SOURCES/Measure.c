@@ -1,6 +1,6 @@
 /* ######################################################################## */
 /* 									   														*/
-/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 17.4  June  2019   */
+/* 		TRS Measure. Time-Resolved Spectroscopy	 Release 18.0  November  2020   */
 /* 									   														*/
 /* ######################################################################## */
 
@@ -28,6 +28,7 @@
 // LUCA Box
 // SWITCH Leoni
 // SWITCH ThorWheel
+// SWAB (Swabian TDC)
 
 /* ########################   HELP   ################################## */
 // Board = Physical TCSPC Board
@@ -74,6 +75,7 @@
 #include <rs232.h>
 #include <analysis.h>
 #include <cvinetv.h>
+#include "SwabNet.h"
 #include "measure.h"   
 #include "trs.h" 
 #include "mbc32.h" 
@@ -83,6 +85,7 @@
 #include "ximc2.h" // Standa2 driver re-saved as ximic2.h since the ximc.h had a truncated line
 #include "NIRS_DLL_v2_mod.h"
 #include "LUCA_TRS_mod.h"
+
 //#include "thlibc.h"
 //#include "thdefin.h"
 #include "W32nii3eMOD.h"
@@ -2193,6 +2196,7 @@ void SpcStop(char Status){
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StopSpad(ib);break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StopNirs(ib);break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StopLuca(ib);break;
+		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) StopSwab(ib);break;
 		case TEST: break;
 		case DEMO: break;
 		default: break;
@@ -2235,6 +2239,7 @@ void SpcWait(void){
  		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) WaitSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) WaitNirs(ib); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) WaitLuca(ib); break;
+		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) WaitSwab(ib); break;
 		case DEMO:
 		case TEST: Delay((P.Contest.Function==CONTEST_OSC?P.Spc.TimeO:P.Spc.TimeM));break;
 		}
@@ -2257,6 +2262,7 @@ void SpcGet(void){
 		case SPC_SPADLAB: GetDataSpad();break;
 		case SPC_NIRS: GetDataNirs();break;
 		case SPC_LUCA: GetDataLuca();break;
+		case SPC_SWAB: GetDataSwab();break;
 		case TEST:  GetDataTest();break;
 		case DEMO:  GetDataDemo();break;
 		}
@@ -2333,12 +2339,17 @@ void CalcTime(void){
 			for(ib=0;ib<P.Num.Board;ib++)
 				P.Spc.EffTime[ib]=(double)(P.Spc.Luca[ib].IntTime)/SEC_2_MILLISEC;
 			break;  
+		case SPC_SWAB:
+			GetSwabElapsedTime(&elapsed_time);
+			for(ib=0;ib<P.Num.Board;ib++) P.Spc.EffTime[ib] = elapsed_time;
+			break;  
 		default:
 			now=TimerN();
 			P.Spc.EffTime[0]=now-P.Spc.Zero;
 			P.Spc.Zero=now;
 			break;
 		}
+		
 	//if((P.Spc.Type!=HYDRA)&&(P.Spc.Type!=HYDRA)){
 	//	now=TimerN();
 	//	P.Spc.EffTime[0]=now-P.Spc.Zero;
@@ -2555,6 +2566,7 @@ short test_fill_state(void){
 
 /* ########################   SWABIAN INSTRUMENTS FUNCTIONS   ####################### */
 
+
 /* INIT SWAB */	
 void InitSwab(int Board){
 	struct SwabS* SW=P.Spc.Swab;
@@ -2563,14 +2575,21 @@ void InitSwab(int Board){
 	int id;
 	
 	// DEFINE
-	SWAB_REPLAY_SPEED=0.2; // replay at SWAB_REPLAY_SPEED*real speed
+	double SWAB_REPLAY_SPEED=0.2; // replay at SWAB_REPLAY_SPEED*real speed
+	__int64 SWAB_S2PS=1.0E12; // seconds to ps conversion
+	char SWAB_FILEEXT[STRLEN],SWAB_FILEVIRT[STRLEN];
+	strcpy(SWAB_FILEEXT,"ttbin");
+	strcpy(SWAB_FILEVIRT,"C:\\temp\\input.1");
 	
 	// COMPLETE SWAB !!!! TRANSFER TO CompleteParm
 	SW->NumDet=P.Num.Det+1; // the total number of detectors (channels in SWAB) is Det+1Sync
 	SW->Detectors[0]=1; // first detector=channel(for Swabian) is the SYNC
 	for(id=0;id<P.Num.Det;id++)
 		SW->Detectors[id+1]=id+1;
-
+	P.Spc.Factor=P.Spc.Scale * P.Spc.Calib;
+	SW->Binwidth=(__int64) (P.Spc.Factor+0.5);
+	sprintf(SW->FPathOut, "%s\\%s.%s",P.File.Dir,P.File.Name,SWAB_FILEEXT);
+	sprintf(SW->FPathVirt, "%s.%s",SWAB_FILEVIRT,SWAB_FILEEXT);
 
 	// start
 	sprintf (message, "Initializing SWAB, Module #%d, ...", Board);
@@ -2581,52 +2600,34 @@ void InitSwab(int Board){
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"INITIALISE"); 
 	
 	// Create Virtual Time Tagger
-	ret=SwabianInstruments_TimeTagger_TT_createTimeTaggerVirtual(&SW->Ttv,&T.Spc.Swab.Except);
+	ret=SwabianInstruments_TimeTagger_TT_createTimeTaggerVirtual(&SW->Ttv,&SW->Except);
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE VIRTUAL"); 
 	
 	//Create the measurements (here Correlation)
-	ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr,SW->Ttv,SW->Detectors[0],SW->Detectors[1],lround(P.Spc.TimeM),P.Num.Chann,&SW->Except);
+	ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr,SW->Ttv,SW->Detectors[0],SW->Detectors[1],SW->Binwidth,P.Chann.Num,&SW->Except);
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE CORR"); 
 
-	////crate = Countrate(ttv, channels=[CHAN_A, CHAN_B])
-	//status = SwabianInstruments_TimeTagger_Countrate__Create(&crate,ttv,channels,NUM_CHAN,&except);
-	//Error(status,except,"Create");
-	
 	//Open the FileWrite for writing the stream (always needed???)
-	ret=SwabianInstruments_TimeTagger_FileWriter__Create(&SW->Fw,SW->Ttv,SW->FPathTags,SW->Detectors,SW->NumDet,&SW->Except);
+	ret=SwabianInstruments_TimeTagger_FileWriter__Create(&SW->Fw,SW->Ttv,SW->FPathOut,SW->Detectors,SW->NumDet,&SW->Except);
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"FILE WRITER"); 
 
 	//Open File to read Virtual Tagger
 	ret = SwabianInstruments_TimeTagger_TimeTaggerVirtual_setReplaySpeed(SW->Ttv,SWAB_REPLAY_SPEED,&SW->Except);
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"REPLAY SPEED"); 
+	unsigned __int64 returnReplay;
 	ret=SwabianInstruments_TimeTagger_TimeTaggerVirtual_replay_3(SW->Ttv,SW->FPathVirt,&returnReplay,&SW->Except);
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"REPLAY"); 
 	
 	Passed();
 	} 
-
-	
-	
-	//status=SwabianInstruments_TimeTagger_TimeTaggerVirtual_waitForCompletion_2(ttv,&returnCompletion,&except);
-	//Error(status,except,"Wait");
-	//status=SwabianInstruments_TimeTagger_TimeTaggerVirtual_stop(ttv,&except);
-	//Error(status,except,"Stop");
-	//printf("File streaming completed.\n");
-	//status = SwabianInstruments_TimeTagger_FileWriter_getTotalEvents (fw, &returnEvents, &except);
-	//Error(status,except,"Events");
-	//printf("Total recorded events = %lld\n",returnEvents);
-	//status = SwabianInstruments_TimeTagger_FileWriter_Dispose (fw, &except);
-	//Error(status,except,"DisposeFW");
-	
-	
 	
 /* CLOSE SWAB */	
 void CloseSwab(void){
 	int ret;
-	
+	struct SwabS* SW=P.Spc.Swab;
 	ret = SwabianInstruments_TimeTagger_TimeTaggerVirtual_stop (SW->Ttv, &SW->Except);
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"STOP REPLAY VIRTUAL");
-	ret=SwabianInstruments_TimeTagger_TimeTaggerVirtual_Dispose(P.Spc.Swab.Ttv,&P.Spc.Swab.Except);
+	ret=SwabianInstruments_TimeTagger_TimeTaggerVirtual_Dispose(SW->Ttv,&SW->Except);
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISPOSE VIRTUAL");
 	ret = Close_SwabianInstruments_TimeTagger ();
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"CLOSE TIME TAGGER");
@@ -2638,8 +2639,7 @@ void GetDataSwab(void){
 	int ret;
 	ssize_t arraylen;
 	int *pData;
-	struct SwabS* SW=S.Spc.Swab;
-	
+	struct SwabS* SW=P.Spc.Swab;
 	ret=SwabianInstruments_TimeTagger_Correlation_getData(SW->Corr,&pData,&arraylen,&SW->Except);
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"GET DATA");
 	for(int ib=0;ib<P.Num.Board;ib++)
@@ -2652,6 +2652,7 @@ void GetDataSwab(void){
 /* CLEAR SWAB */	
 void ClearSwab(void){
 	int ret;
+	struct SwabS* SW=P.Spc.Swab;
 	ret = SwabianInstruments_TimeTagger_Correlation_clear (SW->Corr, &SW->Except);
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"CLEAR CORR");
 	}
@@ -2659,22 +2660,61 @@ void ClearSwab(void){
 	
 /* PAUSE SWAB */	
 void PauseSwab(int Board){
-	
-	//
+	int ret;
+	struct SwabS* SW=P.Spc.Swab;
+	ret = SwabianInstruments_TimeTagger_Correlation_stop (SW->Corr, &SW->Except);
+	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
 	}
 
 	
 /* START SWAB */	
 void StartSwab(int Board){
-	//
+	int ret;
+	struct SwabS* SW=P.Spc.Swab;
+	ret = SwabianInstruments_TimeTagger_Correlation_startFor (SW->Corr, SW->TimeSW, 0, &SW->Except);
+	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
 	}
 
 
 /* TIME SWAB */	
-void TimeSwab(int Board){
-	//
+void TimeSwab(int Board,double Time){
+	__int64 SWAB_S2PS=1.0E12; // seconds to ps conversion
+	struct SwabS* SW=P.Spc.Swab;
+	SW->TimeSW=(__int64) (Time*SWAB_S2PS+0.5);
 	}
 
+	
+/* STOP SWAB */	
+void StopSwab(int Board){
+	int ret;
+	struct SwabS* SW=P.Spc.Swab;
+	ret = SwabianInstruments_TimeTagger_Correlation_stop (SW->Corr, &SW->Except);
+	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
+	}
+
+
+/* STOP SWAB */	
+void WaitSwab(int Board){
+	int ret;
+	int is_running;
+	struct SwabS* SW=P.Spc.Swab;
+	do{
+		ret = SwabianInstruments_TimeTagger_Correlation_isRunning (SW->Corr, &is_running, &SW->Except);
+		if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"WAIT SWAB");
+		}
+	while(is_running);
+	}
+
+/* GET TIME OF REAL ACQUISITION SWAB */	
+void GetSwabElapsedTime(double *Elapsed_Time){
+	__int64 SWAB_S2PS=1.0E12; // seconds to ps conversion
+	int ret;
+	__int64 elapsed_time;
+	struct SwabS* SW=P.Spc.Swab;
+	ret = SwabianInstruments_TimeTagger_Correlation_getCaptureDuration (SW->Corr, &elapsed_time, &SW->Except);
+	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
+	*Elapsed_Time=elapsed_time/(1.0*SWAB_S2PS);
+	}
 	
 /* ########################   HYDRA HARP FUNCTIONS (Hydra)  ####################### */
 
@@ -2719,7 +2759,7 @@ void InitHydra(int Board){
 	// get temporal scale
 	HH_GetBaseResolution (HYDRA_DEV0, &resolution, &binsteps);
 	P.Spc.Calib = 1000*resolution;
-   P.Spc.Factor = P.Spc.Calib*P.Spc.Scale;
+   	P.Spc.Factor = P.Spc.Calib*P.Spc.Scale;
 
 	
 	P.Spc.TimeInit=TimerN();   // era Timer() 
@@ -8894,6 +8934,10 @@ void ErrHandler(int Device, int Code, char* Function){
 		case ERR_SC1000:
 			sc_get_err_msg(Code, serror); 
 			strcpy (sdevice, "SC1000");
+			break;
+		case ERR_SWAB:	
+			strcpy(serror,CDotNetGetErrorDescription(Code)); 
+			strcpy (sdevice, "SWAB");
 			break;
 		case ERR_GENERIC:
 			strcpy (serror, Function); 

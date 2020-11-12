@@ -1,11 +1,12 @@
 /* ######################################################################## */
 /* 									   										*/
-/* 		TRSInterface.C	Time-Resolved Spectroscopy   Release 17.2  September 2018  */
+/* 		TRSInterface.C	Time-Resolved Spectroscopy   Release 18.0  November 2020  */
 /* 									   										*/
 /* ######################################################################## */
 
 
 /* ########################   HEADINGS   ################################## */
+#include <windows.h>
 #include <formatio.h>
 #include <cvirte.h>		/* Needed if linking in external compiler; harmless otherwise */
 #include <userint.h>
