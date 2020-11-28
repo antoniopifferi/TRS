@@ -2585,7 +2585,7 @@ void InitSwab(int Board){
 	SW->NumDet=P.Num.Det+1; // the total number of detectors (channels in SWAB) is Det+1Sync
 	SW->Detectors[0]=1; // first detector=channel(for Swabian) is the SYNC
 	for(id=0;id<P.Num.Det;id++)
-		SW->Detectors[id+1]=id+1;
+		SW->Detectors[id+1]=id+2; // The detectors are identified as 1-based? since det=1 is sync, the first of meas is det2
 	P.Spc.Factor=P.Spc.Scale * P.Spc.Calib;
 	SW->Binwidth=(__int64) (P.Spc.Factor+0.5);
 	sprintf(SW->FPathOut, "%s\\%s.%s",P.File.Dir,P.File.Name,SWAB_FILEEXT);
@@ -2693,7 +2693,7 @@ void StopSwab(int Board){
 	}
 
 
-/* STOP SWAB */	
+/* WAIT SWAB */	
 void WaitSwab(int Board){
 	int ret;
 	int is_running;
