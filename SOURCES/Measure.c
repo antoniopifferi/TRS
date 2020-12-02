@@ -996,13 +996,14 @@ void CompleteParmS(void){
 		if(P.Spc.Nirs[0].Lambda==NIRS_LAMBDA12) P.Spc.RoutingBits=1; else P.Spc.RoutingBits=0;
 	if(P.Spc.Type==SPC_LUCA) P.Spc.RoutingBits=1;
 	if(P.Spc.Type==SPC_SOLUS){
-		if(N_OPTODE>=8){
-			P.Spc.RoutingBits=3;
-		}else if(N_OPTODE>=4){
-			P.Spc.RoutingBits=2;
-		}else{
-			P.Spc.RoutingBits=1;
-		}
+		//if(N_OPTODE>=8){
+		//	P.Spc.RoutingBits=3;
+		//}else if(N_OPTODE>=4){
+		//	P.Spc.RoutingBits=2;
+		//}else{
+		//	P.Spc.RoutingBits=1;
+		//}
+		P.Spc.RoutingBits = 1;
 	}
 	for(ir=0;ir<P.Spc.RoutingBits;ir++) P.Num.Det*=2;
 
@@ -2054,15 +2055,7 @@ void SpcClose(void){
 		case SPC_SPADLAB: CloseSpad(); break;
 		case SPC_NIRS: CloseNirs(); break;
 		case SPC_LUCA: CloseLuca(); break;
-		case SPC_SOLUS: 
-				if(!P.Solus.MeasStopped){
-					StopSolusMeas();
-					if(!P.Solus.Abort_error){
-						GetInfoSolus();
-					}
-					P.Solus.IsSequenceSet = FALSE;
-				}
-				break;
+		case SPC_SOLUS: CloseSolus(); break;
 		case TEST: break;
 		case DEMO: CloseDemo(); break;
 		}
@@ -9738,7 +9731,7 @@ void DestructSolusObj(void){
 			SetCtrlVal (hSolus, SOLUS_P_OPT1+io, OFF);
 }
 void InitSolus(void){
-	CVIProfSetCurrentThreadProfiling(1); //for code profiling
+	//CVIProfSetCurrentThreadProfiling(1); //for code profiling
 	CreateSolusObj();
 	//GetInfoSolus();
 	ReadMeasSequenceFromFile();
@@ -10374,6 +10367,7 @@ void StartSolusMeas(void){
 	if(P.Solus.AcqType>=2){
 		memcpy(&P.Solus.MeasSequence[0],&P.Solus.POSMeasSequence[P.Solus.POSAcqActual],sizeof(P.Solus.POSMeasSequence[P.Solus.POSAcqActual]));	
 		P.Solus.MeasSequence[0].meas_time = P.Spc.TimeSolus;
+		P.Solus.IsSequenceSet = FALSE;
 	}
 	if(!P.Solus.IsSequenceSet){
 		ret = SOLUS_SetSequence(P.Solus.SolusObj,&P.Solus.MeasSequence);
@@ -10443,18 +10437,19 @@ void GetDataSolus(void){
 		}
 	}
 	if(!P.Solus.MultipleLinesAcq){
+		int id = 0;
 		for(io=0;io<N_OPTODE;io++){
 			if(P.Solus.OptList[io]){
 				SingleFrame = (*P.Solus.DataSolus)[iro];
 				for(ic=0;ic<P.Chann.Num;ic++){
-					D.Buffer[ib][io*P.Chann.Num+ic] = (T_DATA) SingleFrame.histogram_data[P.Chann.Num-1-ic];
+					D.Buffer[ib][id*P.Chann.Num+ic] = (T_DATA) SingleFrame.histogram_data[P.Chann.Num-1-ic];
 				}
 				T_DATA Hbit = SingleFrame.intensity_data>>16;
 				T_DATA Lbit = SingleFrame.intensity_data&0xFFFF;
-				D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-1]=(T_DATA) Hbit;
-				D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-2]=(T_DATA) Lbit;
-				D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-3]=(T_DATA) SingleFrame.Status;
-				D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-4]=(T_DATA) SingleFrame.Area_ON;
+				D.Buffer[ib][id*P.Chann.Num+P.Chann.Num-1]=(T_DATA) Hbit;
+				D.Buffer[ib][id*P.Chann.Num+P.Chann.Num-2]=(T_DATA) Lbit;
+				D.Buffer[ib][id*P.Chann.Num+P.Chann.Num-3]=(T_DATA) SingleFrame.Status;
+				D.Buffer[ib][id*P.Chann.Num+P.Chann.Num-4]=(T_DATA) SingleFrame.Area_ON;
 				switch (SingleFrame.Status>>13){
 					case 0: Temperature = 22; break;
 					case 1: Temperature = 26; break;
@@ -10465,30 +10460,33 @@ void GetDataSolus(void){
 					case 6: Temperature = 50; break;
 					case 7: Temperature = 100; break;
 				}
-				D.Buffer[ib][io*P.Chann.Num+P.Chann.Num-5]=(T_DATA) Temperature;
+				D.Buffer[ib][id*P.Chann.Num+P.Chann.Num-5]=(T_DATA) Temperature;
+				D.Buffer[ib][id*P.Chann.Num+P.Chann.Num-6]=(D.Buffer[ib][id*P.Chann.Num+120]+3000)/100;
 				iro++;
+				id++;
 			}
-			else{
+			/*else{
 				for(ic=0;ic<P.Chann.Num;ic++)
 					D.Buffer[ib][io*P.Chann.Num+ic]	= (T_DATA) 0;
-			}
+			}*/
 		}
 	}
 	else{
 		if(P.Solus.CountLines==0||P.Solus.NLines==P.Solus.CountLines){
-			for(il=0;il<P.Solus.NLines;il++)
+			for(il=0;il<P.Solus.NLines;il++){
+				int id = 0;
 				for(io=0;io<N_OPTODE;io++){
 					if(P.Solus.OptList[io]){
 						SingleFrame = (*P.Solus.DataSolus)[iro];
 						for(ic=0;ic<P.Chann.Num;ic++){
-							P.Solus.DataBuffer[il][io*P.Chann.Num+ic] = (T_DATA) SingleFrame.histogram_data[P.Chann.Num-1-ic];
+							P.Solus.DataBuffer[il][id*P.Chann.Num+ic] = (T_DATA) SingleFrame.histogram_data[P.Chann.Num-1-ic];
 						}
 						T_DATA Hbit = SingleFrame.intensity_data>>16;
 						T_DATA Lbit = SingleFrame.intensity_data&0xFFFF;
-						P.Solus.DataBuffer[il][io*P.Chann.Num+P.Chann.Num-1]=(T_DATA) Hbit;
-						P.Solus.DataBuffer[il][io*P.Chann.Num+P.Chann.Num-2]=(T_DATA) Lbit;
-						P.Solus.DataBuffer[il][io*P.Chann.Num+P.Chann.Num-3]=(T_DATA) SingleFrame.Status;
-						P.Solus.DataBuffer[il][io*P.Chann.Num+P.Chann.Num-4]=(T_DATA) SingleFrame.Area_ON;
+						P.Solus.DataBuffer[il][id*P.Chann.Num+P.Chann.Num-1]=(T_DATA) Hbit;
+						P.Solus.DataBuffer[il][id*P.Chann.Num+P.Chann.Num-2]=(T_DATA) Lbit;
+						P.Solus.DataBuffer[il][id*P.Chann.Num+P.Chann.Num-3]=(T_DATA) SingleFrame.Status;
+						P.Solus.DataBuffer[il][id*P.Chann.Num+P.Chann.Num-4]=(T_DATA) SingleFrame.Area_ON;
 						switch (SingleFrame.Status>>13){
 							case 0: Temperature = 22; break;
 							case 1: Temperature = 26; break;
@@ -10499,14 +10497,17 @@ void GetDataSolus(void){
 							case 6: Temperature = 50; break;
 							case 7: Temperature = 100; break;
 						}
-						P.Solus.DataBuffer[il][io*P.Chann.Num+P.Chann.Num-5]=(T_DATA) Temperature;
+						P.Solus.DataBuffer[il][id*P.Chann.Num+P.Chann.Num-5]=(T_DATA) Temperature;
+     					P.Solus.DataBuffer[il][id*P.Chann.Num+P.Chann.Num-6]=(P.Solus.DataBuffer[il][id*P.Chann.Num+120]+3000)/100;
 						iro++;
+						id++;
 					}
-					else{
+					/*else{
 						for(ic=0;ic<P.Chann.Num;ic++)
 							P.Solus.DataBuffer[il][io*P.Chann.Num+ic]	= (T_DATA) 0;
-					}
+					}*/
 				}
+		}
 		}
 		for(io=0;io<N_OPTODE;io++)
 			for(ic=0;ic<P.Chann.Num;ic++)
@@ -10514,7 +10515,8 @@ void GetDataSolus(void){
 	}
 	if(P.Solus.MultipleLinesAcq) P.Solus.CountLines--;
 	if(P.Solus.ProduceTrimFile&&P.Solus.WriteTrimFile){
-		fprintf(P.Solus.TrimPosFileFile,"%d\t%d\t%d\t%d\n",D.Buffer[ib][0*P.Chann.Num+P.Chann.Num-4],D.Buffer[ib][1*P.Chann.Num+P.Chann.Num-4],D.Buffer[ib][2*P.Chann.Num+P.Chann.Num-4],D.Buffer[ib][3*P.Chann.Num+P.Chann.Num-4]);
+		//fprintf(P.Solus.TrimPosFileFile,"%d\t%d\t%d\t%d\n",D.Buffer[ib][0*P.Chann.Num+P.Chann.Num-4],D.Buffer[ib][1*P.Chann.Num+P.Chann.Num-4],D.Buffer[ib][2*P.Chann.Num+P.Chann.Num-4],D.Buffer[ib][3*P.Chann.Num+P.Chann.Num-4]);
+		fprintf(P.Solus.TrimPosFileFile,"%d\t%d\t%d\t%d\n",D.Buffer[ib][0*P.Chann.Num+P.Chann.Num-4],D.Buffer[ib][1*P.Chann.Num+P.Chann.Num-4],0,0);
 	}
 	P.Solus.AcqActual=P.Solus.AcqActual+1;//P.Solus.NLines;
 	if(P.Contest.Function==CONTEST_OSC&&P.Contest.Run==CONTEST_OSC)
@@ -10574,8 +10576,27 @@ void StopSolusMeas(void){
 void CloseSolus(void){
 	if(!P.Solus.MeasStopped) StopSolusMeas();
 	int ret,io;
-	//ret = SOLUS_LaserOFF(P.Solus.SolusObj);
-	//if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
+	
+	ret = SOLUS_LaserOFF(P.Solus.SolusObj);
+	Sequence Seq = {0};
+	Seq[0].meas_time = P.Spc.TimeSolus;
+	for(io=0;io<N_OPTODE;io++)
+		Seq[0].attenuation[io] = 35;
+	UINT16 PerfAutocal = P.Solus.Flags.perform_autocal;
+	P.Solus.Flags.perform_autocal = 0;
+	UINT16 Flags = (P.Solus.Flags.turnoff_unused_LD) << 5 | (P.Solus.Flags.laser_off_after_meas) << 4 | (P.Solus.Flags.gsipm_gate_off_after_meas) << 3 | (P.Solus.Flags.override_map) << 2 | (P.Solus.Flags.perform_autocal) << 1 | (P.Solus.Flags.force_laser_off);
+	Flags += P.Solus.Flags.trim_method << 6;
+	ret = SOLUS_SetFlags(P.Solus.SolusObj,Flags,0x00FF);	
+	ret = SOLUS_SetSequence(P.Solus.SolusObj,&Seq);
+	ret = SOLUS_StartSequence(P.Solus.SolusObj,P.Solus.AcqType);
+	WaitSolus();
+	ret = SOLUS_StopSequence(P.Solus.SolusObj,P.Solus.Flags.save_dump);
+	P.Solus.Flags.perform_autocal = PerfAutocal;
+	
+	if(!P.Solus.Abort_error) GetInfoSolus();
+	P.Solus.IsSequenceSet = FALSE;
+	
+	
 	DestructSolusObj();
 	P.Solus.Initialized = FALSE;
 }
@@ -10860,6 +10881,12 @@ int CVICALLBACK ExportMeasSequence (int panel, int control, int event,void *call
 	UpdatePanel();
 	return 0;
 }*/
+int CVICALLBACK SwitchOffLasers (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
+	if(event!=EVENT_COMMIT) return 0;
+	int ret = SOLUS_LaserOFF(P.Solus.SolusObj);
+	if(ret<0) {ErrHandler(ERR_SOLUS,ret,"LaserOFF");}
+	return 0;
+}
 int CVICALLBACK GetControlDiagnParams (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
 	if(event!=EVENT_COMMIT) return 0;
 	CreateSolusObj();
