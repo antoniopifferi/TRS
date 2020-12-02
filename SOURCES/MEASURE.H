@@ -1520,11 +1520,13 @@ struct SwabS{
 	int Detectors[MAX_DET+1]; // code identifying detector in use (0=SYNC)
 	SwabianInstruments_TimeTagger_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
 	SwabianInstruments_TimeTagger_Correlation Corr; // handle to Correlation object
+	SwabianInstruments_TimeTagger_Histogram Hist; // handle to Correlation object
 	SwabianInstruments_TimeTagger_FileWriter Fw; // handle to File Write object
 	CDotNetHandle Except; // handle to Exception raised by the .NET function in the Swab library
 	char* FPathVirt[STRLEN]; // complete file path for reading the TimeTags
 	char* FPathOut[STRLEN]; // complete file path for writing the TimeTags 
 	__int64 TimeSW; // duration in ps of acquisition
+	int Meas; // type of measurement, as defined in #define
 	};
 
 
