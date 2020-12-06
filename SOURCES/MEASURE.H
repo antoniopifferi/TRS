@@ -25,7 +25,7 @@
 														  
 /* GENERAL CONSTANTS */
 #define STRLEN 		  128
-#define PATHLEN		  30
+#define PATHLEN		  128
 #define PACKLENGTH 	  6
 #define SLI           sizeof(long)
 #define SCH           sizeof(char)
@@ -970,7 +970,7 @@ struct FileS {
 	char Name  [PATHLEN];
 	char Ext   [PATHLEN];
 	char Prefix[PATHLEN];
-	char Path  [STRLEN];
+	char Path  [PATHLEN];
 	int Tag;
 	FILE *File;
 	};
@@ -1517,8 +1517,12 @@ struct SurfaceConceptS{
 struct SwabS{
 	__int64 Binwidth; // channel (bin) width in ps (ps/ch)
 	ssize_t NumDet; // number of detectors in Swab
-	int Detectors[MAX_DET+1]; // code identifying detector in use (0=SYNC)
+	int Filtered[1]; // this contains the Sync
+	int Triggers[MAX_DET]; // code identifying detectors giving trigger for filtering (equivalent to inverse procedure for TCSPC)
+	int Detectors[MAX_DET+1]; // code identifying detector in use (first is SWAB_SYNC)
+	SwabianInstruments_TimeTagger_TimeTagger Ttr; // handle to a Real Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
+	SwabianInstruments_TimeTagger_TimeTaggerBase Ttb; // handle to Base Tagger object
 	SwabianInstruments_TimeTagger_Correlation Corr; // handle to Correlation object
 	SwabianInstruments_TimeTagger_Histogram Hist; // handle to Correlation object
 	SwabianInstruments_TimeTagger_FileWriter Fw; // handle to File Write object
@@ -1527,6 +1531,9 @@ struct SwabS{
 	char* FPathOut[STRLEN]; // complete file path for writing the TimeTags 
 	__int64 TimeSW; // duration in ps of acquisition
 	int Meas; // type of measurement, as defined in #define
+	int isFwRunning; 
+	int SaveTags; // activate saving of TimeTags on File
+	int Type;
 	};
 
 
@@ -2205,6 +2212,8 @@ void TimeSwab(int Board,double Time);
 void StopSwab(int Board);
 void WaitSwab(int Board);
 void GetSwabElapsedTime(double *Elapsed_Time);
+void StartFileSwab(void);
+
 
 /* ########################   VARRO SPC FUNCTIONS   ####################### */
 void InitVarro(void);
