@@ -2591,10 +2591,10 @@ void InitSwab(int Board){
 	//Create the measurements
 	switch (SW->Meas){
 		case SWAB_HIST:
-			ret=SwabianInstruments_TimeTagger_Histogram__Create(&SW->Hist,SW->Ttb,SW->Detectors[1],SW->Detectors[SWAB_SYNC],SW->Binwidth,P.Chann.Num,&SW->Except);
+			ret=SwabianInstruments_TimeTagger_Histogram__Create(&SW->Hist,SW->Ttb,SW->Detectors[1],SW->Detectors[0],SW->Binwidth,P.Chann.Num,&SW->Except);
 			break;
 		case SWAB_CORR:
-			ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr,SW->Ttb,SW->Detectors[SWAB_SYNC],SW->Detectors[1],SW->Binwidth,P.Chann.Num,&SW->Except);
+			ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr,SW->Ttb,SW->Detectors[0],SW->Detectors[1],SW->Binwidth,P.Chann.Num,&SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE MEAS"); 
