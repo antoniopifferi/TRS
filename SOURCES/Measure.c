@@ -2526,22 +2526,13 @@ void InitSwab(int Board){
 	int ret;
 	int id;
 	unsigned __int64 returnReplay;
-	
-	// DEFINE
-	double SWAB_REPLAY_SPEED=0.2; // replay at SWAB_REPLAY_SPEED*real speed
-	__int64 SWAB_S2PS=1E12; // seconds to ps conversion
-	char SWAB_FILEEXT[STRLEN],SWAB_FILEVIRT[STRLEN];
-	strcpy(SWAB_FILEEXT,"ttbin");
-	strcpy(SWAB_FILEVIRT,"C:\\temp\\input.1");
-	const int SWAB_HIST=0; // corresponds to classical TPSF histogram
-	const int SWAB_CORR=1; // corresponds to correlation among 2 channels
-	__int64 SWAB_MAXFILESIZE=sizeof(__int64)*1E8; // max size of a single ttbin file. if counts higher, atomatically split into subs files
-	const int SWAB_REAL=0; // Real Time Tagger
-	const int SWAB_VIRTUAL=1; // Virtual Time Tagger
-	const int SWAB_SYNC=1; // Virtual Time Tagger
-	
+
 	// UIR OR INITFILE
 	SW->Meas=SWAB_HIST;
+	SW->SyncLevel=-0.1;
+	SW->SignLevel=-0.1;
+	SW->SyncDelay=0;
+	SW->SignDelay=0;
 	
 	// COMPLETE SWAB !!!! TRANSFER TO CompleteParm or leave here (better more clear)
 	SW->NumDet=P.Num.Det+1; // the total number of detectors (channels in SWAB) is Det+1Sync
@@ -2550,12 +2541,12 @@ void InitSwab(int Board){
 		SW->Triggers[id]=id+2; // The detectors are identified as 1-based since det=1 is sync, the first of meas is det2
 	SW->Detectors[0]=SWAB_SYNC; // first detector=channel(for Swabian) is the SYNC
 	for(id=0;id<P.Num.Det;id++)
-		SW->Detectors[id+1]=SW->Triggers[id]; // The detectors are identified as 1-based? since det=1 is sync, the first of meas is det2
+		SW->Detectors[id+1]=SW->Triggers[id]; // The detectors are identified as 1-based since det=1 is sync, the first of meas is det2
 	P.Spc.Factor=P.Spc.Scale * P.Spc.Calib;
 	SW->Binwidth=(__int64) (P.Spc.Factor+0.5);
 	sprintf(SW->FPathVirt, "%s.%s",SWAB_FILEVIRT,SWAB_FILEEXT);
 	SW->SaveTags=TRUE;
-	SW->Type=SWAB_VIRTUAL;
+	SW->Type=SWAB_REAL;
 
 	// start
 	sprintf (message, "Initializing SWAB, Module #%d, ...", Board);
@@ -2566,15 +2557,27 @@ void InitSwab(int Board){
 	ret = Initialize_SwabianInstruments_TimeTagger ();
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"INITIALISE"); 
 	
-	// Create Virtual Time Tagger and Open File to read Virtual Tagger
+	// Create Time Tagger (Real or Virtual)
 	switch(SW->Type){
 		case SWAB_REAL:
 			ret = SwabianInstruments_TimeTagger_TT_createTimeTagger_1 (&SW->Ttr, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE REAL"); 
 			ret = SwabianInstruments_TimeTagger_TimeTagger_reset (SW->Ttr, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"RESET REAL"); 
-			ret=SwabianInstruments_TimeTagger_TimeTagger_setConditionalFilter(SW->Ttr,SW->Triggers,(ssize_t)P.Chann.Num,SW->Filtered,1,0,&SW->Except);
+			//ret = SwabianInstruments_TimeTagger_TimeTagger_setTestSignal (SW->Ttr, SW->Detectors[0], 1, &SW->Except);
+			//ret = SwabianInstruments_TimeTagger_TimeTagger_setTestSignal (SW->Ttr, SW->Detectors[1], 1, &SW->Except);
+			ret=SwabianInstruments_TimeTagger_TimeTagger_setConditionalFilter_1(SW->Ttr,SW->Triggers,(ssize_t)P.Num.Det,SW->Filtered,1,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
+			ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel (SW->Ttr, SW->Detectors[0], SW->SyncLevel, &SW->Except);
+			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
+			ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel (SW->Ttr, SW->Detectors[1], SW->SignLevel, &SW->Except);
+			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
+			ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay (SW->Ttr, SW->Detectors[0], SW->SyncDelay, &SW->Except);
+			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
+			ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay (SW->Ttr, SW->Detectors[1], SW->SignDelay, &SW->Except);
+			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
+			ret = SwabianInstruments_TimeTagger_TimeTagger_sync (SW->Ttr, &SW->Except);
+			if(ret<0) ErrHandler(ERR_SWAB,ret,"SYNC that is update all param"); 
 			SW->Ttb=SW->Ttr; // Assign to Time Tagger Base for further processing
 			break;
 		case SWAB_VIRTUAL:
@@ -2587,7 +2590,6 @@ void InitSwab(int Board){
 			SW->Ttb=SW->Ttv; // Assign to Time Tagger Base for further processing
 			break;
 		}
-		
 	//Create the measurements
 	switch (SW->Meas){
 		case SWAB_HIST:
@@ -2598,7 +2600,6 @@ void InitSwab(int Board){
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE MEAS"); 
-
 	Passed();
 	} 
 	
@@ -2612,10 +2613,26 @@ void CloseSwab(void){
 		ret = SwabianInstruments_TimeTagger_FileWriter_Dispose(SW->Fw, &SW->Except);
 		if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISPOSE FILE WRITE");
 		}
-	ret = SwabianInstruments_TimeTagger_TimeTaggerVirtual_stop (SW->Ttv, &SW->Except);
-	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"STOP REPLAY VIRTUAL");
-	ret=SwabianInstruments_TimeTagger_TimeTaggerVirtual_Dispose(SW->Ttv,&SW->Except);
-	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISPOSE VIRTUAL");
+	switch(SW->Type){
+		case SWAB_REAL:
+			ret=SwabianInstruments_TimeTagger_TimeTagger_Dispose(SW->Ttr,&SW->Except);
+			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISPOSE REAL");
+			ret = SwabianInstruments_TimeTagger_TT_freeAllTimeTagger (&SW->Except);
+			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"FREE ALL TIME TAGGER");
+			ret = CDotNetDiscardHandle (SW->Ttr);
+			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISCARD .NET HANDLE");
+			break;
+		case SWAB_VIRTUAL:
+			ret = SwabianInstruments_TimeTagger_TimeTaggerVirtual_stop (SW->Ttv, &SW->Except);
+			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"STOP REPLAY VIRTUAL");
+			ret=SwabianInstruments_TimeTagger_TimeTaggerVirtual_Dispose(SW->Ttv,&SW->Except);
+			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISPOSE VIRTUAL");
+			ret = SwabianInstruments_TimeTagger_TT_freeAllTimeTagger (&SW->Except);
+			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"FREE ALL TIME TAGGER");
+			ret = CDotNetDiscardHandle (SW->Ttv);
+			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISCARD .NET HANDLE");
+			break;
+		}
 	ret = Close_SwabianInstruments_TimeTagger ();
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"CLOSE TIME TAGGER");
 	} 
@@ -2672,7 +2689,6 @@ void StartSwab(int Board){
 
 /* TIME SWAB */	
 void TimeSwab(int Board,double Time){
-	__int64 SWAB_S2PS=1.0E12; // seconds to ps conversion
 	struct SwabS* SW=P.Spc.Swab;
 	SW->TimeSW=(__int64) (Time*SWAB_S2PS+0.5);
 	}
@@ -2701,7 +2717,6 @@ void WaitSwab(int Board){
 
 /* GET TIME OF REAL ACQUISITION SWAB */	
 void GetSwabElapsedTime(double *Elapsed_Time){
-	__int64 SWAB_S2PS=1.0E12; // seconds to ps conversion
 	int ret;
 	__int64 elapsed_time;
 	struct SwabS* SW=P.Spc.Swab;
@@ -2715,9 +2730,6 @@ void StartFileSwab(void){
 	int ret;
 	int is_running;
 	struct SwabS* SW=P.Spc.Swab;
-	// DEFINE
-	char SWAB_FILEEXT[STRLEN],SWAB_FILEVIRT[STRLEN];
-	strcpy(SWAB_FILEEXT,"ttbin");
 
 	//Open the FileWrite for writing the stream (Meas already checked)
 	if(!SW->isFwRunning&&SW->SaveTags){
@@ -8932,7 +8944,7 @@ void CalibrateTime(double TimeDelay){
 
 /* ERROR HANDLER */
 void ErrHandler(int Device, int Code, char* Function){
-	char sdevice[STRLEN],serror[STRLEN],smessage[STRLEN];
+	char sdevice[STRLEN],serror[2*STRLEN],smessage[2*STRLEN];
 	switch (Device){
 		case ERR_SPC:
 			SPC_get_error_string((short)Code,serror,STRLEN);
@@ -8953,6 +8965,8 @@ void ErrHandler(int Device, int Code, char* Function){
 		case ERR_SWAB:	
 			strcpy(serror,CDotNetGetErrorDescription(Code)); 
 			strcpy (sdevice, "SWAB");
+			//CDotNetGetExceptionInfo (P.Spc.Swab[0].Except, NULL, serror, NULL, NULL, NULL, NULL);
+			CDotNetDiscardHandle (P.Spc.Swab[0].Except);
 			break;
 		case ERR_GENERIC:
 			strcpy (serror, Function); 

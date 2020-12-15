@@ -760,6 +760,17 @@
 #define LUCA_ATT_ERROR	3
 #define LUCA_FILE_HANDLE "LucaHandle.log"
 
+/* SWAB CONSTANTS */
+#define SWAB_REPLAY_SPEED	0.2		// replay at SWAB_REPLAY_SPEED*real speed
+#define SWAB_S2PS			1E12	// seconds to ps conversion
+#define SWAB_FILEEXT		"ttbin" // file extension for Time Tags
+#define SWAB_FILEVIRT		"C:\\temp\\input.1"	// file with virtual measurement
+#define SWAB_HIST			0		// corresponds to classical TPSF histogram
+#define SWAB_CORR			1		// corresponds to correlation among 2 channels
+#define SWAB_REAL			0		// Real Time Tagger
+#define SWAB_VIRTUAL		1		// Virtual Time Tagger
+#define SWAB_SYNC			1		// Virtual Time Tagger
+
 /* TEST CONSTANTS */
 #define TEST_MUS	10.0
 #define TEST_MUA	0.10
@@ -1534,6 +1545,10 @@ struct SwabS{
 	int isFwRunning; 
 	int SaveTags; // activate saving of TimeTags on File
 	int Type;
+	double SyncLevel; // threshold for SYNC
+	double SignLevel; // threshold for SIGN
+	__int64 SyncDelay; // (ps) delay for SYNC 
+	__int64 SignDelay; // (ps) delay for SIGN
 	};
 
 
