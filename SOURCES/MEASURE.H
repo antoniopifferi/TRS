@@ -572,8 +572,8 @@
 #define SPC_SC1000		 10
 #define SPC_SPADLAB		 11
 #define SPC_NIRS		 12
-#define SPC_LUCA		 14  // set then to 13
-#define SPC_SWAB		 13  // set then to 14
+#define SPC_LUCA		 13
+#define SPC_SWAB		 14
 
 #define WAIT_DELAY	 0
 #define WAIT_TIME	 1

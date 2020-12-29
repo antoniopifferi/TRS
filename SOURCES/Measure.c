@@ -2528,7 +2528,7 @@ void InitSwab(int Board){
 	unsigned __int64 returnReplay;
 
 	// UIR OR INITFILE
-	SW->Meas=SWAB_HIST;
+	SW->Meas=SWAB_CORR; // SWAB_CORR   SWAB_HIST
 	SW->SyncLevel=-0.1;
 	SW->SignLevel=-0.1;
 	SW->SyncDelay=0;
@@ -2546,7 +2546,7 @@ void InitSwab(int Board){
 	SW->Binwidth=(__int64) (P.Spc.Factor+0.5);
 	sprintf(SW->FPathVirt, "%s.%s",SWAB_FILEVIRT,SWAB_FILEEXT);
 	SW->SaveTags=TRUE;
-	SW->Type=SWAB_REAL;
+	SW->Type=SWAB_VIRTUAL; // SWAB_REAL SWAB_VIRTUAL
 
 	// start
 	sprintf (message, "Initializing SWAB, Module #%d, ...", Board);
@@ -2664,7 +2664,14 @@ void GetDataSwab(void){
 void ClearSwab(void){
 	int ret;
 	struct SwabS* SW=P.Spc.Swab;
-	ret = SwabianInstruments_TimeTagger_Histogram_clear (SW->Hist, &SW->Except);
+	switch (SW->Meas){
+		case 0:
+			ret = SwabianInstruments_TimeTagger_Histogram_clear (SW->Hist, &SW->Except);
+			break;
+		case 1:
+			ret = SwabianInstruments_TimeTagger_Correlation_clear (SW->Corr, &SW->Except);
+			break;
+		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"CLEAR CORR");
 	}
 	
@@ -2673,7 +2680,14 @@ void ClearSwab(void){
 void PauseSwab(int Board){
 	int ret;
 	struct SwabS* SW=P.Spc.Swab;
-	ret = SwabianInstruments_TimeTagger_Histogram_stop (SW->Hist, &SW->Except);
+	switch (SW->Meas){
+		case 0:
+			ret = SwabianInstruments_TimeTagger_Histogram_stop (SW->Hist, &SW->Except);
+			break;
+		case 1:
+			ret = SwabianInstruments_TimeTagger_Correlation_stop (SW->Corr, &SW->Except);
+			break;
+		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
 	}
 
@@ -2682,7 +2696,14 @@ void PauseSwab(int Board){
 void StartSwab(int Board){
 	int ret;
 	struct SwabS* SW=P.Spc.Swab;
-	ret = SwabianInstruments_TimeTagger_Histogram_startFor (SW->Hist, SW->TimeSW, 0, &SW->Except);
+	switch (SW->Meas){
+		case 0:
+			ret = SwabianInstruments_TimeTagger_Histogram_startFor (SW->Hist, SW->TimeSW, 0, &SW->Except);
+			break;
+		case 1:
+			ret = SwabianInstruments_TimeTagger_Correlation_startFor (SW->Corr, SW->TimeSW, 0, &SW->Except);
+			break;
+		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
 	}
 
@@ -2698,7 +2719,14 @@ void TimeSwab(int Board,double Time){
 void StopSwab(int Board){
 	int ret;
 	struct SwabS* SW=P.Spc.Swab;
-	ret = SwabianInstruments_TimeTagger_Histogram_stop (SW->Hist, &SW->Except);
+	switch (SW->Meas){
+		case 0:
+			ret = SwabianInstruments_TimeTagger_Histogram_stop (SW->Hist, &SW->Except);
+			break;
+		case 1:
+			ret = SwabianInstruments_TimeTagger_Correlation_stop (SW->Corr, &SW->Except);
+			break;
+		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
 	}
 
@@ -2709,7 +2737,14 @@ void WaitSwab(int Board){
 	int is_running;
 	struct SwabS* SW=P.Spc.Swab;
 	do{
-		ret = SwabianInstruments_TimeTagger_Histogram_isRunning (SW->Hist, &is_running, &SW->Except);
+		switch (SW->Meas){
+			case 0:
+				ret = SwabianInstruments_TimeTagger_Histogram_isRunning (SW->Hist, &is_running, &SW->Except);
+				break;
+			case 1:
+				ret = SwabianInstruments_TimeTagger_Correlation_isRunning (SW->Corr, &is_running, &SW->Except);
+				break;
+			}
 		if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"WAIT SWAB");
 		}
 	while(is_running);
@@ -2720,7 +2755,14 @@ void GetSwabElapsedTime(double *Elapsed_Time){
 	int ret;
 	__int64 elapsed_time;
 	struct SwabS* SW=P.Spc.Swab;
-	ret = SwabianInstruments_TimeTagger_Histogram_getCaptureDuration (SW->Hist, &elapsed_time, &SW->Except);
+	switch (SW->Meas){
+		case 0:
+			ret = SwabianInstruments_TimeTagger_Histogram_getCaptureDuration (SW->Hist, &elapsed_time, &SW->Except);
+			break;
+		case 1:
+			ret = SwabianInstruments_TimeTagger_Correlation_getCaptureDuration (SW->Corr, &elapsed_time, &SW->Except);
+			break;
+		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
 	*Elapsed_Time=elapsed_time/(1.0*SWAB_S2PS);
 	}
