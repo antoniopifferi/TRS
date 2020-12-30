@@ -5,6 +5,8 @@ cvibuild\.TRS/
 
 *.TRS
 
+!TRS.TRS
+
 *.pos
 
 *.GEO
