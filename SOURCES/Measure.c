@@ -934,6 +934,21 @@ void CompleteParmS(void){
 		if(P.Spc.Nirs[0].Lambda==NIRS_LAMBDA12) P.Spc.RoutingBits=1; else P.Spc.RoutingBits=0;
 	if(P.Spc.Type==SPC_LUCA) P.Spc.RoutingBits=1;
 	for(ir=0;ir<P.Spc.RoutingBits;ir++) P.Num.Det*=2;
+	if(P.Spc.Type==SPC_SWAB){  // Apply here and cancel all previous
+		/**/P.Spc.Swab[0].DetType[0]=SWAB_SYNC;
+		/**/P.Spc.Swab[0].DetType[1]=SWAB_SIGN;
+		/**/P.Spc.Swab[0].DetType[2]=SWAB_NONE;
+		/**/P.Spc.Swab[0].DetType[3]=SWAB_NONE;
+		/**/P.Spc.Swab[0].DetType[4]=SWAB_NONE;
+		/**/P.Spc.Swab[0].DetType[5]=SWAB_NONE;
+		/**/P.Spc.Swab[0].DetType[6]=SWAB_NONE;
+		/**/P.Spc.Swab[0].DetType[7]=SWAB_NONE;
+		P.Num.Det=0;
+		for(int id=0;id<SWAB_MAX_DET;id++){
+			if(P.Spc.Swab[0].DetType[id]==SWAB_SYNC) P.Spc.Swab[0].DetSync=id+1; // note: SWAB Det is 1-based
+			if(P.Spc.Swab[0].DetType[id]==SWAB_SIGN) P.Spc.Swab[0].DetSign[P.Num.Det++]=id+1; // note: SWAB Det is 1-based
+			}
+		}
 	
 	// Filter-Page-Acq
 	P.Acq.Frame=1; //TODO: sistemare per Oxym+Spectra..
@@ -2535,13 +2550,6 @@ void InitSwab(int Board){
 	SW->SignDelay=0;
 	
 	// COMPLETE SWAB !!!! TRANSFER TO CompleteParm or leave here (better more clear)
-	SW->NumDet=P.Num.Det+1; // the total number of detectors (channels in SWAB) is Det+1Sync
-	SW->Filtered[0]=SWAB_SYNC; // for the Filter function
-	for(id=0;id<P.Num.Det;id++)
-		SW->Triggers[id]=id+2; // The detectors are identified as 1-based since det=1 is sync, the first of meas is det2
-	SW->Detectors[0]=SWAB_SYNC; // first detector=channel(for Swabian) is the SYNC
-	for(id=0;id<P.Num.Det;id++)
-		SW->Detectors[id+1]=SW->Triggers[id]; // The detectors are identified as 1-based since det=1 is sync, the first of meas is det2
 	P.Spc.Factor=P.Spc.Scale * P.Spc.Calib;
 	SW->Binwidth=(__int64) (P.Spc.Factor+0.5);
 	sprintf(SW->FPathVirt, "%s.%s",SWAB_FILEVIRT,SWAB_FILEEXT);
@@ -2564,20 +2572,22 @@ void InitSwab(int Board){
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE REAL"); 
 			ret = SwabianInstruments_TimeTagger_TimeTagger_reset (SW->Ttr, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"RESET REAL"); 
-			//ret = SwabianInstruments_TimeTagger_TimeTagger_setTestSignal (SW->Ttr, SW->Detectors[0], 1, &SW->Except);
-			//ret = SwabianInstruments_TimeTagger_TimeTagger_setTestSignal (SW->Ttr, SW->Detectors[1], 1, &SW->Except);
-			ret=SwabianInstruments_TimeTagger_TimeTagger_setConditionalFilter_1(SW->Ttr,SW->Triggers,(ssize_t)P.Num.Det,SW->Filtered,1,&SW->Except);
+			//ret = SwabianInstruments_TimeTagger_TimeTagger_setTestSignal (SW->Ttr, SW->DetSync, 1, &SW->Except);
+			//ret = SwabianInstruments_TimeTagger_TimeTagger_setTestSignal (SW->Ttr, SW->DetSign[0], 1, &SW->Except);
+			ret=SwabianInstruments_TimeTagger_TimeTagger_setConditionalFilter_1(SW->Ttr,SW->DetSign,(ssize_t)P.Num.Det,&SW->DetSync,1,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
-			ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel (SW->Ttr, SW->Detectors[0], SW->SyncLevel, &SW->Except);
+			ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel (SW->Ttr, SW->DetSync, SW->SyncLevel, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
-			ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel (SW->Ttr, SW->Detectors[1], SW->SignLevel, &SW->Except);
-			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
-			ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay (SW->Ttr, SW->Detectors[0], SW->SyncDelay, &SW->Except);
+			ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay (SW->Ttr, SW->DetSync, SW->SyncDelay, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
-			ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay (SW->Ttr, SW->Detectors[1], SW->SignDelay, &SW->Except);
-			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
+			for(id=0;id<P.Num.Det;id++){
+				ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel (SW->Ttr, SW->DetSign[id], SW->SignLevel, &SW->Except);
+				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
+				ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay (SW->Ttr, SW->DetSign[id], SW->SignDelay, &SW->Except);
+				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
+				}
 			ret = SwabianInstruments_TimeTagger_TimeTagger_sync (SW->Ttr, &SW->Except);
-			if(ret<0) ErrHandler(ERR_SWAB,ret,"SYNC that is update all param"); 
+			if(ret<0) ErrHandler(ERR_SWAB,ret,"SYNC, that is update all param"); 
 			SW->Ttb=SW->Ttr; // Assign to Time Tagger Base for further processing
 			break;
 		case SWAB_VIRTUAL:
@@ -2593,10 +2603,12 @@ void InitSwab(int Board){
 	//Create the measurements
 	switch (SW->Meas){
 		case SWAB_HIST:
-			ret=SwabianInstruments_TimeTagger_Histogram__Create(&SW->Hist,SW->Ttb,SW->Detectors[1],SW->Detectors[0],SW->Binwidth,P.Chann.Num,&SW->Except);
+			for(id=0;id<P.Num.Det;id++)
+				ret=SwabianInstruments_TimeTagger_Histogram__Create(&SW->Hist,SW->Ttb,SW->DetSign[id],SW->DetSync,SW->Binwidth,P.Chann.Num,&SW->Except);
 			break;
 		case SWAB_CORR:
-			ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr,SW->Ttb,SW->Detectors[0],SW->Detectors[1],SW->Binwidth,P.Chann.Num,&SW->Except);
+			for(id=0;id<P.Num.Det;id++)
+				ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr,SW->Ttb,SW->DetSync,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE MEAS"); 
@@ -2772,13 +2784,17 @@ void StartFileSwab(void){
 	int ret;
 	int is_running;
 	struct SwabS* SW=P.Spc.Swab;
-
+	int detectors[MAX_DET];
+	ssize_t numdet=P.Num.Det+1; // number of detectors in Swab
+	
+	detectors[0]=SW->DetSync;
+	for(int id=0;id<P.Num.Det;id++) detectors[id+1]=SW->DetSign[id];
 	//Open the FileWrite for writing the stream (Meas already checked)
 	if(!SW->isFwRunning&&SW->SaveTags){
 		strcpy(SW->FPathOut,P.File.Path); // take file name from .DAT file
 		SW->FPathOut[strlen(SW->FPathOut)-strlen(P.File.Ext)]=0; //delete ext of data fle for DTOF (leave '.' there)
 		strcat(SW->FPathOut,SWAB_FILEEXT); //add file ext for Time Tags the dot '.' is already included
-		ret=SwabianInstruments_TimeTagger_FileWriter__Create(&SW->Fw,SW->Ttb,SW->FPathOut,SW->Detectors,SW->NumDet,&SW->Except);
+		ret=SwabianInstruments_TimeTagger_FileWriter__Create(&SW->Fw,SW->Ttb,SW->FPathOut,detectors,numdet,&SW->Except);
 		if(ret<0) ErrHandler(ERR_SWAB,ret,"FILE WRITER"); 
 		SW->isFwRunning=TRUE;
 		}

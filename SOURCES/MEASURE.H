@@ -761,7 +761,11 @@
 #define LUCA_FILE_HANDLE "LucaHandle.log"
 
 /* SWAB CONSTANTS */
-#define SWAB_REPLAY_SPEED	0.2		// replay at SWAB_REPLAY_SPEED*real speed
+#define SWAB_MAX_DET		8		// max number of detectors in SwabianBoard
+#define SWAB_NONE			0		// no detector
+#define SWAB_SYNC			1		// sync detector
+#define SWAB_SIGN			2		// sign detector
+#define SWAB_REPLAY_SPEED	1.0		// replay at SWAB_REPLAY_SPEED*real speed
 #define SWAB_S2PS			1E12	// seconds to ps conversion
 #define SWAB_FILEEXT		"ttbin" // file extension for Time Tags
 #define SWAB_FILEVIRT		"C:\\temp\\input.1"	// file with virtual measurement
@@ -769,7 +773,6 @@
 #define SWAB_CORR			1		// corresponds to correlation among 2 channels
 #define SWAB_REAL			0		// Real Time Tagger
 #define SWAB_VIRTUAL		1		// Virtual Time Tagger
-#define SWAB_SYNC			1		// Virtual Time Tagger
 
 /* TEST CONSTANTS */
 #define TEST_MUS	10.0
@@ -1527,10 +1530,10 @@ struct SurfaceConceptS{
 
 struct SwabS{
 	__int64 Binwidth; // channel (bin) width in ps (ps/ch)
-	ssize_t NumDet; // number of detectors in Swab
-	int Filtered[1]; // this contains the Sync
-	int Triggers[MAX_DET]; // code identifying detectors giving trigger for filtering (equivalent to inverse procedure for TCSPC)
-	int Detectors[MAX_DET+1]; // code identifying detector in use (first is SWAB_SYNC)
+	int DetSync; // code identifying Sync Detector (1-based from UIR)
+	int DetSign[SWAB_MAX_DET]; // code identifying Sign Detectors (1-based from UIR) 
+	int Detectors[SWAB_MAX_DET]; // code identifying detector in use (first is SWAB_SYNC)
+	int DetType[SWAB_MAX_DET]; // code identifying type of detector (SWAB_NONE, SWAB_SYNC, SWAB_SIGN)
 	SwabianInstruments_TimeTagger_TimeTagger Ttr; // handle to a Real Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerBase Ttb; // handle to Base Tagger object
