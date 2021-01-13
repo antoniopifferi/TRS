@@ -2543,7 +2543,9 @@ void InitSwab(int Board){
 	unsigned __int64 returnReplay;
 
 	// UIR OR INITFILE
-	SW->Meas=SWAB_CORR; // SWAB_CORR   SWAB_HIST
+	SW->Meas=SWAB_HIST; // SWAB_CORR   SWAB_HIST
+	SW->SaveTags=TRUE;
+	SW->Type=SWAB_VIRTUAL; // SWAB_REAL SWAB_VIRTUAL
 	SW->SyncLevel=-0.1;
 	SW->SignLevel=-0.1;
 	SW->SyncDelay=0;
@@ -2553,8 +2555,6 @@ void InitSwab(int Board){
 	P.Spc.Factor=P.Spc.Scale * P.Spc.Calib;
 	SW->Binwidth=(__int64) (P.Spc.Factor+0.5);
 	sprintf(SW->FPathVirt, "%s.%s",SWAB_FILEVIRT,SWAB_FILEEXT);
-	SW->SaveTags=TRUE;
-	SW->Type=SWAB_VIRTUAL; // SWAB_REAL SWAB_VIRTUAL
 
 	// start
 	sprintf (message, "Initializing SWAB, Module #%d, ...", Board);
