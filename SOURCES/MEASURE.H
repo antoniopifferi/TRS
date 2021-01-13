@@ -1532,13 +1532,12 @@ struct SwabS{
 	__int64 Binwidth; // channel (bin) width in ps (ps/ch)
 	int DetSync; // code identifying Sync Detector (1-based from UIR)
 	int DetSign[SWAB_MAX_DET]; // code identifying Sign Detectors (1-based from UIR) 
-	int Detectors[SWAB_MAX_DET]; // code identifying detector in use (first is SWAB_SYNC)
 	int DetType[SWAB_MAX_DET]; // code identifying type of detector (SWAB_NONE, SWAB_SYNC, SWAB_SIGN)
 	SwabianInstruments_TimeTagger_TimeTagger Ttr; // handle to a Real Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerBase Ttb; // handle to Base Tagger object
-	SwabianInstruments_TimeTagger_Correlation Corr; // handle to Correlation object
-	SwabianInstruments_TimeTagger_Histogram Hist; // handle to Correlation object
+	SwabianInstruments_TimeTagger_Correlation Corr[SWAB_MAX_DET]; // handle to Correlation object
+	SwabianInstruments_TimeTagger_Histogram Hist[SWAB_MAX_DET]; // handle to Correlation object
 	SwabianInstruments_TimeTagger_FileWriter Fw; // handle to File Write object
 	CDotNetHandle Except; // handle to Exception raised by the .NET function in the Swab library
 	char* FPathVirt[STRLEN]; // complete file path for reading the TimeTags
@@ -2218,7 +2217,7 @@ void GetDataLuca(void);
 void WaitLuca(int Board);
 
 
-/* ########################    SWAB TDC FUNCTIONS (LUCA)  ####################### */
+/* ########################    SWAB TDC FUNCTIONS  ####################### */
 
 void InitSwab(int Board);
 void CloseSwab(void);
