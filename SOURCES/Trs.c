@@ -674,7 +674,16 @@ void CreateTable(void){
 	
 	//1
 	AddTab(CE,TINT,LUCA,LUCA_FREQ,"LucaFreq",0,0,&P.Spc.Luca[0].Freq);
-
+	
+	
+	// SWAB PANEL
+	// 8*3	
+	for(id=0;id<SWAB_MAX_DET;id++){
+		AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDetType",id+1,COL_SWAB_DETTYPE,&P.Spc.Swab[0].DetType[id]);
+		AddTab(CT,TDOUBLE,SWAB,SWAB_T_DETECTORS,"SwabLevel",id+1,COL_SWAB_LEVEL,&P.Spc.Swab[0].Level[id]);
+		AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDelay",id+1,COL_SWAB_DELAY,&P.Spc.Swab[0].Delay[id]);
+		}	
+	
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;
 	}
 

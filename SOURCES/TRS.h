@@ -652,7 +652,16 @@
 #define  STEP_SORT_11                     199     /* control type: binary, callback function: Setting */
 #define  STEP_TITLE                       200     /* control type: textMsg, callback function: (none) */
 
-#define  SWITCH                           13      /* callback function: ClosePanel */
+#define  SWAB                             13
+#define  SWAB_T_DETECTORS                 2       /* control type: table, callback function: Setting */
+#define  SWAB_TITLE                       3       /* control type: textMsg, callback function: (none) */
+#define  SWAB_LASERS                      4       /* control type: textButton, callback function: NirsLasersCbk */
+#define  SWAB_BOX                         5       /* control type: textButton, callback function: NirsBoxCbk */
+#define  SWAB_TIME                        6       /* control type: numeric, callback function: Setting */
+#define  SWAB_FREQ                        7       /* control type: numeric, callback function: Setting */
+#define  SWAB_LAMBDA                      8       /* control type: ring, callback function: Setting */
+
+#define  SWITCH                           14      /* callback function: ClosePanel */
 #define  SWITCH_TEXTMSG_1                 2       /* control type: textMsg, callback function: (none) */
 #define  SWITCH_TEXTMSG_2                 3       /* control type: textMsg, callback function: (none) */
 #define  SWITCH_TEXTMSG_3                 4       /* control type: textMsg, callback function: (none) */
@@ -765,7 +774,7 @@
 #define  SWITCH_FNAME_10                  111     /* control type: string, callback function: Setting */
 #define  SWITCH_TITLE                     112     /* control type: textMsg, callback function: (none) */
 
-#define  TRIM                             14      /* callback function: ClosePanel */
+#define  TRIM                             15      /* callback function: ClosePanel */
 #define  TRIM_STEP_1                      2       /* control type: ring, callback function: Setting */
 #define  TRIM_STEP_2                      3       /* control type: ring, callback function: Setting */
 #define  TRIM_STEP_3                      4       /* control type: ring, callback function: Setting */
@@ -978,7 +987,7 @@
 #define  TRIM_TEXTMSG_10                  211     /* control type: textMsg, callback function: (none) */
 #define  TRIM_TITLE                       212     /* control type: textMsg, callback function: (none) */
 
-#define  TRS                              15      /* callback function: ClosePanel */
+#define  TRS                              16      /* callback function: ClosePanel */
 
 
      /* Control Arrays: */
