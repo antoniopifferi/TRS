@@ -2544,12 +2544,12 @@ void InitSwab(int Board){
 
 	// UIR OR INITFILE
 	SW->Meas=SWAB_HIST; // SWAB_CORR   SWAB_HIST
-	SW->SaveTags=TRUE;
+	SW->SaveTags=FALSE;  // SAVE FILE TAGS
 	SW->Type=SWAB_REAL; // SWAB_REAL SWAB_VIRTUAL
-	SW->SyncLevel=-0.2;
-	SW->SignLevel=+0.2;
-	SW->SyncDelay=0;
-	SW->SignDelay=10000;
+	SW->SyncLevel=-0.3;
+	SW->SignLevel=0.3;
+	SW->SyncDelay=0; // ps
+	SW->SignDelay=25000; // ps
 	
 	// COMPLETE SWAB !!!! TRANSFER TO CompleteParm or leave here (better more clear)
 	P.Spc.Factor=P.Spc.Scale * P.Spc.Calib;
