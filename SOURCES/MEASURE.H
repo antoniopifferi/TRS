@@ -82,7 +82,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1180
+#define MAX_TABLE		1208
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -768,11 +768,10 @@
 #define SWAB_REPLAY_SPEED	1.0		// replay at SWAB_REPLAY_SPEED*real speed
 #define SWAB_S2PS			1E12	// seconds to ps conversion
 #define SWAB_FILEEXT		"ttbin" // file extension for Time Tags
-#define SWAB_FILEVIRT		"C:\\temp\\input.1"	// file with virtual measurement
-#define SWAB_HIST			0		// corresponds to classical TPSF histogram
-#define SWAB_CORR			1		// corresponds to correlation among 2 channels
-#define SWAB_REAL			0		// Real Time Tagger
-#define SWAB_VIRTUAL		1		// Virtual Time Tagger
+#define SWAB_HIST			1		// corresponds to classical TPSF histogram
+#define SWAB_CORR			2		// corresponds to correlation among 2 channels
+#define SWAB_REAL			1		// Real Time Tagger
+#define SWAB_VIRTUAL		2		// Virtual Time Tagger
 #define COL_SWAB_DETTYPE	2		// Column in UIR SWAB Panel Table corressponding to DetType
 #define COL_SWAB_LEVEL		3		// Column in UIR SWAB Panel Table corressponding to DetType
 #define COL_SWAB_DELAY		4		// Column in UIR SWAB Panel Table corressponding to DetType
@@ -1545,6 +1544,7 @@ struct SwabS{
 	SwabianInstruments_TimeTagger_Histogram Hist[SWAB_MAX_DET]; // handle to Correlation object
 	SwabianInstruments_TimeTagger_FileWriter Fw; // handle to File Write object
 	CDotNetHandle Except; // handle to Exception raised by the .NET function in the Swab library
+	char* FNameVirt[STRLEN]; // file name for reading the TimeTags
 	char* FPathVirt[STRLEN]; // complete file path for reading the TimeTags
 	char* FPathOut[STRLEN]; // complete file path for writing the TimeTags 
 	__int64 TimeSW; // duration in ps of acquisition

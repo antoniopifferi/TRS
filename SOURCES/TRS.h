@@ -655,11 +655,10 @@
 #define  SWAB                             13
 #define  SWAB_T_DETECTORS                 2       /* control type: table, callback function: Setting */
 #define  SWAB_TITLE                       3       /* control type: textMsg, callback function: (none) */
-#define  SWAB_LASERS                      4       /* control type: textButton, callback function: NirsLasersCbk */
-#define  SWAB_BOX                         5       /* control type: textButton, callback function: NirsBoxCbk */
-#define  SWAB_TIME                        6       /* control type: numeric, callback function: Setting */
-#define  SWAB_FREQ                        7       /* control type: numeric, callback function: Setting */
-#define  SWAB_LAMBDA                      8       /* control type: ring, callback function: Setting */
+#define  SWAB_MEAS                        4       /* control type: ring, callback function: Setting */
+#define  SWAB_TYPE                        5       /* control type: ring, callback function: Setting */
+#define  SWAB_SAVETAGS                    6       /* control type: binary, callback function: Setting */
+#define  SWAB_FNAMEVIRT                   7       /* control type: string, callback function: Setting */
 
 #define  SWITCH                           14      /* callback function: ClosePanel */
 #define  SWITCH_TEXTMSG_1                 2       /* control type: textMsg, callback function: (none) */

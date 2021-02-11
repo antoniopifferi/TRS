@@ -2534,15 +2534,10 @@ void InitSwab(int Board){
 	int id;
 	unsigned __int64 returnReplay;
 
-	// UIR OR INITFILE
-	SW->Meas=SWAB_HIST; // SWAB_CORR   SWAB_HIST
-	SW->SaveTags=FALSE;  // SAVE FILE TAGS
-	SW->Type=SWAB_REAL; // SWAB_REAL SWAB_VIRTUAL
-	
 	// COMPLETE SWAB !!!! TRANSFER TO CompleteParm or leave here (better more clear)
 	P.Spc.Factor=P.Spc.Scale * P.Spc.Calib;
 	SW->Binwidth=(__int64) (P.Spc.Factor+0.5);
-	sprintf(SW->FPathVirt, "%s.%s",SWAB_FILEVIRT,SWAB_FILEEXT);
+	sprintf(SW->FPathVirt, "%s.%s",SW->FNameVirt,SWAB_FILEEXT);
 
 	// start
 	sprintf (message, "Initializing SWAB, Module #%d, ...", Board);
@@ -2562,12 +2557,13 @@ void InitSwab(int Board){
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"RESET REAL"); 
 			ret=SwabianInstruments_TimeTagger_TimeTagger_setConditionalFilter_1(SW->Ttr,SW->DetSign,(ssize_t)P.Num.Det,&SW->DetSync,1,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
-			for(id=0;id<P.Num.Det;id++){
-				ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel (SW->Ttr, SW->DetSign[id], SW->SignLevel, &SW->Except);
-				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
-				ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay (SW->Ttr, SW->DetSign[id], SW->SignDelay, &SW->Except);
-				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
-				}
+			for(id=0;id<SWAB_MAX_DET;id++)
+				if(SW->DetType!=SWAB_NONE){
+					ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel(SW->Ttr,id+1,SW->Level,&SW->Except);
+					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
+					ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay(SW->Ttr,id+1,SW->Delay,&SW->Except);
+					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
+					}
 			ret = SwabianInstruments_TimeTagger_TimeTagger_sync (SW->Ttr, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"SYNC, that is update all param"); 
 			SW->Ttb=SW->Ttr; // Assign to Time Tagger Base for further processing
