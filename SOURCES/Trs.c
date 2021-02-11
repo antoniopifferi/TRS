@@ -49,6 +49,7 @@ int main (int argc, char *argv[])
 	if ((hGeom = LoadPanel (hTrs, PATH_UIR, GEOMETRY)) < 0) return -1;//ALE
 	if ((hNirs = LoadPanel (hTrs, PATH_UIR, NIRS)) < 0) return -1;
 	if ((hLuca = LoadPanel (hTrs, PATH_UIR, LUCA)) < 0) return -1;
+	if ((hSwab = LoadPanel (hTrs, PATH_UIR, SWAB)) < 0) return -1;
 	
 	CreateTable();
 	
@@ -83,6 +84,7 @@ void CVICALLBACK SaveSetting (int menuBar, int menuItem, void *callbackData, int
 		case MENU_FILE_SAVE_NIRS:			c_panel=NIRS; break;
 		case MENU_FILE_SAVE_LUCA:			c_panel=LUCA; break;
 		case MENU_FILE_SAVE_GEOMETRY:		c_panel=GEOMETRY; break;//ALE
+		case MENU_FILE_SAVE_SWAB:			c_panel=SWAB; break;
 		}
 	SaveSet(fpath,c_panel);
 	}
@@ -146,6 +148,7 @@ void CVICALLBACK LoadSetting (int menuBar, int menuItem, void *callbackData,int 
 		case MENU_FILE_LOAD_NIRS:			c_panel=NIRS; break;
 		case MENU_FILE_LOAD_LUCA:			c_panel=LUCA; break;
 		case MENU_FILE_LOAD_GEOMETRY:		c_panel=GEOMETRY; break;//ALE
+		case MENU_FILE_LOAD_SWAB:			c_panel=SWAB; break;
 		}
 	LoadSet(fpath,c_panel);
 	ReadAll();
@@ -222,6 +225,7 @@ void CVICALLBACK ShowPanel (int menuBar, int menuItem, void *callbackData,
 		case MENU_WINDOW_GEOMETRY:DisplayPanel (hGeom); break;//ALE
 		case MENU_DEVICE_NIRS:	  DisplayPanel (hNirs); break;
 		case MENU_DEVICE_LUCA:	  DisplayPanel (hLuca); break;
+		case MENU_DEVICE_SWAB:	  DisplayPanel (hSwab); break;
 		}
 	}
 
@@ -248,6 +252,7 @@ void InitPanel(void){
 	hPanel[GEOMETRY]=hGeom;//ALE
 	hPanel[NIRS]=hNirs;
 	hPanel[LUCA]=hLuca;
+	hPanel[SWAB]=hSwab;
 	LoadSet(FILESET,NEG);
 	ReadAll();
 	CompleteParmS();

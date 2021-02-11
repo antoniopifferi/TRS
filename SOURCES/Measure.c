@@ -2559,9 +2559,9 @@ void InitSwab(int Board){
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
 			for(id=0;id<SWAB_MAX_DET;id++)
 				if(SW->DetType!=SWAB_NONE){
-					ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel(SW->Ttr,id+1,SW->Level,&SW->Except);
+					ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel(SW->Ttr,id+1,SW->Level[id],&SW->Except);
 					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
-					ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay(SW->Ttr,id+1,SW->Delay,&SW->Except);
+					ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay(SW->Ttr,id+1,(__int64)SW->Delay[id],&SW->Except);
 					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
 					}
 			ret = SwabianInstruments_TimeTagger_TimeTagger_sync (SW->Ttr, &SW->Except);

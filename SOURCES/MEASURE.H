@@ -92,7 +92,7 @@
 #define CT				1
 #define MAX_TTABLE		13
 #define STRLEN_TTABLE	20
-#define MAX_PANEL		15
+#define MAX_PANEL		16
 
 
 /* FILE CONSTANTS AND ENVIRONMENT SETTINGS */  
@@ -1536,7 +1536,7 @@ struct SwabS{
 	int DetSign[SWAB_MAX_DET]; // code identifying Sign Detectors (1-based from UIR) 
 	int DetType[SWAB_MAX_DET]; // code identifying type of detector (SWAB_NONE, SWAB_SYNC, SWAB_SIGN)
 	double Level[SWAB_MAX_DET]; // threshold (mV)
-	__int64 Delay[SWAB_MAX_DET]; // (ps) delay
+	int Delay[SWAB_MAX_DET]; // (ps) delay
 	SwabianInstruments_TimeTagger_TimeTagger Ttr; // handle to a Real Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerBase Ttb; // handle to Base Tagger object
@@ -2012,6 +2012,7 @@ int hStep;
 int hSwitch;
 int hNirs;
 int hLuca;
+int hSwab;
 int hMamm;
 int hSave;
 int hLabel;
