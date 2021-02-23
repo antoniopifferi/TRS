@@ -357,6 +357,7 @@ int CVICALLBACK ClosePanel (int panel, int event, void *callbackdata, int eventd
 
 /// TABLE
 void AddTab(int Class,int Type,int Panel,int Control,char *Label,int Row,int Col,void *Addr){
+	/**/int aaa;
 	T.Class[T.Num]=Class;
 	T.Type[T.Num]=Type;
 	T.Panel[T.Num]=Panel;
@@ -368,6 +369,8 @@ void AddTab(int Class,int Type,int Panel,int Control,char *Label,int Row,int Col
 	else if(Col==0) sprintf(T.Label[T.Num],"%s_%d",Label,Row);
 	else sprintf(T.Label[T.Num],"%s_%d_%d",Label,Row,Col);
 	T.Num++;
+	if(T.Num==1197)
+		aaa=0;
 	}
 
 
