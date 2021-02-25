@@ -772,9 +772,9 @@
 #define SWAB_CORR			2		// corresponds to correlation among 2 channels
 #define SWAB_REAL			1		// Real Time Tagger
 #define SWAB_VIRTUAL		2		// Virtual Time Tagger
-#define COL_SWAB_DETTYPE	2		// Column in UIR SWAB Panel Table corressponding to DetType
-#define COL_SWAB_LEVEL		3		// Column in UIR SWAB Panel Table corressponding to DetType
-#define COL_SWAB_DELAY		4		// Column in UIR SWAB Panel Table corressponding to DetType
+#define COL_SWAB_DETTYPE	1		// Column in UIR SWAB Panel Table corressponding to DetType
+#define COL_SWAB_LEVEL		2		// Column in UIR SWAB Panel Table corressponding to DetType
+#define COL_SWAB_DELAY		3		// Column in UIR SWAB Panel Table corressponding to DetType
 
 /* TEST CONSTANTS */
 #define TEST_MUS	10.0

@@ -653,12 +653,43 @@
 #define  STEP_TITLE                       200     /* control type: textMsg, callback function: (none) */
 
 #define  SWAB                             13
-#define  SWAB_T_DETECTORS                 2       /* control type: table, callback function: Setting */
-#define  SWAB_TITLE                       3       /* control type: textMsg, callback function: (none) */
-#define  SWAB_MEAS                        4       /* control type: ring, callback function: Setting */
-#define  SWAB_TYPE                        5       /* control type: ring, callback function: Setting */
-#define  SWAB_SAVETAGS                    6       /* control type: binary, callback function: Setting */
-#define  SWAB_FNAMEVIRT                   7       /* control type: string, callback function: Setting */
+#define  SWAB_DETTYPE_1                   2       /* control type: ring, callback function: Setting */
+#define  SWAB_DETTYPE_2                   3       /* control type: ring, callback function: Setting */
+#define  SWAB_DETTYPE_3                   4       /* control type: ring, callback function: Setting */
+#define  SWAB_DETTYPE_4                   5       /* control type: ring, callback function: Setting */
+#define  SWAB_DETTYPE_5                   6       /* control type: ring, callback function: Setting */
+#define  SWAB_DETTYPE_6                   7       /* control type: ring, callback function: Setting */
+#define  SWAB_DETTYPE_7                   8       /* control type: ring, callback function: Setting */
+#define  SWAB_DETTYPE_8                   9       /* control type: ring, callback function: Setting */
+#define  SWAB_LEVEL_1                     10      /* control type: numeric, callback function: Setting */
+#define  SWAB_LEVEL_2                     11      /* control type: numeric, callback function: Setting */
+#define  SWAB_LEVEL_3                     12      /* control type: numeric, callback function: Setting */
+#define  SWAB_LEVEL_4                     13      /* control type: numeric, callback function: Setting */
+#define  SWAB_LEVEL_5                     14      /* control type: numeric, callback function: Setting */
+#define  SWAB_LEVEL_6                     15      /* control type: numeric, callback function: Setting */
+#define  SWAB_LEVEL_7                     16      /* control type: numeric, callback function: Setting */
+#define  SWAB_LEVEL_8                     17      /* control type: numeric, callback function: Setting */
+#define  SWAB_DELAY_1                     18      /* control type: numeric, callback function: Setting */
+#define  SWAB_DELAY_2                     19      /* control type: numeric, callback function: Setting */
+#define  SWAB_DELAY_3                     20      /* control type: numeric, callback function: Setting */
+#define  SWAB_DELAY_4                     21      /* control type: numeric, callback function: Setting */
+#define  SWAB_DELAY_5                     22      /* control type: numeric, callback function: Setting */
+#define  SWAB_DELAY_6                     23      /* control type: numeric, callback function: Setting */
+#define  SWAB_DELAY_7                     24      /* control type: numeric, callback function: Setting */
+#define  SWAB_DELAY_8                     25      /* control type: numeric, callback function: Setting */
+#define  SWAB_Label_1                     26      /* control type: textMsg, callback function: (none) */
+#define  SWAB_Label_2                     27      /* control type: textMsg, callback function: (none) */
+#define  SWAB_Label_3                     28      /* control type: textMsg, callback function: (none) */
+#define  SWAB_Label_4                     29      /* control type: textMsg, callback function: (none) */
+#define  SWAB_Label_5                     30      /* control type: textMsg, callback function: (none) */
+#define  SWAB_Label_6                     31      /* control type: textMsg, callback function: (none) */
+#define  SWAB_Label_7                     32      /* control type: textMsg, callback function: (none) */
+#define  SWAB_Label_8                     33      /* control type: textMsg, callback function: (none) */
+#define  SWAB_TITLE                       34      /* control type: textMsg, callback function: (none) */
+#define  SWAB_TYPE                        35      /* control type: ring, callback function: Setting */
+#define  SWAB_MEAS                        36      /* control type: ring, callback function: Setting */
+#define  SWAB_SAVETAGS                    37      /* control type: binary, callback function: Setting */
+#define  SWAB_FNAMEVIRT                   38      /* control type: string, callback function: Setting */
 
 #define  SWITCH                           14      /* callback function: ClosePanel */
 #define  SWITCH_TEXTMSG_1                 2       /* control type: textMsg, callback function: (none) */

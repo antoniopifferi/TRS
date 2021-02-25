@@ -262,11 +262,16 @@ void InitPanel(void){
 
 void ReadAll(void){
 	int it;
+	/**/int aaa;
 	for(it=0;it<T.Num;it++)
+	/**/{
 		if(T.Class[it]==CE)
 			GetCtrlVal(hPanel[T.Panel[it]],T.Ctrl[it],T.Addr[it]);
 		else
 			GetTableCellVal(hPanel[T.Panel[it]],T.Ctrl[it],MakePoint(T.Col[it],T.Row[it]),T.Addr[it]);
+	/**/if(it==1197)
+		/**/aaa=0;
+	/**/}
 	}				
 
 int CVICALLBACK Setting (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
@@ -369,8 +374,6 @@ void AddTab(int Class,int Type,int Panel,int Control,char *Label,int Row,int Col
 	else if(Col==0) sprintf(T.Label[T.Num],"%s_%d",Label,Row);
 	else sprintf(T.Label[T.Num],"%s_%d_%d",Label,Row,Col);
 	T.Num++;
-	if(T.Num==1197)
-		aaa=0;
 	}
 
 
@@ -686,10 +689,14 @@ void CreateTable(void){
 	
 	// SWAB PANEL
 	// 8*3+4	
+	int tint=0;
 	for(id=0;id<SWAB_MAX_DET;id++){
-		AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDetType",id+1,COL_SWAB_DETTYPE,&P.Spc.Swab[0].DetType[id]);
-		AddTab(CT,TDOUBLE,SWAB,SWAB_T_DETECTORS,"SwabLevel",id+1,COL_SWAB_LEVEL,&P.Spc.Swab[0].Level[id]);
-		AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDelay",id+1,COL_SWAB_DELAY,&P.Spc.Swab[0].Delay[id]);
+		//AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDetType",id+1,COL_SWAB_DETTYPE,&P.Spc.Swab[0].DetType[id]);
+		//AddTab(CT,TDOUBLE,SWAB,SWAB_T_DETECTORS,"SwabLevel",id+1,COL_SWAB_LEVEL,&P.Spc.Swab[0].Level[id]);
+		//AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDelay",id+1,COL_SWAB_DELAY,&P.Spc.Swab[0].Delay[id]);
+		AddTab(CE,TINT,SWAB,SWAB_DETTYPE_1+id,"SwabDetType",id+1,0,&P.Spc.Swab[0].DetType[id]);
+		AddTab(CE,TDOUBLE,SWAB,SWAB_LEVEL_1+id,"SwabLevel",id+1,0,&P.Spc.Swab[0].Level[id]);
+		AddTab(CE,TINT,SWAB,SWAB_DELAY_1+id,"SwabDelay",id+1,0,&P.Spc.Swab[0].Delay[id]);
 		}	
 	AddTab(CE,TINT,SWAB,SWAB_TYPE,"SwabType",0,0,&P.Spc.Swab[0].Type);
 	AddTab(CE,TINT,SWAB,SWAB_MEAS,"SwabMeas",0,0,&P.Spc.Swab[0].Meas);

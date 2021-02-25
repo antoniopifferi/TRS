@@ -938,8 +938,12 @@ void CompleteParmS(void){
 		P.Num.Det=0;
 		for(int id=0;id<SWAB_MAX_DET;id++){
 			if(P.Spc.Swab[0].DetType[id]==SWAB_SYNC) P.Spc.Swab[0].DetSync=id+1; // note: SWAB Det is 1-based
-			if(P.Spc.Swab[0].DetType[id]==SWAB_SIGN) P.Spc.Swab[0].DetSign[P.Num.Det++]=id+1; // note: SWAB Det is 1-based
+			if(P.Spc.Swab[0].DetType[id]==SWAB_SIGN){
+				P.Spc.Swab[0].DetSign[P.Num.Det]=id+1; // note: SWAB Det is 1-based
+				P.Num.Det++;
+				}
 			}
+		if(P.Num.Det==0) P.Num.Det=1; // used only to avoid divide by zero if not initialised to 1
 		}
 	
 	// Filter-Page-Acq
