@@ -82,7 +82,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1180
+#define MAX_TABLE		1208
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -92,7 +92,7 @@
 #define CT				1
 #define MAX_TTABLE		13
 #define STRLEN_TTABLE	20
-#define MAX_PANEL		15
+#define MAX_PANEL		16
 
 
 /* FILE CONSTANTS AND ENVIRONMENT SETTINGS */  
@@ -763,16 +763,18 @@
 /* SWAB CONSTANTS */
 #define SWAB_MAX_DET		8		// max number of detectors in SwabianBoard
 #define SWAB_NONE			0		// no detector
-#define SWAB_SYNC			1		// sync detector
-#define SWAB_SIGN			2		// sign detector
+#define SWAB_SIGN			1		// sign detector
+#define SWAB_SYNC			2		// sync detector
 #define SWAB_REPLAY_SPEED	1.0		// replay at SWAB_REPLAY_SPEED*real speed
 #define SWAB_S2PS			1E12	// seconds to ps conversion
 #define SWAB_FILEEXT		"ttbin" // file extension for Time Tags
-#define SWAB_FILEVIRT		"C:\\temp\\input.1"	// file with virtual measurement
-#define SWAB_HIST			0		// corresponds to classical TPSF histogram
-#define SWAB_CORR			1		// corresponds to correlation among 2 channels
-#define SWAB_REAL			0		// Real Time Tagger
-#define SWAB_VIRTUAL		1		// Virtual Time Tagger
+#define SWAB_HIST			1		// corresponds to classical TPSF histogram
+#define SWAB_CORR			2		// corresponds to correlation among 2 channels
+#define SWAB_REAL			1		// Real Time Tagger
+#define SWAB_VIRTUAL		2		// Virtual Time Tagger
+#define COL_SWAB_DETTYPE	1		// Column in UIR SWAB Panel Table corressponding to DetType
+#define COL_SWAB_LEVEL		2		// Column in UIR SWAB Panel Table corressponding to DetType
+#define COL_SWAB_DELAY		3		// Column in UIR SWAB Panel Table corressponding to DetType
 
 /* TEST CONSTANTS */
 #define TEST_MUS	10.0
@@ -1533,6 +1535,8 @@ struct SwabS{
 	int DetSync; // code identifying Sync Detector (1-based from UIR)
 	int DetSign[SWAB_MAX_DET]; // code identifying Sign Detectors (1-based from UIR) 
 	int DetType[SWAB_MAX_DET]; // code identifying type of detector (SWAB_NONE, SWAB_SYNC, SWAB_SIGN)
+	double Level[SWAB_MAX_DET]; // threshold (mV)
+	int Delay[SWAB_MAX_DET]; // (ps) delay
 	SwabianInstruments_TimeTagger_TimeTagger Ttr; // handle to a Real Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerBase Ttb; // handle to Base Tagger object
@@ -1540,6 +1544,7 @@ struct SwabS{
 	SwabianInstruments_TimeTagger_Histogram Hist[SWAB_MAX_DET]; // handle to Correlation object
 	SwabianInstruments_TimeTagger_FileWriter Fw; // handle to File Write object
 	CDotNetHandle Except; // handle to Exception raised by the .NET function in the Swab library
+	char* FNameVirt[STRLEN]; // file name for reading the TimeTags
 	char* FPathVirt[STRLEN]; // complete file path for reading the TimeTags
 	char* FPathOut[STRLEN]; // complete file path for writing the TimeTags 
 	__int64 TimeSW; // duration in ps of acquisition
@@ -1547,10 +1552,6 @@ struct SwabS{
 	int isFwRunning; 
 	int SaveTags; // activate saving of TimeTags on File
 	int Type;
-	double SyncLevel; // threshold for SYNC
-	double SignLevel; // threshold for SIGN
-	__int64 SyncDelay; // (ps) delay for SYNC 
-	__int64 SignDelay; // (ps) delay for SIGN
 	};
 
 
@@ -2011,6 +2012,7 @@ int hStep;
 int hSwitch;
 int hNirs;
 int hLuca;
+int hSwab;
 int hMamm;
 int hSave;
 int hLabel;

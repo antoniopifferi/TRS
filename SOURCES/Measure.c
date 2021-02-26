@@ -935,19 +935,15 @@ void CompleteParmS(void){
 	if(P.Spc.Type==SPC_LUCA) P.Spc.RoutingBits=1;
 	for(ir=0;ir<P.Spc.RoutingBits;ir++) P.Num.Det*=2;
 	if(P.Spc.Type==SPC_SWAB){  // Apply here and cancel all previous
-		/**/P.Spc.Swab[0].DetType[0]=SWAB_SIGN;
-		/**/P.Spc.Swab[0].DetType[1]=SWAB_SIGN;
-		/**/P.Spc.Swab[0].DetType[2]=SWAB_SIGN;
-		/**/P.Spc.Swab[0].DetType[3]=SWAB_SIGN;
-		/**/P.Spc.Swab[0].DetType[4]=SWAB_NONE;
-		/**/P.Spc.Swab[0].DetType[5]=SWAB_NONE;
-		/**/P.Spc.Swab[0].DetType[6]=SWAB_NONE;
-		/**/P.Spc.Swab[0].DetType[7]=SWAB_SYNC;
 		P.Num.Det=0;
 		for(int id=0;id<SWAB_MAX_DET;id++){
 			if(P.Spc.Swab[0].DetType[id]==SWAB_SYNC) P.Spc.Swab[0].DetSync=id+1; // note: SWAB Det is 1-based
-			if(P.Spc.Swab[0].DetType[id]==SWAB_SIGN) P.Spc.Swab[0].DetSign[P.Num.Det++]=id+1; // note: SWAB Det is 1-based
+			if(P.Spc.Swab[0].DetType[id]==SWAB_SIGN){
+				P.Spc.Swab[0].DetSign[P.Num.Det]=id+1; // note: SWAB Det is 1-based
+				P.Num.Det++;
+				}
 			}
+		if(P.Num.Det==0) P.Num.Det=1; // used only to avoid divide by zero if not initialised to 1
 		}
 	
 	// Filter-Page-Acq
@@ -2542,19 +2538,10 @@ void InitSwab(int Board){
 	int id;
 	unsigned __int64 returnReplay;
 
-	// UIR OR INITFILE
-	SW->Meas=SWAB_HIST; // SWAB_CORR   SWAB_HIST
-	SW->SaveTags=FALSE;  // SAVE FILE TAGS
-	SW->Type=SWAB_REAL; // SWAB_REAL SWAB_VIRTUAL
-	SW->SyncLevel=-0.1;
-	SW->SignLevel=0.3;
-	SW->SyncDelay=0; // ps
-	SW->SignDelay=25000; // ps
-	
 	// COMPLETE SWAB !!!! TRANSFER TO CompleteParm or leave here (better more clear)
 	P.Spc.Factor=P.Spc.Scale * P.Spc.Calib;
 	SW->Binwidth=(__int64) (P.Spc.Factor+0.5);
-	sprintf(SW->FPathVirt, "%s.%s",SWAB_FILEVIRT,SWAB_FILEEXT);
+	sprintf(SW->FPathVirt, "%s.%s",SW->FNameVirt,SWAB_FILEEXT);
 
 	// start
 	sprintf (message, "Initializing SWAB, Module #%d, ...", Board);
@@ -2572,20 +2559,15 @@ void InitSwab(int Board){
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE REAL"); 
 			ret = SwabianInstruments_TimeTagger_TimeTagger_reset (SW->Ttr, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"RESET REAL"); 
-			//ret = SwabianInstruments_TimeTagger_TimeTagger_setTestSignal (SW->Ttr, SW->DetSync, 1, &SW->Except);
-			//ret = SwabianInstruments_TimeTagger_TimeTagger_setTestSignal (SW->Ttr, SW->DetSign[0], 1, &SW->Except);
 			ret=SwabianInstruments_TimeTagger_TimeTagger_setConditionalFilter_1(SW->Ttr,SW->DetSign,(ssize_t)P.Num.Det,&SW->DetSync,1,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
-			ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel (SW->Ttr, SW->DetSync, SW->SyncLevel, &SW->Except);
-			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
-			ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay (SW->Ttr, SW->DetSync, SW->SyncDelay, &SW->Except);
-			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
-			for(id=0;id<P.Num.Det;id++){
-				ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel (SW->Ttr, SW->DetSign[id], SW->SignLevel, &SW->Except);
-				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
-				ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay (SW->Ttr, SW->DetSign[id], SW->SignDelay, &SW->Except);
-				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
-				}
+			for(id=0;id<SWAB_MAX_DET;id++)
+				if(SW->DetType!=SWAB_NONE){
+					ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel(SW->Ttr,id+1,SW->Level[id],&SW->Except);
+					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
+					ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay(SW->Ttr,id+1,(__int64)SW->Delay[id],&SW->Except);
+					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
+					}
 			ret = SwabianInstruments_TimeTagger_TimeTagger_sync (SW->Ttr, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"SYNC, that is update all param"); 
 			SW->Ttb=SW->Ttr; // Assign to Time Tagger Base for further processing

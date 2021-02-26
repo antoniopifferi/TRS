@@ -49,6 +49,7 @@ int main (int argc, char *argv[])
 	if ((hGeom = LoadPanel (hTrs, PATH_UIR, GEOMETRY)) < 0) return -1;//ALE
 	if ((hNirs = LoadPanel (hTrs, PATH_UIR, NIRS)) < 0) return -1;
 	if ((hLuca = LoadPanel (hTrs, PATH_UIR, LUCA)) < 0) return -1;
+	if ((hSwab = LoadPanel (hTrs, PATH_UIR, SWAB)) < 0) return -1;
 	
 	CreateTable();
 	
@@ -83,6 +84,7 @@ void CVICALLBACK SaveSetting (int menuBar, int menuItem, void *callbackData, int
 		case MENU_FILE_SAVE_NIRS:			c_panel=NIRS; break;
 		case MENU_FILE_SAVE_LUCA:			c_panel=LUCA; break;
 		case MENU_FILE_SAVE_GEOMETRY:		c_panel=GEOMETRY; break;//ALE
+		case MENU_FILE_SAVE_SWAB:			c_panel=SWAB; break;
 		}
 	SaveSet(fpath,c_panel);
 	}
@@ -146,6 +148,7 @@ void CVICALLBACK LoadSetting (int menuBar, int menuItem, void *callbackData,int 
 		case MENU_FILE_LOAD_NIRS:			c_panel=NIRS; break;
 		case MENU_FILE_LOAD_LUCA:			c_panel=LUCA; break;
 		case MENU_FILE_LOAD_GEOMETRY:		c_panel=GEOMETRY; break;//ALE
+		case MENU_FILE_LOAD_SWAB:			c_panel=SWAB; break;
 		}
 	LoadSet(fpath,c_panel);
 	ReadAll();
@@ -222,6 +225,7 @@ void CVICALLBACK ShowPanel (int menuBar, int menuItem, void *callbackData,
 		case MENU_WINDOW_GEOMETRY:DisplayPanel (hGeom); break;//ALE
 		case MENU_DEVICE_NIRS:	  DisplayPanel (hNirs); break;
 		case MENU_DEVICE_LUCA:	  DisplayPanel (hLuca); break;
+		case MENU_DEVICE_SWAB:	  DisplayPanel (hSwab); break;
 		}
 	}
 
@@ -248,6 +252,7 @@ void InitPanel(void){
 	hPanel[GEOMETRY]=hGeom;//ALE
 	hPanel[NIRS]=hNirs;
 	hPanel[LUCA]=hLuca;
+	hPanel[SWAB]=hSwab;
 	LoadSet(FILESET,NEG);
 	ReadAll();
 	CompleteParmS();
@@ -257,11 +262,16 @@ void InitPanel(void){
 
 void ReadAll(void){
 	int it;
+	/**/int aaa;
 	for(it=0;it<T.Num;it++)
+	/**/{
 		if(T.Class[it]==CE)
 			GetCtrlVal(hPanel[T.Panel[it]],T.Ctrl[it],T.Addr[it]);
 		else
 			GetTableCellVal(hPanel[T.Panel[it]],T.Ctrl[it],MakePoint(T.Col[it],T.Row[it]),T.Addr[it]);
+	/**/if(it==1197)
+		/**/aaa=0;
+	/**/}
 	}				
 
 int CVICALLBACK Setting (int panel, int control, int event,void *callbackData, int eventData1, int eventData2){
@@ -352,6 +362,7 @@ int CVICALLBACK ClosePanel (int panel, int event, void *callbackdata, int eventd
 
 /// TABLE
 void AddTab(int Class,int Type,int Panel,int Control,char *Label,int Row,int Col,void *Addr){
+	/**/int aaa;
 	T.Class[T.Num]=Class;
 	T.Type[T.Num]=Type;
 	T.Panel[T.Num]=Panel;
@@ -674,6 +685,23 @@ void CreateTable(void){
 	
 	//1
 	AddTab(CE,TINT,LUCA,LUCA_FREQ,"LucaFreq",0,0,&P.Spc.Luca[0].Freq);
+	
+	
+	// SWAB PANEL
+	// 8*3+4	
+	int tint=0;
+	for(id=0;id<SWAB_MAX_DET;id++){
+		//AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDetType",id+1,COL_SWAB_DETTYPE,&P.Spc.Swab[0].DetType[id]);
+		//AddTab(CT,TDOUBLE,SWAB,SWAB_T_DETECTORS,"SwabLevel",id+1,COL_SWAB_LEVEL,&P.Spc.Swab[0].Level[id]);
+		//AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDelay",id+1,COL_SWAB_DELAY,&P.Spc.Swab[0].Delay[id]);
+		AddTab(CE,TINT,SWAB,SWAB_DETTYPE_1+id,"SwabDetType",id+1,0,&P.Spc.Swab[0].DetType[id]);
+		AddTab(CE,TDOUBLE,SWAB,SWAB_LEVEL_1+id,"SwabLevel",id+1,0,&P.Spc.Swab[0].Level[id]);
+		AddTab(CE,TINT,SWAB,SWAB_DELAY_1+id,"SwabDelay",id+1,0,&P.Spc.Swab[0].Delay[id]);
+		}	
+	AddTab(CE,TINT,SWAB,SWAB_TYPE,"SwabType",0,0,&P.Spc.Swab[0].Type);
+	AddTab(CE,TINT,SWAB,SWAB_MEAS,"SwabMeas",0,0,&P.Spc.Swab[0].Meas);
+	AddTab(CE,TINT,SWAB,SWAB_SAVETAGS,"SwabSaveTags",0,0,&P.Spc.Swab[0].SaveTags);
+	AddTab(CE,TSTRING,SWAB,SWAB_FNAMEVIRT,"SwabFNameVirt",0,0,P.Spc.Swab[0].FNameVirt);
 
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;
 	}
