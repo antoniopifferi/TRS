@@ -2546,7 +2546,7 @@ void InitSwab(int Board){
 	SW->Meas=SWAB_HIST; // SWAB_CORR   SWAB_HIST
 	SW->SaveTags=FALSE;  // SAVE FILE TAGS
 	SW->Type=SWAB_REAL; // SWAB_REAL SWAB_VIRTUAL
-	SW->SyncLevel=-0.3;
+	SW->SyncLevel=-0.1;
 	SW->SignLevel=0.3;
 	SW->SyncDelay=0; // ps
 	SW->SignDelay=25000; // ps
