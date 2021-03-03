@@ -82,7 +82,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1208
+#define MAX_TABLE		1206
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1047,10 +1047,6 @@ struct TSourceS {
 	char Switch[MAX_ROW_SOURCE];
 	char Chann[MAX_ROW_SOURCE];
 	};
-struct CommentS {
-	char Date[STRLEN];
-	char Time[STRLEN];  
-	};
 
 struct ChannS {
 	long First;
@@ -1942,7 +1938,6 @@ struct ParmS {
 	struct OphirS Ophir;
 	struct PowerS Power;
 	struct TrimS Trim[MAX_TRIM];
-	struct CommentS Comment;
 	struct MammS Mamm;
 	struct LabelS Label[LABEL_MAX];
 	struct DoStepS DoStep[DOSTEP_MAX];

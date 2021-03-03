@@ -301,7 +301,6 @@ int CVICALLBACK Setting (int panel, int control, int event,void *callbackData, i
 
 
 void UpdatePanel(void){
-	char strtime[STRLEN];
 	int it;
 	char *pchar;
 	int *pint;
@@ -340,10 +339,6 @@ void UpdatePanel(void){
 	SetCtrlVal (hParm, PARM_LOOP_NUM_4, P.Loop[3].Num);
 	SetCtrlVal (hParm, PARM_LOOP_NUM_5, P.Loop[4].Num);
 	
-	SetCtrlVal (hParm,PARM_COMMENT_DATE,DateStr() );
-	strncpy (strtime, TimeStr (), 5);
-	strtime[5]='\0';
-	SetCtrlVal (hParm, PARM_COMMENT_TIME,strtime); 
 	
 	/*SetCtrlAttribute(hParm,PARM_OSCILL_REF_FIRST,ATTR_MAX_VALUE,P.Chann.Num-1);
 	SetCtrlAttribute(hParm,PARM_OSCILL_REF_LAST,ATTR_MAX_VALUE,P.Chann.Num-1);
@@ -461,10 +456,6 @@ void CreateTable(void){
 	AddTab(CE,TINT,PARM,PARM_FLAGPRESENT,"PresentFlagPresent",0,0,&P.Presentation.Flag);
 	AddTab(CE,TCHAR,PARM,PARM_INFO_MONITOR,"InfoMonitor",0,0,&P.Info.Monitor);
 
-	// 2
-	AddTab(CE,TSTRING,PARM,PARM_COMMENT_DATE,"CommentDate",0,0,P.Comment.Date);
-	AddTab(CE,TSTRING,PARM,PARM_COMMENT_TIME,"CommentTime",0,0,P.Comment.Time);
-	
 	// 6
 	AddTab(CE,TCHAR,PARM,PARM_SYNC_SYNC,"SyncSync",0,0,&P.Sync.Sync);
 	AddTab(CE,TCHAR,PARM,PARM_SYNC_TYPE,"SyncType",0,0,&P.Sync.Type);
