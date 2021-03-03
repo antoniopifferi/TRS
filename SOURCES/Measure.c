@@ -2611,8 +2611,6 @@ void CloseSwab(void){
 		case SWAB_REAL:
 			ret=SwabianInstruments_TimeTagger_TimeTagger_Dispose(SW->Ttr,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISPOSE REAL");
-			ret = SwabianInstruments_TimeTagger_TT_freeAllTimeTagger (&SW->Except);
-			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"FREE ALL TIME TAGGER");
 			ret = CDotNetDiscardHandle (SW->Ttr);
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISCARD .NET HANDLE");
 			break;
@@ -2621,8 +2619,6 @@ void CloseSwab(void){
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"STOP REPLAY VIRTUAL");
 			ret=SwabianInstruments_TimeTagger_TimeTaggerVirtual_Dispose(SW->Ttv,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISPOSE VIRTUAL");
-			ret = SwabianInstruments_TimeTagger_TT_freeAllTimeTagger (&SW->Except);
-			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"FREE ALL TIME TAGGER");
 			ret = CDotNetDiscardHandle (SW->Ttv);
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISCARD .NET HANDLE");
 			break;
