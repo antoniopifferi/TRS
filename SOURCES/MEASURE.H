@@ -1536,7 +1536,8 @@ struct SwabS{
 	SwabianInstruments_TimeTagger_TimeTagger Ttr; // handle to a Real Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerBase Ttb; // handle to Base Tagger object
-	SwabianInstruments_TimeTagger_Correlation Corr[SWAB_MAX_DET]; // handle to Correlation object
+	SwabianInstruments_TimeTagger_HistogramLogBins Corr[SWAB_MAX_DET]; // handle to Correlation object
+	//SwabianInstruments_TimeTagger_Correlation Corr[SWAB_MAX_DET]; // handle to Correlation object
 	SwabianInstruments_TimeTagger_Histogram Hist[SWAB_MAX_DET]; // handle to Correlation object
 	SwabianInstruments_TimeTagger_FileWriter Fw; // handle to File Write object
 	CDotNetHandle Except; // handle to Exception raised by the .NET function in the Swab library

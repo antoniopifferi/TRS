@@ -2590,7 +2590,8 @@ void InitSwab(int Board){
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr[id],SW->Ttb,SW->DetSync,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except);
+				ret=SwabianInstruments_TimeTagger_HistogramLogBins__Create(&SW->Corr[id],SW->Ttb,SW->DetSign[id],SW->DetSign[id],0.000001,0.001,P.Chann.Num,&SW->Except);
+				//ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr[id],SW->Ttb,SW->DetSync,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE MEAS"); 
@@ -2630,7 +2631,7 @@ void CloseSwab(void){
 
 /* TRANSFER DATA FROM SWAB */	
 void GetDataSwab(void){
-	int ret,id;
+	int ret,id,ic;
 	ssize_t arraylen;
 	int *pData;
 	struct SwabS* SW=P.Spc.Swab;
@@ -2642,12 +2643,19 @@ void GetDataSwab(void){
 					ret = SwabianInstruments_TimeTagger_Histogram_getData (SW->Hist[id], &pData, &arraylen, &SW->Except);
 					break;
 				case SWAB_CORR:
-					ret=SwabianInstruments_TimeTagger_Correlation_getData(SW->Corr[id],&pData,&arraylen,&SW->Except);
+					ret = SwabianInstruments_TimeTagger_HistogramLogBins_getData(SW->Corr[id], &pData, &arraylen, &SW->Except);
+					//ret = SwabianInstruments_TimeTagger_HistogramLogBins_getDataNormalizedG2(SW->Corr[id], &pData, &arraylen, &SW->Except);
+					//ret=SwabianInstruments_TimeTagger_Correlation_getData(SW->Corr[id],&pData,&arraylen,&SW->Except);
 					break;
 				}
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"GET DATA");
-			for(int ic=0;ic<arraylen;ic++)
-				D.Buffer[ib][ic+id*P.Chann.Num]=(T_DATA) pData[ic];
+			if(SW->Meas==SWAB_HIST)
+				for(ic=0;ic<arraylen;ic++)
+					D.Buffer[ib][ic+id*P.Chann.Num]=(T_DATA) pData[ic];
+			if(SW->Meas==SWAB_CORR)
+				for(ic=0;ic<arraylen;ic++)
+					D.Buffer[ib][ic+id*P.Chann.Num]=(T_DATA) pData[ic];
+					//D.Buffer[ib][ic+id*P.Chann.Num]=(T_DATA) (pow(10,5*pData[ic]));
 			CDotNetFreeMemory(pData); // free memory of the allocated array
 			}
 	}
@@ -2664,10 +2672,11 @@ void ClearSwab(void){
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				ret = SwabianInstruments_TimeTagger_Correlation_clear (SW->Corr[id], &SW->Except);
+				//ret = SwabianInstruments_TimeTagger_Correlation_clear (SW->Corr[id], &SW->Except);
+				ret = SwabianInstruments_TimeTagger_HistogramLogBins_clear(SW->Corr[id],&SW->Except);
 			break;
 		}
-	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"CLEAR CORR");
+	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"CLEAR");
 	}
 	
 	
@@ -2682,7 +2691,8 @@ void PauseSwab(int Board){
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				ret = SwabianInstruments_TimeTagger_Correlation_stop (SW->Corr[id], &SW->Except);
+				//ret = SwabianInstruments_TimeTagger_Correlation_stop (SW->Corr[id], &SW->Except);
+				ret = SwabianInstruments_TimeTagger_HistogramLogBins_stop(SW->Corr[id],&SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
@@ -2700,7 +2710,8 @@ void StartSwab(int Board){
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				ret = SwabianInstruments_TimeTagger_Correlation_startFor (SW->Corr[id], SW->TimeSW, 0, &SW->Except);
+				//ret = SwabianInstruments_TimeTagger_Correlation_startFor (SW->Corr[id], SW->TimeSW, 0, &SW->Except);
+				ret = SwabianInstruments_TimeTagger_HistogramLogBins_startFor(SW->Corr[id], SW->TimeSW, 0, &SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
@@ -2725,7 +2736,8 @@ void StopSwab(int Board){
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				ret = SwabianInstruments_TimeTagger_Correlation_stop (SW->Corr[id], &SW->Except);
+				//ret = SwabianInstruments_TimeTagger_Correlation_stop (SW->Corr[id], &SW->Except);
+				ret = SwabianInstruments_TimeTagger_HistogramLogBins_stop(SW->Corr[id], &SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
@@ -2745,7 +2757,8 @@ void WaitSwab(int Board){
 				break;
 			case SWAB_CORR:
 				for(id=0;id<P.Num.Det;id++)
-					ret = SwabianInstruments_TimeTagger_Correlation_isRunning (SW->Corr[id], &is_running, &SW->Except);
+					//ret = SwabianInstruments_TimeTagger_Correlation_isRunning (SW->Corr[id], &is_running, &SW->Except);
+					ret = SwabianInstruments_TimeTagger_HistogramLogBins_isRunning(SW->Corr[id], &is_running, &SW->Except);
 				break;
 			}
 		if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"WAIT SWAB");
@@ -2765,7 +2778,8 @@ void GetSwabElapsedTime(double *Elapsed_Time){
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				ret = SwabianInstruments_TimeTagger_Correlation_getCaptureDuration (SW->Corr[id], &elapsed_time, &SW->Except);
+				//ret = SwabianInstruments_TimeTagger_Correlation_getCaptureDuration (SW->Corr[id], &elapsed_time, &SW->Except);
+				ret = SwabianInstruments_TimeTagger_HistogramLogBins_getCaptureDuration(SW->Corr[id], &elapsed_time, &SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
