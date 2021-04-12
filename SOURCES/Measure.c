@@ -5161,6 +5161,74 @@ void MoveSwitchThorWheel(long Goal,char Switch){
 
 /* INITIALISE SYNC FUNCTIONS */
 void InitSync(void){
+	if(!P.Sync.Sync) return;
+	switch (P.Sync.Type){
+		case SYNC_LPT: InitSyncLpt(); break;
+		case SYNC_USB: InitSyncUsb(); break;
+		default: break;
+		}
+	}	   
+
+
+/* START GET/SEND SYNC */
+void StartSync(void){
+	switch (P.Sync.Type){
+		case SYNC_LPT: StartSyncLpt(); break;
+		case SYNC_USB: StartSyncUsb(); break;
+		default: break;
+		}
+	}
+
+
+/* STOP GET/SEND SYNC */
+void StopSync(void){
+	switch (P.Sync.Type){
+		case SYNC_LPT: StopSyncLpt(); break;
+		case SYNC_USB: StopSyncUsb(); break;
+		default: break;
+		}
+	}
+
+
+
+/* ########################   SYNC USING USB   ########################### */ 
+
+/* INITIALISE SYNC FUNCTIONS */
+void InitSyncUsb(void){
+	int ret;
+	if(!P.Sync.Sync) return;
+	SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "Initializing Sync ... ");
+	ret = OpenComConfig (P.Sync.Com, "DeviceName", SYNC_USB_BAUD, 0, 7, 1, 512, 512);
+	ret = SetCTSMode (P.Sync.Com, LWRS_HWHANDSHAKE_OFF);
+	if(ret<0) Failure('Initialise RS232 transmission'); else Passed();
+	}	   
+
+
+/* START GET/SEND SYNC */
+void StartSyncUsb(void){
+	short  off=0x00;
+	short  on=0x01;
+	if(!P.Sync.Sync) return;
+	switch (P.Sync.Dir) {
+		case SYNC_INPUT:
+			while(ComRdByte(P.Sync.Com)==on);
+			break;
+		case SYNC_OUTPUT:
+			ComWrtByte (P.Sync.Com,on);
+			break;
+		}
+	}
+
+
+/* STOP GET/SEND SYNC */
+void StopSyncUsb(void){
+	}
+
+
+/* ########################   SYNC USING LPT   ########################### */ 
+
+/* INITIALISE SYNC FUNCTIONS */
+void InitSyncLpt(void){
     short  pstatus;
 	short  off=0x00;
 	if(!P.Sync.Sync) return;
@@ -5172,7 +5240,7 @@ void InitSync(void){
 
 
 /* START GET/SEND SYNC */
-void StartSync(void){
+void StartSyncLpt(void){
 	short  off=0x00;
 	short  on=0x01;
 	if(!P.Sync.Sync) return;
@@ -5191,7 +5259,7 @@ void StartSync(void){
 
 
 /* STOP GET/SEND SYNC */
-void StopSync(void){
+void StopSyncLpt(void){
  	short  off=0x00;
 	short  on=0x01;
 	if(!P.Sync.Sync) return;

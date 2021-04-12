@@ -456,9 +456,10 @@ void CreateTable(void){
 	AddTab(CE,TINT,PARM,PARM_FLAGPRESENT,"PresentFlagPresent",0,0,&P.Presentation.Flag);
 	AddTab(CE,TCHAR,PARM,PARM_INFO_MONITOR,"InfoMonitor",0,0,&P.Info.Monitor);
 
-	// 6
+	// 7
 	AddTab(CE,TCHAR,PARM,PARM_SYNC_SYNC,"SyncSync",0,0,&P.Sync.Sync);
 	AddTab(CE,TCHAR,PARM,PARM_SYNC_TYPE,"SyncType",0,0,&P.Sync.Type);
+	AddTab(CE,TCHAR,PARM,PARM_SYNC_COM,"SyncCom",0,0,&P.Sync.Com);
 	AddTab(CE,TCHAR,PARM,PARM_SYNC_LOOP,"SyncLoop",0,0,&P.Sync.Loop);
 	AddTab(CE,TCHAR,PARM,PARM_SYNC_PATTERN,"SyncPattern",0,0,&P.Sync.Pattern);
 	AddTab(CE,TCHAR,PARM,PARM_SYNC_DIR,"SyncDir",0,0,&P.Sync.Dir);

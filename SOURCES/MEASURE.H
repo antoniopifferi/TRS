@@ -82,7 +82,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1206
+#define MAX_TABLE		1207
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -475,6 +475,9 @@
 #define SYNC_ONE	 1
 #define SYNC_TWO	 2
 #define SYNC_CONT	 3
+#define SYNC_LPT	 2
+#define SYNC_USB	 3
+#define SYNC_USB_BAUD 1200
 
 
 
@@ -1375,6 +1378,7 @@ struct SyncS {
 	char  Loop;
 	char  Pattern;
 	char  Dir;
+	char   Com;
 	double Width;
 	};
 	
@@ -2284,6 +2288,12 @@ void MoveSwitchThorWheel(long Goal,char Switch);
 void InitSync(void);
 void StartSync(void);
 void StopSync(void);
+void InitSyncUsb(void);
+void StartSyncUsb(void);
+void StopSyncUsb(void);
+void InitSyncLpt(void);
+void StartSyncLpt(void);
+void StopSyncLpt(void);
 
 /* ########################   OMA PROCEDURES   ######################## */
 void InitOma(void);
