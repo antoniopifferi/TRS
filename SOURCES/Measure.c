@@ -5198,7 +5198,7 @@ void InitSyncUsb(void){
 	int ret;
 	if(!P.Sync.Sync) return;
 	SetCtrlVal (hDisplay,DISPLAY_MESSAGE, "Initializing Sync ... ");
-	ret = OpenComConfig (P.Sync.Com, "DeviceName", SYNC_USB_BAUD, 0, 7, 1, 512, 512);
+	ret = OpenComConfig (P.Sync.Com, "COM3", P.Sync.Baud, 0, 7, 1, 512, 512);
 	ret = SetCTSMode (P.Sync.Com, LWRS_HWHANDSHAKE_OFF);
 	if(ret<0) Failure('Initialise RS232 transmission'); else Passed();
 	}	   
@@ -5214,7 +5214,7 @@ void StartSyncUsb(void){
 			while(ComRdByte(P.Sync.Com)==on);
 			break;
 		case SYNC_OUTPUT:
-			ComWrtByte (P.Sync.Com,on);
+			ComWrtByte (P.Sync.Com,0);
 			break;
 		}
 	}

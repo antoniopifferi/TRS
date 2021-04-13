@@ -464,6 +464,7 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,PARM,PARM_SYNC_PATTERN,"SyncPattern",0,0,&P.Sync.Pattern);
 	AddTab(CE,TCHAR,PARM,PARM_SYNC_DIR,"SyncDir",0,0,&P.Sync.Dir);
 	AddTab(CE,TDOUBLE,PARM,PARM_SYNC_WIDTH,"SyncWidth",0,0,&P.Sync.Width);
+	AddTab(CE,TINT,PARM,PARM_SYNC_BAUD,"SyncBaud",0,0,&P.Sync.Baud);
 
 	// 1
 	AddTab(CE,TCHAR,PARM,PARM_POWER_STEP,"PowerStep",0,0,&P.Power.Step);

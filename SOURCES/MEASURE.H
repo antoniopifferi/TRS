@@ -82,7 +82,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1207
+#define MAX_TABLE		1208
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -477,7 +477,7 @@
 #define SYNC_CONT	 3
 #define SYNC_LPT	 2
 #define SYNC_USB	 3
-#define SYNC_USB_BAUD 1200
+//#define SYNC_USB_BAUD 110
 
 
 
@@ -1380,6 +1380,7 @@ struct SyncS {
 	char  Dir;
 	char   Com;
 	double Width;
+	int	   Baud;
 	};
 	
 
