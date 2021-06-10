@@ -2660,6 +2660,7 @@ void GetDataSwab(void){
 			}
 	}
 
+	
 
 /* CLEAR SWAB */	
 void ClearSwab(void){
