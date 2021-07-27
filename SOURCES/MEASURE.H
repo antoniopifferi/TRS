@@ -82,7 +82,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1208
+#define MAX_TABLE		1210
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1534,12 +1534,14 @@ struct SurfaceConceptS{
 struct SwabS{
 	__int64 Binwidth; // channel (bin) width in ps (ps/ch)
 	int DetSync; // code identifying Sync Detector (1-based from UIR)
+	int DetSyncFreqMult; // code identifying Sync Detector after FreqMult (=DetSync if FreqMult=1)
 	int DetSign[SWAB_MAX_DET]; // code identifying Sign Detectors (1-based from UIR) 
 	int DetType[SWAB_MAX_DET]; // code identifying type of detector (SWAB_NONE, SWAB_SYNC, SWAB_SIGN)
 	double Level[SWAB_MAX_DET]; // threshold (mV)
 	int Delay[SWAB_MAX_DET]; // (ps) delay
 	SwabianInstruments_TimeTagger_TimeTagger Ttr; // handle to a Real Tagger object
 	SwabianInstruments_TimeTagger_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
+	SwabianInstruments_TimeTagger_FrequencyMultiplier Fm; // handle to Frequency Multiplier object
 	SwabianInstruments_TimeTagger_TimeTaggerBase Ttb; // handle to Base Tagger object
 	SwabianInstruments_TimeTagger_HistogramLogBins Corr[SWAB_MAX_DET]; // handle to Correlation object
 	//SwabianInstruments_TimeTagger_Correlation Corr[SWAB_MAX_DET]; // handle to Correlation object
@@ -1554,6 +1556,8 @@ struct SwabS{
 	int isFwRunning; 
 	int SaveTags; // activate saving of TimeTags on File
 	int Type;
+	int FreqMult; // multiplication factor for refolding after frequency divider
+	int FreqDiv; // divider factor for reducing Sync
 	};
 
 

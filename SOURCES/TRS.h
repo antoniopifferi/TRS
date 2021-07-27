@@ -689,6 +689,9 @@
 #define  SWAB_MEAS                        36      /* control type: ring, callback function: Setting */
 #define  SWAB_SAVETAGS                    37      /* control type: binary, callback function: Setting */
 #define  SWAB_FNAMEVIRT                   38      /* control type: string, callback function: Setting */
+#define  SWAB_FREQMULT                    39      /* control type: numeric, callback function: Setting */
+#define  SWAB_FREQDIV                     40      /* control type: numeric, callback function: Setting */
+#define  SWAB_STRING                      41      /* control type: string, callback function: (none) */
 
 #define  SWITCH                           14      /* callback function: ClosePanel */
 #define  SWITCH_TEXTMSG_1                 2       /* control type: textMsg, callback function: (none) */

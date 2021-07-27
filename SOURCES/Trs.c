@@ -681,7 +681,7 @@ void CreateTable(void){
 	
 	
 	// SWAB PANEL
-	// 8*3+4	
+	// 8*3+4+2	
 	int tint=0;
 	for(id=0;id<SWAB_MAX_DET;id++){
 		//AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDetType",id+1,COL_SWAB_DETTYPE,&P.Spc.Swab[0].DetType[id]);
@@ -695,6 +695,9 @@ void CreateTable(void){
 	AddTab(CE,TINT,SWAB,SWAB_MEAS,"SwabMeas",0,0,&P.Spc.Swab[0].Meas);
 	AddTab(CE,TINT,SWAB,SWAB_SAVETAGS,"SwabSaveTags",0,0,&P.Spc.Swab[0].SaveTags);
 	AddTab(CE,TSTRING,SWAB,SWAB_FNAMEVIRT,"SwabFNameVirt",0,0,P.Spc.Swab[0].FNameVirt);
+	AddTab(CE,TINT,SWAB,SWAB_FREQDIV,"SwabFreqDiv",0,0,&P.Spc.Swab[0].FreqDiv);
+	AddTab(CE,TINT,SWAB,SWAB_FREQMULT,"SwabFreqMult",0,0,&P.Spc.Swab[0].FreqMult);
+
 
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;
 	}

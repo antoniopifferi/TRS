@@ -2559,8 +2559,14 @@ void InitSwab(int Board){
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE REAL"); 
 			ret = SwabianInstruments_TimeTagger_TimeTagger_reset (SW->Ttr, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"RESET REAL"); 
-			ret=SwabianInstruments_TimeTagger_TimeTagger_setConditionalFilter_1(SW->Ttr,SW->DetSign,(ssize_t)P.Num.Det,&SW->DetSync,1,&SW->Except);
-			if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
+			if (SW->FreqDiv>1){ // Apply Frequency Divider
+				ret=SwabianInstruments_TimeTagger_TimeTagger_setEventDivider(SW->Ttr,SW->DetSync,SW->FreqDiv,&SW->Except);
+				if(ret<0) ErrHandler(ERR_SWAB,ret,"EVENT DIVIDER"); 
+				}
+			else{ // if NOT frequency divided, apply Conditional Filter to reduce sync rate
+				ret=SwabianInstruments_TimeTagger_TimeTagger_setConditionalFilter_1(SW->Ttr,SW->DetSign,(ssize_t)P.Num.Det,&SW->DetSync,1,&SW->Except);
+				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
+				}
 			for(id=0;id<SWAB_MAX_DET;id++)
 				if(SW->DetType!=SWAB_NONE){
 					ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel(SW->Ttr,id+1,SW->Level[id],&SW->Except);
@@ -2582,16 +2588,30 @@ void InitSwab(int Board){
 			SW->Ttb=SW->Ttv; // Assign to Time Tagger Base for further processing
 			break;
 		}
+
+	// Implement Frequency Multiplier both for Real and Virtual	
+	if (SW->FreqMult>1){ // Apply Frequency Multiplier
+		ret=SwabianInstruments_TimeTagger_FrequencyMultiplier__Create(&SW->Fm,(SW->Type==SWAB_REAL?SW->Ttr:SW->Ttv),SW->DetSync,SW->FreqMult,&SW->Except);
+		if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE_FREQMULT"); 
+		ret=SwabianInstruments_TimeTagger_FrequencyMultiplier_start(SW->Fm,&SW->Except);
+		if(ret<0) ErrHandler(ERR_SWAB,ret,"START_FREQMULT"); 
+		ret=SwabianInstruments_TimeTagger_FrequencyMultiplier_getChannel(SW->Fm,&SW->DetSyncFreqMult,&SW->Except);
+		if(ret<0) ErrHandler(ERR_SWAB,ret,"START_FREQMULT"); 
+		}
+	else{ // not in Freqency Multiplier Regime
+		SW->DetSyncFreqMult=SW->DetSync;
+		}
+		
 	//Create the measurements
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
-				ret=SwabianInstruments_TimeTagger_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSign[id],SW->DetSync,SW->Binwidth,P.Chann.Num,&SW->Except);
+				ret=SwabianInstruments_TimeTagger_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSign[id],SW->DetSyncFreqMult,SW->Binwidth,P.Chann.Num,&SW->Except);
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
 				ret=SwabianInstruments_TimeTagger_HistogramLogBins__Create(&SW->Corr[id],SW->Ttb,SW->DetSign[id],SW->DetSign[id],0.000001,0.001,P.Chann.Num,&SW->Except);
-				//ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr[id],SW->Ttb,SW->DetSync,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except);
+				//ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr[id],SW->Ttb,SW->DetSyncFreqMult,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE MEAS"); 
@@ -2704,6 +2724,7 @@ void PauseSwab(int Board){
 void StartSwab(int Board){
 	int ret,id;
 	struct SwabS* SW=P.Spc.Swab;
+	
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
@@ -2795,7 +2816,7 @@ void StartFileSwab(void){
 	int detectors[MAX_DET];
 	ssize_t numdet=P.Num.Det+1; // number of detectors in Swab
 	
-	detectors[0]=SW->DetSync;
+	detectors[0]=SW->DetSync; // NOTE: in case FreqDiv is APPLIED, this is Frequency Divided
 	for(int id=0;id<P.Num.Det;id++) detectors[id+1]=SW->DetSign[id];
 	//Open the FileWrite for writing the stream (Meas already checked)
 	if(!SW->isFwRunning&&SW->SaveTags){
