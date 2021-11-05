@@ -2142,6 +2142,7 @@ void CalcTime(void);
 void DataCopy(void);
 void NewAcq(void);
 void GetDataTest(void);
+void InitTest(void);
 void InitDemo(void);
 void CloseDemo(void);
 void GetDataDemo(void);

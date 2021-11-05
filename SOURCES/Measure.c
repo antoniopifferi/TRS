@@ -85,6 +85,7 @@
 #include "ximc2.h" // Standa2 driver re-saved as ximic2.h since the ximc.h had a truncated line
 #include "NIRS_DLL_v2_mod.h"
 #include "LUCA_TRS_mod.h"
+#include "preSOLUS_BCD.h"
 
 //#include "thlibc.h"
 //#include "thdefin.h"
@@ -1970,7 +1971,7 @@ void SpcInit(void){
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) InitNirs(ib);break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) InitLuca(ib);break;
 		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) InitSwab(ib);break;
-		case TEST: break;
+		case TEST: InitTest(); break;
 		case DEMO: InitDemo(); break;
 		}
 	}
@@ -4234,6 +4235,30 @@ void GetAck(void){
 
 
 /* ########################   TEST DATA SIMULATING SPC   ######################## */
+
+/* INIT TEST */
+void InitTest(void){
+	int ret;
+	char message[STRLEN];
+	
+	uint32_t Input=10;
+	uint32_t Output;
+	uint32_t OUT_ARRAY[256];
+	int32_t len=256;
+
+/*!
+ * Basic_test
+ */
+ //Simple debug function
+ //Returns an array of 256 elements
+ //where the elements of position 0 to "Input" contain increasing numbers
+ //"Output" should be equal to "Input"
+
+	Basic_test(Input,&Output,OUT_ARRAY,len);
+	int a=Output;
+
+	
+	}
 
 /* TRANSFER DATA FROM TEST */	
 void GetDataTest(void){

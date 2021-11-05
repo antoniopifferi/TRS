@@ -9,7 +9,7 @@ IVI Standard Root Dir = "/C/Program Files (x86)/IVI Foundation/IVI"
 VXIplug&play Framework Dir = "/C/Program Files (x86)/IVI Foundation/VISA/winnt"
 IVI Standard Root 64-bit Dir = "/C/Program Files/IVI Foundation/IVI"
 VXIplug&play Framework 64-bit Dir = "/C/Program Files/IVI Foundation/VISA/win64"
-Number of Files = 17
+Number of Files = 18
 Target Type = "Executable"
 Flags = 16
 Copied From Locked InstrDrv Directory = False
@@ -100,9 +100,9 @@ File Type = "Library"
 Res Id = 6
 Path Is Rel = True
 Path Rel To = "Project"
-Path Rel Path = "LIBRARY/SPCM32.LIB"
-Path Line0001 = "/c/OneDrivePolimi/OneDrive - Politecnico di Milano/Beta/Programs/TRS/LIBRARY/SPC"
-Path Line0002 = "M32.LIB"
+Path Rel Path = "LIBRARY/SOLUS_BCD.lib"
+Path Line0001 = "/c/OneDrivePolimi/OneDrive - Politecnico di Milano/Beta/Programs/TRS/LIBRARY/SOL"
+Path Line0002 = "US_BCD.lib"
 Exclude = False
 Project Flags = 0
 Folder = "Library Files"
@@ -113,9 +113,9 @@ File Type = "Library"
 Res Id = 7
 Path Is Rel = True
 Path Rel To = "Project"
-Path Rel Path = "LIBRARY/th260lib.lib"
-Path Line0001 = "/c/OneDrivePolimi/OneDrive - Politecnico di Milano/Beta/Programs/TRS/LIBRARY/th2"
-Path Line0002 = "60lib.lib"
+Path Rel Path = "LIBRARY/SPCM32.LIB"
+Path Line0001 = "/c/OneDrivePolimi/OneDrive - Politecnico di Milano/Beta/Programs/TRS/LIBRARY/SPC"
+Path Line0002 = "M32.LIB"
 Exclude = False
 Project Flags = 0
 Folder = "Library Files"
@@ -126,6 +126,19 @@ File Type = "Library"
 Res Id = 8
 Path Is Rel = True
 Path Rel To = "Project"
+Path Rel Path = "LIBRARY/th260lib.lib"
+Path Line0001 = "/c/OneDrivePolimi/OneDrive - Politecnico di Milano/Beta/Programs/TRS/LIBRARY/th2"
+Path Line0002 = "60lib.lib"
+Exclude = False
+Project Flags = 0
+Folder = "Library Files"
+Folder Id = 2
+
+[File 0009]
+File Type = "Library"
+Res Id = 9
+Path Is Rel = True
+Path Rel To = "Project"
 Path Rel Path = "LIBRARY/uart_library.lib"
 Path Line0001 = "/c/OneDrivePolimi/OneDrive - Politecnico di Milano/Beta/Programs/TRS/LIBRARY/uar"
 Path Line0002 = "t_library.lib"
@@ -134,9 +147,9 @@ Project Flags = 0
 Folder = "Library Files"
 Folder Id = 2
 
-[File 0009]
+[File 0010]
 File Type = "Function Panel"
-Res Id = 9
+Res Id = 10
 Path Is Rel = True
 Path Rel To = "Project"
 Path Rel Path = "SOURCES/SwabNet.fp"
@@ -147,9 +160,9 @@ Project Flags = 0
 Folder = "Instrument Files"
 Folder Id = 3
 
-[File 0010]
+[File 0011]
 File Type = "Library"
-Res Id = 10
+Res Id = 11
 Path Is Rel = True
 Path Rel To = "Project"
 Path Rel Path = "LIBRARY/easyio.lib"
@@ -159,9 +172,9 @@ Exclude = False
 Project Flags = 0
 Folder = "Not In A Folder"
 
-[File 0011]
+[File 0012]
 File Type = "Library"
-Res Id = 11
+Res Id = 12
 Path Is Rel = True
 Path Rel To = "Project"
 Path Rel Path = "LIBRARY/hhlib.lib"
@@ -171,9 +184,9 @@ Exclude = False
 Project Flags = 0
 Folder = "Not In A Folder"
 
-[File 0012]
+[File 0013]
 File Type = "Library"
-Res Id = 12
+Res Id = 13
 Path Is Rel = True
 Path Rel To = "Project"
 Path Rel Path = "LIBRARY/MBC32.LIB"
@@ -183,9 +196,9 @@ Exclude = False
 Project Flags = 0
 Folder = "Not In A Folder"
 
-[File 0013]
+[File 0014]
 File Type = "Library"
-Res Id = 13
+Res Id = 14
 Path Is Rel = True
 Path Rel To = "Project"
 Path Rel Path = "LIBRARY/MercLib210_CVI.lib"
@@ -195,9 +208,9 @@ Exclude = False
 Project Flags = 0
 Folder = "Not In A Folder"
 
-[File 0014]
+[File 0015]
 File Type = "Library"
-Res Id = 14
+Res Id = 15
 Path Is Rel = True
 Path Rel To = "Project"
 Path Rel Path = "LIBRARY/SPC_ISA.LIB"
@@ -207,9 +220,9 @@ Exclude = False
 Project Flags = 0
 Folder = "Not In A Folder"
 
-[File 0015]
+[File 0016]
 File Type = "Library"
-Res Id = 15
+Res Id = 16
 Path Is Rel = True
 Path Rel To = "Project"
 Path Rel Path = "LIBRARY/THLIB.LIB"
@@ -219,9 +232,9 @@ Exclude = False
 Project Flags = 0
 Folder = "Not In A Folder"
 
-[File 0016]
+[File 0017]
 File Type = "Library"
-Res Id = 16
+Res Id = 17
 Path Is Rel = True
 Path Rel To = "Project"
 Path Rel Path = "LIBRARY/USMCDLL.lib"
@@ -231,9 +244,9 @@ Exclude = False
 Project Flags = 0
 Folder = "Not In A Folder"
 
-[File 0017]
+[File 0018]
 File Type = "Library"
-Res Id = 17
+Res Id = 18
 Path Is Rel = True
 Path Rel To = "Project"
 Path Rel Path = "LIBRARY/w32nii3e.lib"
