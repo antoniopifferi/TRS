@@ -51,10 +51,10 @@
 0	3	FilePrefix	temp
 0	1	FileTag	26
 0	0	FileType	1
-0	0	SpcType	14
+0	0	SpcType	6
 0	0	SpcScale	1
-0	2	SpcCalib	10.000000
-0	2	SpcFactor	10.000000
+0	2	SpcCalib	48.828125
+0	2	SpcFactor	48.828125
 0	0	SpcWait	4
 0	2	SpcTimeM	0.100000
 0	1	SpcCount	100000
@@ -74,10 +74,10 @@
 0	3	SpcIniFile_2	
 0	3	SpcIniFile_3	
 0	3	SpcIniFile_4	
-0	1	MeasPlot	10
-0	1	MeasStatus	10
-0	1	MeasRoi	10
-0	1	MeasMem	10
+0	1	MeasPlot	1
+0	1	MeasStatus	1
+0	1	MeasRoi	1
+0	1	MeasMem	1
 0	0	MeasClear	1
 0	0	MeasStop	1
 0	0	MeasAutorun	0
