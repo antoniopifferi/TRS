@@ -395,7 +395,7 @@
 0	3	SwitchFName_10	
 0	0	TrimStep_1	-1
 0	0	TrimLoop_1	-1
-0	0	TrimType_1	1
+0	0	TrimType_1	0
 0	0	TrimWait_1	2
 0	0	TrimTarget_1	0
 0	2	TrimLow_1	0.000000
