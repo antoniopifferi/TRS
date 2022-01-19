@@ -2849,7 +2849,7 @@ void InitBcd(int Board){
 	
 	Basic_test(Input,&Output,OUT_ARRAY,len);
 	if(Output!=Input) ErrHandler(ERR_SPC,status,"BCD_Test_Function");
-	B->SETMap=AllocateLVBooleanArray(&(B->NumPixels)); //allocate memory for Map
+//	B->SETMap=AllocateLVBooleanArray(&(B->NumPixels)); //allocate memory for Map
 	if(!B->IsInitialized){
 		MakePathname(DIR_INI,B->Calibration,path);
 		Startup(path,BCD_VDD_CORE,BCD_VDDD_CORE,BCD_VDD_CK,BCD_VHIGH,&status,&B->Handle);
@@ -2866,7 +2866,7 @@ void InitBcd(int Board){
 void CloseBcd(void){
 	struct BcdS *B=&P.Spc.Bcd[0];
 	if(B->IsInitialized){
-		DeAllocateLVBooleanArray(B->SETMap);
+//		DeAllocateLVBooleanArray(B->SETMap);
 		Shutdown_DLL(B->Handle);
 		B->IsInitialized=FALSE;
 		}
