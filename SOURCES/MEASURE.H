@@ -6,6 +6,7 @@
 
 // INCLUDE
 #include "SwabNet.h"	// needed for type definitions in SWAB Structure
+#include "preSOLUS_BCD.h"  // needed for type definitions in BCD functions  
 
 // VERSION
 #define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 18.0\nDate: November 2020"
@@ -93,7 +94,6 @@
 #define MAX_TTABLE		13
 #define STRLEN_TTABLE	20
 #define MAX_PANEL		16
-
 
 /* FILE CONSTANTS AND ENVIRONMENT SETTINGS */  
 #define EXTASCII      ".TXT"
@@ -559,6 +559,8 @@
 #define MICRO2		23
 #define STEP_STANDA2	24
 #define ATT_LUCA		25
+#define BCD_GATE	26
+#define BCD_PIX		27
 
 #define VARRO		 1
 #define NI_6602	     5
@@ -577,6 +579,7 @@
 #define SPC_NIRS		 12
 #define SPC_LUCA		 13
 #define SPC_SWAB		 14
+#define SPC_BCD			 15
 
 #define WAIT_DELAY	 0
 #define WAIT_TIME	 1
@@ -779,6 +782,25 @@
 #define COL_SWAB_LEVEL		2		// Column in UIR SWAB Panel Table corressponding to DetType
 #define COL_SWAB_DELAY		3		// Column in UIR SWAB Panel Table corressponding to DetType
 
+/* BCD CONSTANTS */
+#define BCD_VDD_CORE		1.85
+#define BCD_VDDD_CORE		5
+#define BCD_VDD_CK			1.85
+#define BCD_VHIGH			30.4
+#define BCD_MAXBIN			256		// LEN of the TDC Array
+#define BCD_MAXPIX			2048	// Maximum size of the Pixel Matrix
+#define BCD_QUADRANTS		0b00001111
+#define BCD_RSTDuration		2
+#define BCD_LOWPower		0
+#define BCD_OPEN0			0		// (ps) Default OPEN of the HW gate
+#define BCD_WIDTH0			5000	// (ps) Default WIDTH of the HW gate
+#define BCD_STOP0			10000	// (ps) Default DELAY of the TDC STOP
+#define BCD_STEPCOARSE		1280	// (ps) Coarse Step of the Gate/delay
+#define BCD_STEPFINE		100		// (ps) Fine Step of the Gate/delay
+#define BCD_PIXELSORDER		"BCD_PixelsOrder.txt"	// File containing the ordering of switch on of pixels (cumulative)
+#define BCD_CALIBRATION		"BCD_Calibration.dat"	// File containing the calibration of the TDC
+
+
 /* TEST CONSTANTS */
 #define TEST_MUS	10.0
 #define TEST_MUA	0.10
@@ -939,6 +961,7 @@
 #define ERR_SC1000	4
 #define ERR_GENERIC	5
 #define ERR_SWAB	6
+#define ERR_BCD 	7
 
 
 /* GEOMETRY CONSTANTS */													//ALE
@@ -1497,6 +1520,33 @@ struct LucaSpcS{
 	int	InitializedBox;
 	int InitializedLaser;
 	};
+
+struct BcdS{
+	uint64_t Handle;
+	int IsInitialized;
+	float Time;
+	char Calibration[STRLEN];
+
+	
+	// general settings
+	double VDD_CORE;
+	double VDDD_CORE;
+	double VDD_CK;
+	double VHIGH;
+	
+	// Gate
+	uint8_t RSTDuration;
+	LVBoolean LOWPower;
+	long int Open;	// Open of the HW gate (ps)
+	long int Width;	// Width of the HW gate (ps)
+	long int Stop; // Delay of the TDC Stop
+	
+	// Pixels
+	uint32_t Threshold;
+	char PixelsOrder[STRLEN];
+	LVBooleanArray SETMap;
+	};
+
 struct SurfaceConceptS{
 	int	 Refolding; //EDO
 	int	 ScBoard[MAX_BOARD];	 //EDO
@@ -1611,6 +1661,7 @@ struct SpcS {
 	struct NirsS Nirs[MAX_BOARD];
 	struct LucaSpcS Luca[MAX_BOARD];
 	struct SwabS Swab[MAX_BOARD];
+	struct BcdS Bcd[MAX_BOARD];
 	};
 
 struct AcqS{
@@ -2239,6 +2290,16 @@ void WaitSwab(int Board);
 void GetSwabElapsedTime(double *Elapsed_Time);
 void StartFileSwab(void);
 
+/* ########################   BCD SPC & STEP FUNCTIONS   ####################### */
+void InitBcd(int Board);
+void CloseBcd(void);
+void GetDataBcd(void);
+void ClearBcd(void);
+void MoveBcdGate(char Step,long Goal,char Wait);
+void CalcCoarseFineBcd(long Goal, uint8_t *Coarse, uint8_t *Fine);
+void MoveBcdPix(char Step,long Goal,char Wait);
+void TimeBcd(float Time);
+void WaitBcd(void);
 
 /* ########################   VARRO SPC FUNCTIONS   ####################### */
 void InitVarro(void);

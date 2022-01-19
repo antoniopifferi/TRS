@@ -13,8 +13,8 @@
 
 #undef int32	 
 #undef MgErr	 
-#undef LVBoolean
+//#undef LVBoolean // NEEDED to keep this type for use in Measure.c
 #undef Bool32	 
 #undef Path
-#undef SOLUS_BCD_MOD	// MOD
+//#undef SOLUS_BCD_MOD
 #endif // MOD end of #define

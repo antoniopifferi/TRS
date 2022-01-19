@@ -76,6 +76,8 @@
 #include <analysis.h>
 #include <cvinetv.h>
 #include "SwabNet.h"
+#include "preSOLUS_BCD.h"
+
 #include "measure.h"   
 #include "trs.h" 
 #include "mbc32.h" 
@@ -85,7 +87,6 @@
 #include "ximc2.h" // Standa2 driver re-saved as ximic2.h since the ximc.h had a truncated line
 #include "NIRS_DLL_v2_mod.h"
 #include "LUCA_TRS_mod.h"
-#include "preSOLUS_BCD.h"
 
 //#include "thlibc.h"
 //#include "thdefin.h"
@@ -1959,7 +1960,6 @@ void SpcInit(void){
 	switch(P.Spc.Type){
 		case NONE:  break;  
 		case VARRO:  InitVarro(); break;
-	//	case SILENA:  InitSilena(); break;
 		case SPC300: InitSpc300();break;
 //THARP		case THARP: InitTimeharp();break;
 		case SPC630:  
@@ -1973,6 +1973,8 @@ void SpcInit(void){
 		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) InitSwab(ib);break;
 		case TEST: InitTest(); break;
 		case DEMO: InitDemo(); break;
+		case SPC_BCD: InitBcd(0); break;
+		default:;
 		}
 	}
 
@@ -1981,11 +1983,6 @@ void SpcInit(void){
 void SpcClose(void){
 	SpcStop(FALSE);
 	switch(P.Spc.Type){
-		case NONE:  break;  
-		case VARRO:  break;
-	//	case SILENA:  break;
-		case SPC300: break;
-//THARP		case THARP: break;
 		case SPC630:  
 		case SPC130: CloseSpcm(); break;
 		case HYDRA: CloseHydra(); break;
@@ -1995,8 +1992,9 @@ void SpcClose(void){
 		case SPC_NIRS: CloseNirs(); break;
 		case SPC_LUCA: CloseLuca(); break;
 		case SPC_SWAB: CloseSwab(); break;
-		case TEST: break;
 		case DEMO: CloseDemo(); break;
+		case SPC_BCD: CloseBcd(); break;
+		default:;
 		}
 	}
 
@@ -2005,7 +2003,6 @@ void SpcClose(void){
 void SpcPause(void){
 	int ib;
 	switch(P.Spc.Type){
-		case NONE: break;  
 		case VARRO: CharCommVarro('d'); break; //TODO check
 	//	case SILENA: DataStopSilena(); break; //TODO check
 		case SPC300: SPCI_pause_measurement(); break;
@@ -2017,9 +2014,7 @@ void SpcPause(void){
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++) sc_tdc_interrupt2(P.Spc.ScBoard[ib]); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) PauseSpad(ib); break;
 		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) PauseSwab(ib); break;
-		case TEST: break;
-		case DEMO: break;
-		default: break;
+		default:;
 		}
 	}
 	
@@ -2030,7 +2025,6 @@ void SpcClear(void){
 
 	if(P.Spc.Subtract) for(ic=0;ic<P.Chann.Num;ic++) D.Last[ic]=0;
 	switch(P.Spc.Type){
-		case NONE:  break;  
 		case VARRO: CharCommVarro('e'); break;
 	// 	case SILENA: ClearSilena(); break;
 		case SPC300: SPCI_fill_memory(-1,0,0); break;
@@ -2042,9 +2036,8 @@ void SpcClear(void){
 		case SPC_SPADLAB: ClearSpad(); break;
 		case SPC_SC1000: ClearSC1000(); break; 
 		case SPC_SWAB: ClearSwab(); break;
-		case TEST: break;
-		case DEMO: break;
-		default: break;
+		case SPC_BCD: ClearBcd(); break;
+		default:;
 		}
 	P.Spc.Zero=TimerN();
 	P.Spc.Trash=FALSE;
@@ -2056,7 +2049,6 @@ void SpcIn(){
 	int ib;
 	
 	switch(P.Spc.Type){
-		case NONE:  break;  
 		case VARRO: CharCommVarro('a'); break;
 	//	case SILENA: DataInSilena(); break;
 		case SPC300: SPCI_start_measurement(); break;
@@ -2070,8 +2062,8 @@ void SpcIn(){
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StartLuca(ib); break;
 		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) StartSwab(ib); break;
-		case TEST: break;
-		case DEMO: break;
+		case SPC_BCD: ClearBcd(); break;
+		default:;
 		}
 	P.Spc.Zero=TimerN();
 	if(P.Spc.Type!=SPC_SC1000) P.Spc.Started=TRUE;
@@ -2082,7 +2074,6 @@ void SpcIn(){
 void SpcRestart(void){  //TODO: check
 	int ib=0;
 	switch(P.Spc.Type){
-		case NONE:  break;  
 		case VARRO: CharCommVarro('a'); break;
 	//	case SILENA: DataInSilena(); break;
 		case SPC300: SPCI_restart_measurement(); break;
@@ -2091,13 +2082,11 @@ void SpcRestart(void){  //TODO: check
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_restart_measurement(ib); break;
 		case HYDRA: HH_StartMeas(HYDRA_DEV0,P.Spc.TimeHydra); break;
 		case TH260: TH260_StartMeas(TH260_DEV0,P.Spc.TimeHydra); break;
-		case SPC_SC1000: break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StartLuca(ib); break;
 		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) StartSwab(ib); break;
-		case TEST: break;
-		case DEMO: break;
+		default:;
 		}
 	//P.Spc.Zero=TimerN();	  // WARNING: DO YOU NEED TO INSERT THIS?
 	}
@@ -2122,9 +2111,6 @@ void SpcTime(float Time){
 	int ib;
 	if(P.Wait.Type!=WAIT_SPC) Time *= 2;
 	switch(P.Spc.Type){
-		case NONE:  break;  
-		case VARRO: /**/; break;
-	//	case SILENA: /**/; break;
 		case SPC300: SPCI_set_parameter(COLLECT_TIME,Time); break;
 //THARP		case THARP: TH_SetMMode(0,1000*Time); break;
 		case SPC630: 
@@ -2136,8 +2122,8 @@ void SpcTime(float Time){
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) TimeNirs(ib,Time); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) TimeLuca(ib,Time); break;
 		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) TimeSwab(ib,Time); break;
-		case TEST: break;
-		case DEMO: break;
+		case SPC_BCD: TimeBcd(Time); break;
+		default:;
 		}
 	}
 
@@ -2147,7 +2133,6 @@ void SpcStop(char Status){
 	short ib;
 	//**	CalcTime();
 	switch(P.Spc.Type){
-		case NONE:  break;  
 		case VARRO: CharCommVarro('d'); break;
 	//	case SILENA: DataStopSilena(); break;
 		case SPC300: SPCI_stop_measurement(); break;
@@ -2161,9 +2146,7 @@ void SpcStop(char Status){
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StopNirs(ib);break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) StopLuca(ib);break;
 		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) StopSwab(ib);break;
-		case TEST: break;
-		case DEMO: break;
-		default: break;
+		default:;
 		}
 	CalcTime();
 	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, OFF);
@@ -2204,8 +2187,10 @@ void SpcWait(void){
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) WaitNirs(ib); break;
 		case SPC_LUCA: for(ib=0;ib<P.Num.Board;ib++) WaitLuca(ib); break;
 		case SPC_SWAB: for(ib=0;ib<P.Num.Board;ib++) WaitSwab(ib); break;
+		case SPC_BCD: WaitBcd(); break;
 		case DEMO:
 		case TEST: Delay((P.Contest.Function==CONTEST_OSC?P.Spc.TimeO:P.Spc.TimeM));break;
+		default:;
 		}
 	}
 
@@ -2213,7 +2198,6 @@ void SpcWait(void){
 /* TRANSFER DATA FROM SPC INTO MEMORY */
 void SpcGet(void){
 	switch(P.Spc.Type){
-		case NONE:  break;  
 		case VARRO: GetDataVarro(); break;
 	//	case SILENA: GetDataSilena(); break;
 		case SPC300: GetDataSpc300();break; 
@@ -2229,6 +2213,8 @@ void SpcGet(void){
 		case SPC_SWAB: GetDataSwab();break;
 		case TEST:  GetDataTest();break;
 		case DEMO:  GetDataDemo();break;
+		case SPC_BCD: GetDataBcd();break;
+		default:;
 		}
 	}
 
@@ -2831,6 +2817,130 @@ void StartFileSwab(void){
 	}
 
 	
+/* ########################   BCD FUNCTIONS ALSO STEP GATE AND PIX  ####################### */
+
+
+/* INIT BCD FOR ALL FUNCTIONS */	
+void InitBcd(int Board){
+	char message[STRLEN];
+	char path[STRLEN];
+	LVBoolean status=0;
+	struct BcdS *B=&P.Spc.Bcd[0];
+	uint32_t Input=10;
+	uint32_t Output;
+	uint32_t OUT_ARRAY[256];
+	int32_t len=256;
+	
+	// COMPLETE UIR
+	B->VDD_CORE=BCD_VDD_CORE;
+	B->VDDD_CORE=BCD_VDDD_CORE;
+	B->VDD_CK=BCD_VDD_CK;
+	B->VHIGH=BCD_VHIGH;
+	B->RSTDuration=BCD_RSTDuration;
+	B->LOWPower=BCD_LOWPower;
+	B->Open=BCD_OPEN0;
+	B->Width=BCD_WIDTH0;
+	B->Stop=BCD_STOP0;
+	strcpy(B->PixelsOrder,BCD_PIXELSORDER);
+	strcpy(B->Calibration,BCD_CALIBRATION);
+
+	sprintf (message, "Initializing BCD, Module #%d, ...", Board);
+	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
+	
+	Basic_test(Input,&Output,OUT_ARRAY,len);
+	if(Output!=Input) ErrHandler(ERR_SPC,status,"BCD_Test_Function");
+	if(!B->IsInitialized){
+		MakePathname(DIR_INI,B->Calibration,path);
+		Startup(BCD_VDD_CORE,BCD_VDDD_CORE,BCD_VDD_CK,BCD_VHIGH,&status,&B->Handle);
+		P.Spc.Bcd[Board].IsInitialized=TRUE;
+		}
+	if(status<0) ErrHandler(ERR_SPC,status,"BCD_Startup");
+	MoveBcdGate(0,B->Stop,0); // Set Default Gate Conditions
+	
+	Passed();
+	} 
+
+
+/* CLOSE BCD */	
+void CloseBcd(void){
+	struct BcdS *B=&P.Spc.Bcd[0];
+	if(B->IsInitialized){
+		Shutdown_DLL(B->Handle);
+		B->IsInitialized=FALSE;
+		}
+	} 
+
+/* TRANSFER DATA FROM BCD */	
+void GetDataBcd(void){
+	uint32_t counts;
+	uint32_t Histogram[BCD_MAXBIN];
+	int32_t len=BCD_MAXBIN;
+	struct BcdS *B=&P.Spc.Bcd[0];
+	LVBoolean ret=0;
+	int Board=0;
+
+	Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
+	if(ret<0) ErrHandler(ERR_BCD,ret,"BCD_GetDataBcd");
+	for(int ic=0;ic<P.Chann.Num;ic++) D.Buffer[Board][ic]=Histogram[ic];   
+	}
+
+
+/* CLEAR BCD */	
+void ClearBcd(void){
+	uint32_t counts;
+	uint32_t Histogram[BCD_MAXBIN];
+	int32_t len=BCD_MAXBIN;
+	struct BcdS *B=&P.Spc.Bcd[0];
+	LVBoolean ret=0;
+
+	Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
+	if(ret<0) ErrHandler(ERR_BCD,ret,"BCD_Clear");
+	}
+
+/* WAIT BCD */
+void TimeBcd(float Time){
+	P.Spc.Bcd[0].Time=Time;
+	}
+	
+/* WAIT BCD */
+void WaitBcd(void){
+	SyncWait(P.Spc.Zero,P.Spc.Bcd[0].Time);
+	}
+	
+/* MOVE BCD GATE */	
+void MoveBcdGate(char Step,long Goal,char Wait){
+	LVBoolean ret=0;
+	struct BcdS *B=&P.Spc.Bcd[0];
+	uint8_t STOP_coarse;
+	uint8_t CLOSE_fine;
+	uint8_t CLOSE_coarse;
+	uint8_t OPEN_fine;
+	uint8_t STOP_fine;
+	uint8_t OPEN_coarse;
+	if(Goal==P.Step[Step].Actual) return;
+	CalcCoarseFineBcd(Goal,&STOP_coarse,&STOP_fine); // Calc fine & corase for DELAY of STOP TDC
+	CalcCoarseFineBcd(B->Open,&OPEN_coarse,&OPEN_fine); // Calc fine & corase for OPEN of HW Gate
+	CalcCoarseFineBcd(B->Open+B->Width,&CLOSE_coarse,&CLOSE_fine); // Calc fine & corase for CLOSE of HW Gate
+	Gating_config(STOP_coarse,CLOSE_fine,CLOSE_coarse,OPEN_fine,STOP_fine,OPEN_coarse,BCD_QUADRANTS,B->RSTDuration,B->LOWPower,B->Handle,&ret,&(B->Handle)); 
+	}
+
+// CALC internal BCD delays
+void CalcCoarseFineBcd(long Goal, uint8_t *Coarse, uint8_t *Fine){
+	*Coarse=(uint8_t)(Goal/BCD_STEPCOARSE);
+	*Fine=(uint8_t)(Goal-(*Coarse)*BCD_STEPCOARSE)/BCD_STEPFINE;
+	}	
+	
+/* MOVE BCD PIX */	
+void MoveBcdPix(char Step,long Goal,char Wait){
+	LVBoolean ret=0;
+	char path[STRLEN];
+	struct BcdS *B=&P.Spc.Bcd[0];
+	if(Goal==P.Step[Step].Actual) return;
+	MakePathname(DIR_INI,B->PixelsOrder,path);
+	SetPixels(B->Handle,(uint32_t) Goal,path,B->SETMap,&(B->Handle),&ret);
+	}
+
+
 /* ########################   HYDRA HARP FUNCTIONS (Hydra)  ####################### */
 
 /* INIT HYDRA */	
@@ -4241,28 +4351,6 @@ void InitTest(void){
 	int ret;
 	char message[STRLEN];
 	
-	uint32_t Input=10;
-	uint32_t Output;
-	uint32_t OUT_ARRAY[256];
-	int32_t len=256;
-
-/*!
- * Basic_test
- */
- //Simple debug function
- //Returns an array of 256 elements
- //where the elements of position 0 to "Input" contain increasing numbers
- //"Output" should be equal to "Input"
-
-	Basic_test(Input,&Output,OUT_ARRAY,len);
-	int a=Output;
-
-<<<<<<< HEAD
-	  //////
-=======
-	//
-	
->>>>>>> temp
 	}
 
 /* TRANSFER DATA FROM TEST */	
@@ -5699,9 +5787,6 @@ void InitStep(char Step){
 		case PI1:	InitPi(Step); break;
 		case FPM:	InitFpm(Step); break;
 		case DELAYER:	InitDelayer(Step); break;
-		//case ADC: InitAdc(); break;
-		case AOTF_FREQ:	 break;
-		case AOTF_POW: break;
 		case DELAYER_GATE: InitDelayerGate(Step); break;
 		/*XYZ*/case STANDA: InitStanda(Step); break;
 		case NKT_LAMBDA: InitNKTLambda(Step);break;
@@ -5711,7 +5796,9 @@ void InitStep(char Step){
 		case CHAMALEON:  InitCham(Step); break;
 		case STEP_STANDA2: InitStanda2(Step); break;
 		case ATT_LUCA:	InitAttLuca(Step); break;
-		case NONE: break;
+		case BCD_GATE: InitBcd(0); break;
+		case BCD_PIX: InitBcd(0); break;
+		default:;
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
 	else SetVel(Step, P.Step[Step].Freq);
@@ -5722,11 +5809,7 @@ void InitStep(char Step){
 /* CLOSE STEPPER MOTOR */
 void CloseStep(char Step){
 	switch(P.Step[Step].Type){
-		case LPT: break;
-		case NEWP: break;
-		case MM4005: break;
 		case TIO:  CloseTio(P.Step[Step].Axis,Step); break;
-		case MIO: break;
 		case MICRO2:
 		case MICRO: CloseMicro(Step); break;
 		case PWM: ClosePwm(Step); break;
@@ -5734,10 +5817,6 @@ void CloseStep(char Step){
 		case MONO_TCP: CloseMonoTcp(Step); break;   
 		case PI1: ClosePi(); break;
 		case FPM: CloseFpm(Step); break;
-		case DELAYER: break;
-		case ADC: break;
-		case AOTF_FREQ:	break;
-		case AOTF_POW:	break; 
 		/*XYZ*/case STANDA: CloseStanda(Step); break;
 		case NKT_LAMBDA: CloseNKTLambda(Step);break;
 		case NKT_POW:	 CloseNKTPow(Step);break;
@@ -5746,7 +5825,9 @@ void CloseStep(char Step){
 		case CHAMALEON: CloseCham(Step); break;
 		case STEP_STANDA2: CloseStanda2(Step); break;
 		case ATT_LUCA:	CloseAttLuca(Step); break;
-		case NONE: break;
+		case BCD_GATE:
+		case BCD_PIX: CloseBcd(); break;
+		default:;
 		}
 	}
 
@@ -5755,31 +5836,20 @@ void CloseStep(char Step){
 void SetVel(char Step, double Freq){
 	Freq = fabs(Freq);
 	switch(P.Step[Step].Type){
-		case LPT: break;
 		case NEWP: SetVelNewp(Freq); break;
 		case MM4005: SetVelNewp4005(Step,Freq); break;
 		case TIO:  SetVelTio(Step,Freq); break;
-		case MIO: break;
 		case MICRO2:
 		case MICRO:  SetVelMicro(Step,Freq); break;
 		case PWM:  SetVelPwm(Step,Freq); break;
 		case MONO:  SetVelMono(Step,Freq); break;
 		case MONO_TCP: SetVelMonoTcp(Step,Freq); break;
 		case PI1:  SetVelPi(Freq); break;
-		case FPM: break;	/* Need no velocity setting */
-		case DELAYER: break;
-		case ADC: break;
-		case AOTF_FREQ: break; /* Need no velocity setting */
-		case AOTF_POW: break; /* Need no velocity setting */
 		/*XYZ*/case STANDA: SetVelStanda(Step,Freq); break;
-		case NKT_LAMBDA: break;
-		case NKT_POW:	 break;
 		case ESP300: SetVelEsp300(Step,Freq); break;
-		case LT900: break;
 		case CHAMALEON: SetVelCham(Step,Freq); break;
 		case STEP_STANDA2: SetVelStanda2(Step,Freq); break;
-		case ATT_LUCA: break;
-		case NONE: break;
+		default:;
 		}
 	P.Step[Step].FreqActual=Freq;
 	}
@@ -5887,33 +5957,22 @@ void InitBreak(char Loop){
 /* DEFINE HOME */
 void DefineHome(char Step){
 	switch(P.Step[Step].Type){
-		case LPT: break; 
 		case NEWP: DefineHomeNewp(Step); break;
 		case MM4005: DefineHomeNewp4005(Step); break;
-		case TIO: break;
-		case MIO: break;
 		case MICRO2:
 		case MICRO: DefineHomeMicro(Step); break;
 		case PWM: DefineHomePwm(Step); break;
 		case MONO: DefineHomeMono(Step); break;
 		case MONO_TCP: DefineHomeMonoTcp(Step); break;               
 		case PI1: DefineHomePi(Step); break;               
-		case FPM: break;	/* Need no home definition ! */
-		case DELAYER: break;
-		case ADC: break;
-		case AOTF_FREQ: break;
-		case AOTF_POW: break; 
 		/*XYZ*/case STANDA: DefineHomeStanda(Step); break;
-		case NKT_LAMBDA: break;
-		case NKT_POW:	 break;
 		case ESP300: DefineHomeEsp300(Step); break;
 		case LT900: DefineHomeLt900(Step); break;
 		case CHAMALEON: DefineHomeCham(Step); break;
 		case STEP_STANDA2: DefineHomeStanda2(Step); break;
 		case ATT_LUCA: DefineHomeAttLuca(Step); break;
-		case NONE: break;
+		default:;
 		}
-
 		P.Step[Step].Actual=P.Step[Step].Home;
 	}
 
@@ -5947,7 +6006,6 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 	Goal=(dir>0?min(Goal,P.Step[Step].Max):max(Goal,P.Step[Step].Min));
 	if(Status) SetCtrlVal (hDisplay, DISPLAY_MOVE, ON);
 	switch (P.Step[Step].Type){
-		case NONE: break;
 		case LPT:  MoveLpt(Step,abs(delta),dir); break;
 		case NEWP: MoveNewp(Step,Goal,delta,P.Step[Step].Axis,P.Step[Step].Speed,Wait); break;
 		case MM4005: MoveNewp4005(Step,Goal,delta,P.Step[Step].Axis,P.Step[Step].Speed,Wait); break;
@@ -5961,7 +6019,6 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case PI1: MovePi(Step,Goal,Wait); break;
 		case FPM: MoveFpm(Step, Goal); break;	/* Fiber power monitor: actually read Power  */
 		case DELAYER: MoveDelayer(Step, Goal); break;
-		//case ADC: StartAdc(); break;	/* Analog to digital converter: actually read Power, already in kernel  */
 		case AOTF_FREQ: SetFreqNI_USB6229(Step, Goal); break;
 		case AOTF_POW: SetVoltNI_USB6221(Step, Goal); break;
 		case DELAYER_GATE: MoveDelayerGate(Step, Goal); break;
@@ -5973,6 +6030,9 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case CHAMALEON: MoveCham(Step,Goal,Wait); break;
 		case STEP_STANDA2: MoveStanda2(Step,Goal,Wait); break;
 		case ATT_LUCA: MoveAttLuca(Step,Goal,Wait); break;
+		case BCD_GATE: MoveBcdGate(Step,Goal,FALSE); break;
+		case BCD_PIX: MoveBcdPix(Step,Goal,FALSE); break;
+		default:;
 		}
 	P.Spc.Trash=TRUE;
 	if(Wait) return;	
@@ -5989,62 +6049,39 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 /* STOP STEPPER */
 void StopStep(char Step){
 	switch (P.Step[Step].Type){
-		case NONE: break;
-		case LPT:  break;
-		case NEWP: break;
-		case MM4005: break;
 		case TIO:  StopTio(Step);break;
-		case MIO:  break;
 		case MICRO2:
 		case MICRO: StopMicro(Step); break;
 		case PWM: StopPwm(Step); break;
-		case MONO: break;
-		case MONO_TCP: break;
 		case PI1: StopPi(); break;
 		case FPM: StopFpm(Step); break;
-		//case ADC: StopAdc(); break;
-		case DELAYER: break;
-		case AOTF_FREQ: break;
-		case AOTF_POW: break;
 		case STANDA: StopStanda(Step); break;
-		case NKT_LAMBDA: break;
-		case NKT_POW:	 break;
 		case ESP300: StopEsp300(Step); break;
-		case LT900: break;
 		case CHAMALEON: StopCham(Step); break;
 		case STEP_STANDA2: StopStanda2(Step); break;
 		case ATT_LUCA: StopAttLuca(Step); break;
+		default:;
 		}
 	}
 
 /* TELL POSITION */
 void TellPos(char Step,long *Position){
 	switch(P.Step[Step].Type){
-		case LPT: break;
 		case NEWP: TellPosNewp(Step,Position); break;
 		case MM4005: TellPosNewp4005(Step,Position); break;
 		case TIO: TellPosTio(Step,Position); break;
-		case MIO: break;
 		case MICRO2:
 		case MICRO: TellPosMicro(Step,Position); break;
 		case PWM: TellPosPwm(Step,Position); break;
 		case MONO: TellPosMono(Step,Position); break;
 		case MONO_TCP: TellPosMonoTcp(Step,Position); break;
 		case PI1: TellPosPi(Step,Position); break;
-		case FPM: break;
-		case DELAYER: break;
-		case ADC: break;
-		case NONE: break;
-		case AOTF_FREQ: break;
-		case AOTF_POW: break;
 		case STANDA: TellPosStanda(Step,Position); break;
-		case NKT_LAMBDA: break;
-		case NKT_POW:	 break;
 		case ESP300: TellPosEsp300(Step,Position); break;
-		case LT900: break;
 		case CHAMALEON: TellPosCham(Step,Position); break;
 		case STEP_STANDA2: TellPosStanda2(Step,Position); break;
 		case ATT_LUCA: TellPosAttLuca(Step,Position); break;
+		default:;
 		}
 	}
 
@@ -6085,29 +6122,21 @@ void WaitPos(char Step,long Goal){
 void WaitStep(long *Actual,long Goal,char Step,char Status){
 	//if(!P.Step[Step].Started) return;   // modified to comply with delta==0;
 	switch (P.Step[Step].Type) {
-		case LPT: break;
 		case NEWP: /*WaitNewp(Step,Goal);*/ break;
-		case MM4005: break;  
 		case TIO: WaitTio(Step,abs(Goal-*Actual),P.Step[Step].Dir); break;
-		case MIO: break;
 		case MICRO2:
 		case MICRO: WaitMicro(Step,Goal); break;
 		//case PWM: WaitPwm(Step,Goal); break;
 		case MONO: WaitMono(Step,Goal); break;
 		case MONO_TCP: WaitMonoTcp(Step,Goal); break;     
 		case PI1: WaitPi(Step,Goal); break;
-		case AOTF_FREQ: break;
-		case AOTF_POW: break;
 		//case ADC: WaitAdc(); break;
 		case STANDA: WaitStanda(Step,Goal); break;
-		case NKT_LAMBDA: break;
-		case NKT_POW:	 break;
 		case ESP300: WaitEsp300(Step,Goal); break;
-		case LT900: break;
 		case CHAMALEON: WaitCham(Step,Goal); break;
 		case STEP_STANDA2: WaitStanda2(Step,Goal); break;
 		case ATT_LUCA: WaitAttLuca(Step,Goal); break;
-		default: break;
+		default:;
 		}
 	}
 
