@@ -1544,7 +1544,8 @@ struct BcdS{
 	// Pixels
 	uint32_t Threshold;
 	char PixelsOrder[STRLEN];
-	LVBooleanArray SETMap;
+	LVBooleanArray *SETMap;
+	int32 NumPixels;
 	};
 
 struct SurfaceConceptS{
