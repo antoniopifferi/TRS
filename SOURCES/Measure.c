@@ -2823,7 +2823,7 @@ void StartFileSwab(void){
 /* INIT BCD FOR ALL FUNCTIONS */	
 void InitBcd(int Board){
 	char message[STRLEN];
-	char path[STRLEN];
+	char path[STRLEN_LONG];
 	LVBoolean status=0;
 	struct BcdS *B=&P.Spc.Bcd[0];
 	uint32_t Input=10;
@@ -2851,12 +2851,13 @@ void InitBcd(int Board){
 	if(Output!=Input) ErrHandler(ERR_SPC,status,"BCD_Test_Function");
 //	B->SETMap=AllocateLVBooleanArray(&(B->NumPixels)); //allocate memory for Map
 	if(!B->IsInitialized){
-		MakePathname(DIR_INI,B->Calibration,path);
-		Startup(path,BCD_VDD_CORE,BCD_VDDD_CORE,BCD_VDD_CK,BCD_VHIGH,&status,&B->Handle);
+		//MakePathname(DIR_INI,B->Calibration,path);
+		Startup(B->Calibration,BCD_VDD_CORE,BCD_VDDD_CORE,BCD_VDD_CK,BCD_VHIGH,&status,&B->Handle);
 		P.Spc.Bcd[Board].IsInitialized=TRUE;
 		}
 	if(status<0) ErrHandler(ERR_SPC,status,"BCD_Startup");
 	MoveBcdGate(0,B->Stop,0); // Set Default Gate Conditions
+	SetPixels(B->Handle,(uint32_t)1,B->PixelsOrder,B->SETMap,&(B->Handle),&status); // Turn on first pixel
 	
 	Passed();
 	} 
@@ -2935,11 +2936,11 @@ void CalcCoarseFineBcd(long Goal, uint8_t *Coarse, uint8_t *Fine){
 /* MOVE BCD PIX */	
 void MoveBcdPix(char Step,long Goal,char Wait){
 	LVBoolean ret=0;
-	char path[STRLEN];
+	char path[STRLEN_LONG];
 	struct BcdS *B=&P.Spc.Bcd[0];
 	if(Goal==P.Step[Step].Actual) return;
-	MakePathname(DIR_INI,B->PixelsOrder,path);
-	SetPixels(B->Handle,(uint32_t) Goal,path,B->SETMap,&(B->Handle),&ret);
+	//MakePathname(DIR_INI,B->PixelsOrder,path);
+	SetPixels(B->Handle,(uint32_t) Goal,B->PixelsOrder,B->SETMap,&(B->Handle),&ret);
 	}
 
 

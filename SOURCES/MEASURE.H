@@ -31,6 +31,8 @@
 #define SLI           sizeof(long)
 #define SCH           sizeof(char)
 #define ns2ps         1000
+#define STRLEN_LONG	  1024
+
 
 /* PROTOCOL CONSTANTS */
 #define STRLEN_PROT	 		128
@@ -793,12 +795,12 @@
 #define BCD_RSTDuration		2
 #define BCD_LOWPower		0
 #define BCD_OPEN0			0		// (ps) Default OPEN of the HW gate
-#define BCD_WIDTH0			5000	// (ps) Default WIDTH of the HW gate
-#define BCD_STOP0			10000	// (ps) Default DELAY of the TDC STOP
+#define BCD_WIDTH0			7000	// (ps) Default WIDTH of the HW gate
+#define BCD_STOP0			15000	// (ps) Default DELAY of the TDC STOP
 #define BCD_STEPCOARSE		1280	// (ps) Coarse Step of the Gate/delay
 #define BCD_STEPFINE		100		// (ps) Fine Step of the Gate/delay
-#define BCD_PIXELSORDER		"BCD_PixelsOrder.txt"	// File containing the ordering of switch on of pixels (cumulative)
-#define BCD_CALIBRATION		"BCD_Calibration.dat"	// File containing the calibration of the TDC
+#define BCD_PIXELSORDER		"C:\\OneDrivePolimi\\OneDrive - Politecnico di Milano\\Beta\\Programs\\TRS\\INI\\lista_pixel.txt"	// File containing the ordering of switch on of pixels (cumulative)
+#define BCD_CALIBRATION		"C:\\OneDrivePolimi\\OneDrive - Politecnico di Milano\\Beta\\Programs\\TRS\\INI\\BCD_Calibration.dat"	// File containing the calibration of the TDC
 
 
 /* TEST CONSTANTS */
@@ -1525,7 +1527,7 @@ struct BcdS{
 	uint64_t Handle;
 	int IsInitialized;
 	float Time;
-	char Calibration[STRLEN];
+	char Calibration[STRLEN_LONG];
 
 	
 	// general settings
@@ -1543,7 +1545,7 @@ struct BcdS{
 	
 	// Pixels
 	uint32_t Threshold;
-	char PixelsOrder[STRLEN];
+	char PixelsOrder[STRLEN_LONG];
 	LVBooleanArray *SETMap;
 	int32_t NumPixels;
 	};

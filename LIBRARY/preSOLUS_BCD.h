@@ -7,7 +7,10 @@
 #define MgErr		int32_t		 
 #define LVBoolean	uint8_t
 #define Bool32		int32_t		 
-#define Path		char* // dubious
+
+typedef struct PATHREF PathRef;
+typedef PathRef*		Path;
+typedef const PathRef*	ConstPath;
 
 #include "SOLUS_BCD.h"
 

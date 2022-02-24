@@ -27,7 +27,7 @@ void __cdecl Get_Histogram(uint32_t HandleIN, LVBoolean *STATUS,
  * SetPixels
  */
 void __cdecl SetPixels(uint32_t HandleIN, uint32_t Threshold, 
-	Path *PixelsOrder, LVBooleanArray *SETMap, uint32_t *HandleOUT, 
+	char PixelsOrder[], LVBooleanArray *SETMap, uint32_t *HandleOUT, 
 	LVBoolean *STATUS);
 /*!
  * Shutdown_DLL
@@ -36,7 +36,7 @@ void __cdecl Shutdown_DLL(uint32_t HandleIN);
 /*!
  * Startup
  */
-void __cdecl Startup(Path *TDCCalibrationPath, double VDD_CORE, 
+void __cdecl Startup(char TDCCalibrationPath[], double VDD_CORE, 
 	double VDDD_CORE, double VDD_CK, double VHIGH, LVBoolean *Status, 
 	uint32_t *Handle);
 /*!
