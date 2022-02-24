@@ -13,7 +13,24 @@
 
      /* Panels and Controls: */
 
-#define  DISPLAY                          1       /* callback function: ClosePanel */
+#define  BCD                              1
+#define  BCD_SYNC0                        2       /* control type: numeric, callback function: Setting */
+#define  BCD_WIDTH0                       3       /* control type: numeric, callback function: Setting */
+#define  BCD_OPEN0                        4       /* control type: numeric, callback function: Setting */
+#define  BCD_RSTDuration                  5       /* control type: numeric, callback function: Setting */
+#define  BCD_VHIGH                        6       /* control type: numeric, callback function: Setting */
+#define  BCD_VDD_CK                       7       /* control type: numeric, callback function: Setting */
+#define  BCD_VDDD_CORE                    8       /* control type: numeric, callback function: Setting */
+#define  BCD_VDD_CORE                     9       /* control type: numeric, callback function: Setting */
+#define  BCD_TITLE_3                      10      /* control type: textMsg, callback function: (none) */
+#define  BCD_TITLE_4                      11      /* control type: textMsg, callback function: (none) */
+#define  BCD_TITLE_2                      12      /* control type: textMsg, callback function: (none) */
+#define  BCD_TITLE                        13      /* control type: textMsg, callback function: (none) */
+#define  BCD_PIXELSORDER                  14      /* control type: string, callback function: Setting */
+#define  BCD_CALIBRATION                  15      /* control type: string, callback function: Setting */
+#define  BCD_LOWPower                     16      /* control type: binary, callback function: Setting */
+
+#define  DISPLAY                          2       /* callback function: ClosePanel */
 #define  DISPLAY_CONTPAUSE                2       /* control type: textButton, callback function: GetCommand */
 #define  DISPLAY_ABORT                    3       /* control type: command, callback function: GetCommand */
 #define  DISPLAY_T_OSCILL                 4       /* control type: table, callback function: Setting */
@@ -68,7 +85,7 @@
 #define  DISPLAY_OSCILL_ZOOM_LAST         53      /* control type: numeric, callback function: Setting */
 #define  DISPLAY_ZOOM                     54      /* control type: textMsg, callback function: (none) */
 
-#define  DO_STEP                          2       /* callback function: ClosePanel */
+#define  DO_STEP                          3       /* callback function: ClosePanel */
 #define  DO_STEP_TITLE                    2       /* control type: textMsg, callback function: (none) */
 #define  DO_STEP_TEXTMSG_1                3       /* control type: textMsg, callback function: (none) */
 #define  DO_STEP_TEXTMSG_2                4       /* control type: textMsg, callback function: (none) */
@@ -95,7 +112,7 @@
 #define  DO_STEP_EXECUTE_2                25      /* control type: command, callback function: RunDoStep */
 #define  DO_STEP_EXECUTE_3                26      /* control type: command, callback function: RunDoStep */
 
-#define  GEOMETRY                         3       /* callback function: ClosePanel */
+#define  GEOMETRY                         4       /* callback function: ClosePanel */
 #define  GEOMETRY_RING_PAD_1              2       /* control type: ring, callback function: CreatePad */
 #define  GEOMETRY_RING_PAD_2              3       /* control type: ring, callback function: CreatePad */
 #define  GEOMETRY_RING_PAD_3              4       /* control type: ring, callback function: CreatePad */
@@ -174,7 +191,7 @@
 #define  GEOMETRY_PADACTUAL               77      /* control type: numeric, callback function: ShowPad */
 #define  GEOMETRY_TITLE                   78      /* control type: textMsg, callback function: (none) */
 
-#define  LABEL                            4       /* callback function: ClosePanel */
+#define  LABEL                            5       /* callback function: ClosePanel */
 #define  LABEL_TITLE                      2       /* control type: textMsg, callback function: (none) */
 #define  LABEL_TITLE_2                    3       /* control type: textMsg, callback function: (none) */
 #define  LABEL_TITLE_3                    4       /* control type: textMsg, callback function: (none) */
@@ -228,20 +245,20 @@
 #define  LABEL_AUTO_15                    52      /* control type: radioButton, callback function: Setting */
 #define  LABEL_AUTO_16                    53      /* control type: radioButton, callback function: Setting */
 
-#define  LAYOUT                           5       /* callback function: ClosePanel */
+#define  LAYOUT                           6       /* callback function: ClosePanel */
 #define  LAYOUT_T_SOURCE                  2       /* control type: table, callback function: Setting */
 #define  LAYOUT_T_FIBER                   3       /* control type: table, callback function: Setting */
 #define  LAYOUT_T_PROT                    4       /* control type: table, callback function: Setting */
 #define  LAYOUT_TITLE                     5       /* control type: textMsg, callback function: (none) */
 #define  LAYOUT_ORDER                     6       /* control type: ring, callback function: Setting */
 
-#define  LUCA                             6
+#define  LUCA                             7
 #define  LUCA_TITLE                       2       /* control type: textMsg, callback function: (none) */
 #define  LUCA_LASERS                      3       /* control type: textButton, callback function: LucaLasersCbk */
 #define  LUCA_BOX                         4       /* control type: textButton, callback function: LucaBoxCbk */
 #define  LUCA_FREQ                        5       /* control type: numeric, callback function: Setting */
 
-#define  MAMM                             7       /* callback function: ClosePanel */
+#define  MAMM                             8       /* callback function: ClosePanel */
 #define  MAMM_LOOP_X                      2       /* control type: ring, callback function: Setting */
 #define  MAMM_STEP_X                      3       /* control type: ring, callback function: Setting */
 #define  MAMM_LOOP_Y                      4       /* control type: ring, callback function: Setting */
@@ -294,13 +311,13 @@
 #define  MAMM_TAKE_REF_MEAS               51      /* control type: binary, callback function: Setting */
 #define  MAMM_NEG_PER_VAR_COUNTS          52      /* control type: numeric, callback function: Setting */
 
-#define  MOXY                             8       /* callback function: ClosePanel */
+#define  MOXY                             9       /* callback function: ClosePanel */
 #define  MOXY_TITLE                       2       /* control type: textMsg, callback function: (none) */
 #define  MOXY_DISP_DIV                    3       /* control type: numeric, callback function: Setting */
 #define  MOXY_EXT_TRIG                    4       /* control type: ring, callback function: Setting */
 #define  MOXY_PRES_EDGE                   5       /* control type: ring, callback function: Setting */
 
-#define  NIRS                             9
+#define  NIRS                             10
 #define  NIRS_TITLE                       2       /* control type: textMsg, callback function: (none) */
 #define  NIRS_LASERS                      3       /* control type: textButton, callback function: NirsLasersCbk */
 #define  NIRS_BOX                         4       /* control type: textButton, callback function: NirsBoxCbk */
@@ -308,7 +325,7 @@
 #define  NIRS_FREQ                        6       /* control type: numeric, callback function: Setting */
 #define  NIRS_LAMBDA                      7       /* control type: ring, callback function: Setting */
 
-#define  PARM                             10      /* callback function: ClosePanel */
+#define  PARM                             11      /* callback function: ClosePanel */
 #define  PARM_LOOP_HOME_1                 2       /* control type: numeric, callback function: Setting */
 #define  PARM_LOOP_HOME_2                 3       /* control type: numeric, callback function: Setting */
 #define  PARM_LOOP_HOME_3                 4       /* control type: numeric, callback function: Setting */
@@ -436,7 +453,7 @@
 #define  PARM_CHANN_TITLE                 126     /* control type: textMsg, callback function: (none) */
 #define  PARM_SPC_TITLE                   127     /* control type: textMsg, callback function: (none) */
 
-#define  PRESENT                          11      /* callback function: ClosePanel */
+#define  PRESENT                          12      /* callback function: ClosePanel */
 #define  PRESENT_TBLOCK_DEF               2       /* control type: table, callback function: Setting */
 #define  PRESENT_TBLOCK_SEQUENCE          3       /* control type: table, callback function: Setting */
 #define  PRESENT_ALIGN                    4       /* control type: radioButton, callback function: Setting */
@@ -450,7 +467,7 @@
 #define  PRESENT_PRES_INIT_FILETEXT       12      /* control type: textMsg, callback function: (none) */
 #define  PRESENT_PRES_INIT_FILETEXT_2     13      /* control type: textMsg, callback function: (none) */
 
-#define  STEP                             12      /* callback function: ClosePanel */
+#define  STEP                             13      /* callback function: ClosePanel */
 #define  STEP_TEXTMSG_1                   2       /* control type: textMsg, callback function: (none) */
 #define  STEP_TEXTMSG_2                   3       /* control type: textMsg, callback function: (none) */
 #define  STEP_TEXTMSG_3                   4       /* control type: textMsg, callback function: (none) */
@@ -651,7 +668,7 @@
 #define  STEP_SORT_11                     199     /* control type: binary, callback function: Setting */
 #define  STEP_TITLE                       200     /* control type: textMsg, callback function: (none) */
 
-#define  SWAB                             13
+#define  SWAB                             14
 #define  SWAB_DETTYPE_1                   2       /* control type: ring, callback function: Setting */
 #define  SWAB_DETTYPE_2                   3       /* control type: ring, callback function: Setting */
 #define  SWAB_DETTYPE_3                   4       /* control type: ring, callback function: Setting */
@@ -693,7 +710,7 @@
 #define  SWAB_FREQDIV                     40      /* control type: numeric, callback function: Setting */
 #define  SWAB_STRING                      41      /* control type: string, callback function: (none) */
 
-#define  SWITCH                           14      /* callback function: ClosePanel */
+#define  SWITCH                           15      /* callback function: ClosePanel */
 #define  SWITCH_TEXTMSG_1                 2       /* control type: textMsg, callback function: (none) */
 #define  SWITCH_TEXTMSG_2                 3       /* control type: textMsg, callback function: (none) */
 #define  SWITCH_TEXTMSG_3                 4       /* control type: textMsg, callback function: (none) */
@@ -806,7 +823,7 @@
 #define  SWITCH_FNAME_10                  111     /* control type: string, callback function: Setting */
 #define  SWITCH_TITLE                     112     /* control type: textMsg, callback function: (none) */
 
-#define  TRIM                             15      /* callback function: ClosePanel */
+#define  TRIM                             16      /* callback function: ClosePanel */
 #define  TRIM_STEP_1                      2       /* control type: ring, callback function: Setting */
 #define  TRIM_STEP_2                      3       /* control type: ring, callback function: Setting */
 #define  TRIM_STEP_3                      4       /* control type: ring, callback function: Setting */
@@ -1019,7 +1036,7 @@
 #define  TRIM_TEXTMSG_10                  211     /* control type: textMsg, callback function: (none) */
 #define  TRIM_TITLE                       212     /* control type: textMsg, callback function: (none) */
 
-#define  TRS                              16      /* callback function: ClosePanel */
+#define  TRS                              17      /* callback function: ClosePanel */
 
 
      /* Control Arrays: */

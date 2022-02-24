@@ -682,11 +682,7 @@ void CreateTable(void){
 	
 	// SWAB PANEL
 	// 8*3+4+2	
-	int tint=0;
 	for(id=0;id<SWAB_MAX_DET;id++){
-		//AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDetType",id+1,COL_SWAB_DETTYPE,&P.Spc.Swab[0].DetType[id]);
-		//AddTab(CT,TDOUBLE,SWAB,SWAB_T_DETECTORS,"SwabLevel",id+1,COL_SWAB_LEVEL,&P.Spc.Swab[0].Level[id]);
-		//AddTab(CT,TINT,SWAB,SWAB_T_DETECTORS,"SwabDelay",id+1,COL_SWAB_DELAY,&P.Spc.Swab[0].Delay[id]);
 		AddTab(CE,TINT,SWAB,SWAB_DETTYPE_1+id,"SwabDetType",id+1,0,&P.Spc.Swab[0].DetType[id]);
 		AddTab(CE,TDOUBLE,SWAB,SWAB_LEVEL_1+id,"SwabLevel",id+1,0,&P.Spc.Swab[0].Level[id]);
 		AddTab(CE,TINT,SWAB,SWAB_DELAY_1+id,"SwabDelay",id+1,0,&P.Spc.Swab[0].Delay[id]);
@@ -698,6 +694,21 @@ void CreateTable(void){
 	AddTab(CE,TINT,SWAB,SWAB_FREQDIV,"SwabFreqDiv",0,0,&P.Spc.Swab[0].FreqDiv);
 	AddTab(CE,TINT,SWAB,SWAB_FREQMULT,"SwabFreqMult",0,0,&P.Spc.Swab[0].FreqMult);
 
+	// BCD PANEL
+	// 6+3+2=11	
+	AddTab(CE,TDOUBLE,BCD,BCD_VDD_CORE,"BcdVddCore",0,0,&P.Spc.Bcd[0].VDD_CORE);
+	AddTab(CE,TDOUBLE,BCD,BCD_VDDD_CORE,"BcdVdddCore",0,0,&P.Spc.Bcd[0].VDDD_CORE);
+	AddTab(CE,TDOUBLE,BCD,BCD_VDD_CK,"BcdVddCk",0,0,&P.Spc.Bcd[0].VDD_CK);
+	AddTab(CE,TDOUBLE,BCD,BCD_VHIGH,"BcdVhigh",0,0,&P.Spc.Bcd[0].VHIGH);
+	AddTab(CE,TCHAR,BCD,BCD_RSTDuration,"BcdRSTDuration",0,0,&P.Spc.Bcd[0].RSTDuration);
+	AddTab(CE,TCHAR,BCD,BCD_LOWPower,"BcdLOWPower",0,0,&P.Spc.Bcd[0].LOWPower);
+
+	AddTab(CE,TINT,BCD,BCD_OPEN0,"BcdOpen0",0,0,&P.Spc.Bcd[0].Open0);
+	AddTab(CE,TINT,BCD,BCD_WIDTH0,"BcdWidth0",0,0,&P.Spc.Bcd[0].Width0);
+	AddTab(CE,TINT,BCD,BCD_SYNC0,"BcdSync0",0,0,&P.Spc.Bcd[0].Sync0);
+
+	AddTab(CE,TSTRING,BCD,BCD_PIXELSORDER,"BcdPixelsorder",0,0,P.Spc.Bcd[0].PixelsOrder);
+	AddTab(CE,TSTRING,BCD,BCD_CALIBRATION,"BcdCalibration",0,0,P.Spc.Bcd[0].Calibration);
 
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;
 	}

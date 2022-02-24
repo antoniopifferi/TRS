@@ -2831,19 +2831,6 @@ void InitBcd(int Board){
 	uint32_t OUT_ARRAY[256];
 	int32_t len=256;
 	
-	// COMPLETE UIR
-	B->VDD_CORE=BCD_VDD_CORE;
-	B->VDDD_CORE=BCD_VDDD_CORE;
-	B->VDD_CK=BCD_VDD_CK;
-	B->VHIGH=BCD_VHIGH;
-	B->RSTDuration=BCD_RSTDuration;
-	B->LOWPower=BCD_LOWPower;
-	B->Open=BCD_OPEN0;
-	B->Width=BCD_WIDTH0;
-	B->Stop=BCD_STOP0;
-	strcpy(B->PixelsOrder,BCD_PIXELSORDER);
-	strcpy(B->Calibration,BCD_CALIBRATION);
-
 	sprintf (message, "Initializing BCD, Module #%d, ...", Board);
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
 	
@@ -2852,12 +2839,15 @@ void InitBcd(int Board){
 //	B->SETMap=AllocateLVBooleanArray(&(B->NumPixels)); //allocate memory for Map
 	if(!B->IsInitialized){
 		//MakePathname(DIR_INI,B->Calibration,path);
-		Startup(B->Calibration,BCD_VDD_CORE,BCD_VDDD_CORE,BCD_VDD_CK,BCD_VHIGH,&status,&B->Handle);
+		sprintf(path,"%s\\%s",DIR_INI,B->Calibration);
+		Startup(path,BCD_VDD_CORE,BCD_VDDD_CORE,BCD_VDD_CK,BCD_VHIGH,&status,&B->Handle);
 		P.Spc.Bcd[Board].IsInitialized=TRUE;
 		}
 	if(status<0) ErrHandler(ERR_SPC,status,"BCD_Startup");
-	MoveBcdSync(0,B->Stop,0); // Set Default Sync Conditions
-	SetPixels(B->Handle,(uint32_t)1,B->PixelsOrder,B->SETMap,&(B->Handle),&status); // Turn on first pixel
+	MoveBcdSync(0,B->Sync0,0); // Set Default Sync Conditions
+	//MakePathname(DIR_INI,B->PixelsOrder,path);
+	sprintf(path,"%s\\%s",DIR_INI,B->PixelsOrder);
+	SetPixels(B->Handle,(uint32_t)1,path,B->SETMap,&(B->Handle),&status); // Turn on first pixel
 	
 	Passed();
 	} 
@@ -2922,8 +2912,8 @@ void MoveBcdSync(char Step,long Goal,char Wait){
 	uint8_t OPEN_coarse;
 	if(Goal==P.Step[Step].Actual) return;
 	CalcCoarseFineBcd(Goal,&STOP_coarse,&STOP_fine); // Calc fine & corase for DELAY of STOP TDC
-	CalcCoarseFineBcd(B->Open,&OPEN_coarse,&OPEN_fine); // Calc fine & coarse for OPEN of HW GATE
-	CalcCoarseFineBcd(B->Open+B->Width,&CLOSE_coarse,&CLOSE_fine); // Calc fine & corase for CLOSE of HW Gate
+	CalcCoarseFineBcd(B->Open0,&OPEN_coarse,&OPEN_fine); // Calc fine & coarse for OPEN of HW GATE
+	CalcCoarseFineBcd(B->Open0+B->Width0,&CLOSE_coarse,&CLOSE_fine); // Calc fine & corase for CLOSE of HW Gate
 	Gating_config(STOP_coarse,CLOSE_fine,CLOSE_coarse,OPEN_fine,STOP_fine,OPEN_coarse,BCD_QUADRANTS,B->RSTDuration,B->LOWPower,B->Handle,&ret,&(B->Handle)); 
 	}
 

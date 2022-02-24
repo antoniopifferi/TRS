@@ -85,7 +85,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1210
+#define MAX_TABLE		1221
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -785,22 +785,14 @@
 #define COL_SWAB_DELAY		3		// Column in UIR SWAB Panel Table corressponding to DetType
 
 /* BCD CONSTANTS */
-#define BCD_VDD_CORE		1.85
-#define BCD_VDDD_CORE		5
-#define BCD_VDD_CK			1.85
-#define BCD_VHIGH			30.4
 #define BCD_MAXBIN			256		// LEN of the TDC Array
 #define BCD_MAXPIX			2048	// Maximum size of the Pixel Matrix
 #define BCD_QUADRANTS		0b00001111
-#define BCD_RSTDuration		2
-#define BCD_LOWPower		0
 #define BCD_OPEN0			0		// (ps) Default OPEN of the HW gate
 #define BCD_WIDTH0			7000	// (ps) Default WIDTH of the HW gate
 #define BCD_STOP0			15000	// (ps) Default DELAY of the TDC STOP SYNC
 #define BCD_STEPCOARSE		1280	// (ps) Coarse Step of the Gate/delay
 #define BCD_STEPFINE		100		// (ps) Fine Step of the Gate/delay
-#define BCD_PIXELSORDER		"C:\\OneDrivePolimi\\OneDrive - Politecnico di Milano\\Beta\\Programs\\TRS\\INI\\lista_pixel.txt"	// File containing the ordering of switch on of pixels (cumulative)
-#define BCD_CALIBRATION		"C:\\OneDrivePolimi\\OneDrive - Politecnico di Milano\\Beta\\Programs\\TRS\\INI\\BCD_Calibration.dat"	// File containing the calibration of the TDC
 
 
 /* TEST CONSTANTS */
@@ -1539,9 +1531,9 @@ struct BcdS{
 	// Gate
 	uint8_t RSTDuration;
 	LVBoolean LOWPower;
-	long int Open;	// Open of the HW gate (ps)
-	long int Width;	// Width of the HW gate (ps)
-	long int Stop; // Delay of the TDC Stop
+	long int Open0;	// Open of the HW gate (ps)
+	long int Width0;	// Width of the HW gate (ps)
+	long int Sync0; // Delay of the TDC Stop Sync (ps)
 	
 	// Pixels
 	uint32_t Threshold;
