@@ -14,21 +14,21 @@
      /* Panels and Controls: */
 
 #define  BCD                              1
-#define  BCD_SYNC0                        2       /* control type: numeric, callback function: Setting */
-#define  BCD_WIDTH0                       3       /* control type: numeric, callback function: Setting */
-#define  BCD_OPEN0                        4       /* control type: numeric, callback function: Setting */
-#define  BCD_RSTDuration                  5       /* control type: numeric, callback function: Setting */
-#define  BCD_VHIGH                        6       /* control type: numeric, callback function: Setting */
-#define  BCD_VDD_CK                       7       /* control type: numeric, callback function: Setting */
-#define  BCD_VDDD_CORE                    8       /* control type: numeric, callback function: Setting */
-#define  BCD_VDD_CORE                     9       /* control type: numeric, callback function: Setting */
-#define  BCD_TITLE_3                      10      /* control type: textMsg, callback function: (none) */
-#define  BCD_TITLE_4                      11      /* control type: textMsg, callback function: (none) */
-#define  BCD_TITLE_2                      12      /* control type: textMsg, callback function: (none) */
-#define  BCD_TITLE                        13      /* control type: textMsg, callback function: (none) */
-#define  BCD_PIXELSORDER                  14      /* control type: string, callback function: Setting */
-#define  BCD_CALIBRATION                  15      /* control type: string, callback function: Setting */
-#define  BCD_LOWPower                     16      /* control type: binary, callback function: Setting */
+#define  BCD_VDD_CORE                     2       /* control type: numeric, callback function: Setting */
+#define  BCD_VDDD_CORE                    3       /* control type: numeric, callback function: Setting */
+#define  BCD_VDD_CK                       4       /* control type: numeric, callback function: Setting */
+#define  BCD_VHIGH                        5       /* control type: numeric, callback function: Setting */
+#define  BCD_RSTDuration                  6       /* control type: numeric, callback function: Setting */
+#define  BCD_LOWPower                     7       /* control type: binary, callback function: Setting */
+#define  BCD_OPEN0                        8       /* control type: numeric, callback function: Setting */
+#define  BCD_WIDTH0                       9       /* control type: numeric, callback function: Setting */
+#define  BCD_SYNC0                        10      /* control type: numeric, callback function: Setting */
+#define  BCD_CALIBRATION                  11      /* control type: string, callback function: Setting */
+#define  BCD_PIXELSORDER                  12      /* control type: string, callback function: Setting */
+#define  BCD_TITLE_2                      13      /* control type: textMsg, callback function: (none) */
+#define  BCD_TITLE_4                      14      /* control type: textMsg, callback function: (none) */
+#define  BCD_TITLE_3                      15      /* control type: textMsg, callback function: (none) */
+#define  BCD_TITLE                        16      /* control type: textMsg, callback function: (none) */
 
 #define  DISPLAY                          2       /* callback function: ClosePanel */
 #define  DISPLAY_CONTPAUSE                2       /* control type: textButton, callback function: GetCommand */
@@ -1066,52 +1066,55 @@
 #define  MENU_FILE_SAVE_NIRS              18      /* callback function: SaveSetting */
 #define  MENU_FILE_SAVE_LUCA              19      /* callback function: SaveSetting */
 #define  MENU_FILE_SAVE_SWAB              20      /* callback function: SaveSetting */
-#define  MENU_FILE_SAVE_GEOMETRY          21      /* callback function: SaveSetting */
-#define  MENU_FILE_LOAD                   22
-#define  MENU_FILE_LOAD_SUBMENU           23
-#define  MENU_FILE_LOAD_ALL               24      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_SEPARATOR_4       25
-#define  MENU_FILE_LOAD_DISPLAY           26      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_DOSTEP            27      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LABEL             28      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LAYOUT            29      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_MAMM              30      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_PARM              31      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_PRESENT           32      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_MOXY              33      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_TRIM              34      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_STEP              35      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_SWITCH            36      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_NIRS              37      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LUCA              38      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_SWAB              39      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_GEOMETRY          40      /* callback function: LoadSetting */
-#define  MENU_FILE_SEPARATOR              41
-#define  MENU_FILE_PRINT                  42      /* callback function: Print */
-#define  MENU_FILE_SEPARATOR_2            43
-#define  MENU_FILE_QUIT                   44      /* callback function: Quit */
-#define  MENU_WINDOW                      45
-#define  MENU_WINDOW_PARM                 46      /* callback function: ShowPanel */
-#define  MENU_WINDOW_DISPLAY              47      /* callback function: ShowPanel */
-#define  MENU_WINDOW_TRIM                 48      /* callback function: ShowPanel */
-#define  MENU_WINDOW_STEP                 49      /* callback function: ShowPanel */
-#define  MENU_WINDOW_SWITCH               50      /* callback function: ShowPanel */
-#define  MENU_WINDOW_GEOMETRY             51      /* callback function: ShowPanel */
-#define  MENU_WINDOW_LAYOUT               52      /* callback function: ShowPanel */
-#define  MENU_WINDOW_PRESENT              53      /* callback function: ShowPanel */
-#define  MENU_WINDOW_LABEL                54      /* callback function: ShowPanel */
-#define  MENU_WINDOW_DO_STEP              55      /* callback function: ShowPanel */
-#define  MENU_DEVICE                      56
-#define  MENU_DEVICE_MOXY                 57      /* callback function: ShowPanel */
-#define  MENU_DEVICE_MAMM                 58      /* callback function: ShowPanel */
-#define  MENU_DEVICE_NIRS                 59      /* callback function: ShowPanel */
-#define  MENU_DEVICE_LUCA                 60      /* callback function: ShowPanel */
-#define  MENU_DEVICE_SWAB                 61      /* callback function: ShowPanel */
-#define  MENU_RUN                         62
-#define  MENU_RUN_MEASURE                 63      /* callback function: Measure */
-#define  MENU_RUN_OSCILLOSCOPE            64      /* callback function: RunOscilloscope */
-#define  MENU_HELP                        65
-#define  MENU_HELP_ABOUT                  66      /* callback function: About */
+#define  MENU_FILE_SAVE_BCD               21      /* callback function: SaveSetting */
+#define  MENU_FILE_SAVE_GEOMETRY          22      /* callback function: SaveSetting */
+#define  MENU_FILE_LOAD                   23
+#define  MENU_FILE_LOAD_SUBMENU           24
+#define  MENU_FILE_LOAD_ALL               25      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SEPARATOR_4       26
+#define  MENU_FILE_LOAD_DISPLAY           27      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_DOSTEP            28      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LABEL             29      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LAYOUT            30      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_MAMM              31      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_PARM              32      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_PRESENT           33      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_MOXY              34      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_TRIM              35      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_STEP              36      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SWITCH            37      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_NIRS              38      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LUCA              39      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SWAB              40      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_BCD               41      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_GEOMETRY          42      /* callback function: LoadSetting */
+#define  MENU_FILE_SEPARATOR              43
+#define  MENU_FILE_PRINT                  44      /* callback function: Print */
+#define  MENU_FILE_SEPARATOR_2            45
+#define  MENU_FILE_QUIT                   46      /* callback function: Quit */
+#define  MENU_WINDOW                      47
+#define  MENU_WINDOW_PARM                 48      /* callback function: ShowPanel */
+#define  MENU_WINDOW_DISPLAY              49      /* callback function: ShowPanel */
+#define  MENU_WINDOW_TRIM                 50      /* callback function: ShowPanel */
+#define  MENU_WINDOW_STEP                 51      /* callback function: ShowPanel */
+#define  MENU_WINDOW_SWITCH               52      /* callback function: ShowPanel */
+#define  MENU_WINDOW_GEOMETRY             53      /* callback function: ShowPanel */
+#define  MENU_WINDOW_LAYOUT               54      /* callback function: ShowPanel */
+#define  MENU_WINDOW_PRESENT              55      /* callback function: ShowPanel */
+#define  MENU_WINDOW_LABEL                56      /* callback function: ShowPanel */
+#define  MENU_WINDOW_DO_STEP              57      /* callback function: ShowPanel */
+#define  MENU_DEVICE                      58
+#define  MENU_DEVICE_MOXY                 59      /* callback function: ShowPanel */
+#define  MENU_DEVICE_MAMM                 60      /* callback function: ShowPanel */
+#define  MENU_DEVICE_NIRS                 61      /* callback function: ShowPanel */
+#define  MENU_DEVICE_LUCA                 62      /* callback function: ShowPanel */
+#define  MENU_DEVICE_SWAB                 63      /* callback function: ShowPanel */
+#define  MENU_DEVICE_BCD                  64      /* callback function: ShowPanel */
+#define  MENU_RUN                         65
+#define  MENU_RUN_MEASURE                 66      /* callback function: Measure */
+#define  MENU_RUN_OSCILLOSCOPE            67      /* callback function: RunOscilloscope */
+#define  MENU_HELP                        68
+#define  MENU_HELP_ABOUT                  69      /* callback function: About */
 
 
      /* Callback Prototypes: */

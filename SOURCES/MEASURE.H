@@ -95,7 +95,7 @@
 #define CT				1
 #define MAX_TTABLE		13
 #define STRLEN_TTABLE	20
-#define MAX_PANEL		16
+#define MAX_PANEL		17
 
 /* FILE CONSTANTS AND ENVIRONMENT SETTINGS */  
 #define EXTASCII      ".TXT"
@@ -788,9 +788,6 @@
 #define BCD_MAXBIN			256		// LEN of the TDC Array
 #define BCD_MAXPIX			2048	// Maximum size of the Pixel Matrix
 #define BCD_QUADRANTS		0b00001111
-#define BCD_OPEN0			0		// (ps) Default OPEN of the HW gate
-#define BCD_WIDTH0			7000	// (ps) Default WIDTH of the HW gate
-#define BCD_STOP0			15000	// (ps) Default DELAY of the TDC STOP SYNC
 #define BCD_STEPCOARSE		1280	// (ps) Coarse Step of the Gate/delay
 #define BCD_STEPFINE		100		// (ps) Fine Step of the Gate/delay
 
@@ -1529,11 +1526,16 @@ struct BcdS{
 	double VHIGH;
 	
 	// Gate
-	uint8_t RSTDuration;
-	LVBoolean LOWPower;
+	//uint8_t RSTDuration;
+	//LVBoolean LOWPower;
+	char RSTDuration;
+	char LOWPower;
 	long int Open0;	// Open of the HW gate (ps)
 	long int Width0;	// Width of the HW gate (ps)
 	long int Sync0; // Delay of the TDC Stop Sync (ps)
+	//unsigned short Open0;	// Open of the HW gate (ps)
+	//unsigned short Width0;	// Width of the HW gate (ps)
+	//unsigned short Sync0; // Delay of the TDC Stop Sync (ps)
 	
 	// Pixels
 	uint32_t Threshold;
@@ -2064,6 +2066,7 @@ int hSwitch;
 int hNirs;
 int hLuca;
 int hSwab;
+int hBcd;
 int hMamm;
 int hSave;
 int hLabel;

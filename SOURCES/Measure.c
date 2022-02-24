@@ -2914,7 +2914,7 @@ void MoveBcdSync(char Step,long Goal,char Wait){
 	CalcCoarseFineBcd(Goal,&STOP_coarse,&STOP_fine); // Calc fine & corase for DELAY of STOP TDC
 	CalcCoarseFineBcd(B->Open0,&OPEN_coarse,&OPEN_fine); // Calc fine & coarse for OPEN of HW GATE
 	CalcCoarseFineBcd(B->Open0+B->Width0,&CLOSE_coarse,&CLOSE_fine); // Calc fine & corase for CLOSE of HW Gate
-	Gating_config(STOP_coarse,CLOSE_fine,CLOSE_coarse,OPEN_fine,STOP_fine,OPEN_coarse,BCD_QUADRANTS,B->RSTDuration,B->LOWPower,B->Handle,&ret,&(B->Handle)); 
+	Gating_config(STOP_coarse,CLOSE_fine,CLOSE_coarse,OPEN_fine,STOP_fine,OPEN_coarse,BCD_QUADRANTS,(uint8_t)B->RSTDuration,(LVBoolean)B->LOWPower,B->Handle,&ret,&(B->Handle)); 
 	}
 
 // CALC internal BCD delays
