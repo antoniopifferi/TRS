@@ -2856,7 +2856,7 @@ void InitBcd(int Board){
 		P.Spc.Bcd[Board].IsInitialized=TRUE;
 		}
 	if(status<0) ErrHandler(ERR_SPC,status,"BCD_Startup");
-	MoveBcdGate(0,B->Stop,0); // Set Default Gate Conditions
+	MoveBcdSync(0,B->Stop,0); // Set Default Sync Conditions
 	SetPixels(B->Handle,(uint32_t)1,B->PixelsOrder,B->SETMap,&(B->Handle),&status); // Turn on first pixel
 	
 	Passed();
@@ -2910,8 +2910,8 @@ void WaitBcd(void){
 	SyncWait(P.Spc.Zero,P.Spc.Bcd[0].Time);
 	}
 	
-/* MOVE BCD GATE */	
-void MoveBcdGate(char Step,long Goal,char Wait){
+/* MOVE BCD SYNC */	
+void MoveBcdSync(char Step,long Goal,char Wait){
 	LVBoolean ret=0;
 	struct BcdS *B=&P.Spc.Bcd[0];
 	uint8_t STOP_coarse;
@@ -2922,7 +2922,7 @@ void MoveBcdGate(char Step,long Goal,char Wait){
 	uint8_t OPEN_coarse;
 	if(Goal==P.Step[Step].Actual) return;
 	CalcCoarseFineBcd(Goal,&STOP_coarse,&STOP_fine); // Calc fine & corase for DELAY of STOP TDC
-	CalcCoarseFineBcd(B->Open,&OPEN_coarse,&OPEN_fine); // Calc fine & corase for OPEN of HW Gate
+	CalcCoarseFineBcd(B->Open,&OPEN_coarse,&OPEN_fine); // Calc fine & coarse for OPEN of HW GATE
 	CalcCoarseFineBcd(B->Open+B->Width,&CLOSE_coarse,&CLOSE_fine); // Calc fine & corase for CLOSE of HW Gate
 	Gating_config(STOP_coarse,CLOSE_fine,CLOSE_coarse,OPEN_fine,STOP_fine,OPEN_coarse,BCD_QUADRANTS,B->RSTDuration,B->LOWPower,B->Handle,&ret,&(B->Handle)); 
 	}
@@ -5799,7 +5799,7 @@ void InitStep(char Step){
 		case CHAMALEON:  InitCham(Step); break;
 		case STEP_STANDA2: InitStanda2(Step); break;
 		case ATT_LUCA:	InitAttLuca(Step); break;
-		case BCD_GATE: InitBcd(0); break;
+		case BCD_SYNC: InitBcd(0); break;
 		case BCD_PIX: InitBcd(0); break;
 		default:;
 		}
@@ -5828,7 +5828,7 @@ void CloseStep(char Step){
 		case CHAMALEON: CloseCham(Step); break;
 		case STEP_STANDA2: CloseStanda2(Step); break;
 		case ATT_LUCA:	CloseAttLuca(Step); break;
-		case BCD_GATE:
+		case BCD_SYNC:
 		case BCD_PIX: CloseBcd(); break;
 		default:;
 		}
@@ -6033,7 +6033,7 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case CHAMALEON: MoveCham(Step,Goal,Wait); break;
 		case STEP_STANDA2: MoveStanda2(Step,Goal,Wait); break;
 		case ATT_LUCA: MoveAttLuca(Step,Goal,Wait); break;
-		case BCD_GATE: MoveBcdGate(Step,Goal,FALSE); break;
+		case BCD_SYNC: MoveBcdSync(Step,Goal,FALSE); break;
 		case BCD_PIX: MoveBcdPix(Step,Goal,FALSE); break;
 		default:;
 		}

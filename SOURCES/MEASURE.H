@@ -561,7 +561,7 @@
 #define MICRO2		23
 #define STEP_STANDA2	24
 #define ATT_LUCA		25
-#define BCD_GATE	26
+#define BCD_SYNC	26
 #define BCD_PIX		27
 
 #define VARRO		 1
@@ -796,7 +796,7 @@
 #define BCD_LOWPower		0
 #define BCD_OPEN0			0		// (ps) Default OPEN of the HW gate
 #define BCD_WIDTH0			7000	// (ps) Default WIDTH of the HW gate
-#define BCD_STOP0			15000	// (ps) Default DELAY of the TDC STOP
+#define BCD_STOP0			15000	// (ps) Default DELAY of the TDC STOP SYNC
 #define BCD_STEPCOARSE		1280	// (ps) Coarse Step of the Gate/delay
 #define BCD_STEPFINE		100		// (ps) Fine Step of the Gate/delay
 #define BCD_PIXELSORDER		"C:\\OneDrivePolimi\\OneDrive - Politecnico di Milano\\Beta\\Programs\\TRS\\INI\\lista_pixel.txt"	// File containing the ordering of switch on of pixels (cumulative)
@@ -2298,7 +2298,7 @@ void InitBcd(int Board);
 void CloseBcd(void);
 void GetDataBcd(void);
 void ClearBcd(void);
-void MoveBcdGate(char Step,long Goal,char Wait);
+void MoveBcdSync(char Step,long Goal,char Wait);
 void CalcCoarseFineBcd(long Goal, uint8_t *Coarse, uint8_t *Fine);
 void MoveBcdPix(char Step,long Goal,char Wait);
 void TimeBcd(float Time);
