@@ -2847,7 +2847,9 @@ void InitBcd(int Board){
 	MoveBcdSync(0,B->Sync0,0); // Set Default Sync Conditions
 	//MakePathname(DIR_INI,B->PixelsOrder,path);
 	sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->PixelsOrder);
-	SetPixels(B->Handle,(uint32_t)2,path,B->SETMap,&(B->Handle),&status); // Turn on first pixel
+	Load_pixel_order(path,B->Pixel_sequence,BCD_MAXPIX); // load file
+	SetPixelsFast(B->Handle,(uint32_t)2,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+	//SetPixels(B->Handle,(uint32_t)2,path,B->SETMap,&(B->Handle),&status); // Turn on first pixel
 	
 	Passed();
 	} 
@@ -2925,13 +2927,14 @@ void CalcCoarseFineBcd(long Goal, uint8_t *Coarse, uint8_t *Fine){
 	
 /* MOVE BCD PIX */	
 void MoveBcdPix(char Step,long Goal,char Wait){
-	LVBoolean ret=0;
+	LVBoolean status=0;
 	char path[STRLEN_LONG];
 	struct BcdS *B=&P.Spc.Bcd[0];
 	if(Goal==P.Step[Step].Actual) return;
 	//MakePathname(DIR_INI,B->PixelsOrder,path);
-	sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->PixelsOrder);
-	SetPixels(B->Handle,(uint32_t) Goal,B->PixelsOrder,B->SETMap,&(B->Handle),&ret);
+	//sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->PixelsOrder);
+	//SetPixels(B->Handle,(uint32_t) Goal,B->PixelsOrder,B->SETMap,&(B->Handle),&ret);
+	SetPixelsFast(B->Handle,(uint32_t)Goal,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 	}
 
 

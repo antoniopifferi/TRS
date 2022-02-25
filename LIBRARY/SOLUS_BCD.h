@@ -44,6 +44,17 @@ void __cdecl Startup(char TDCCalibrationPath[], double VDD_CORE,
  */
 void __cdecl Basic_test(uint32_t Input, uint32_t *Output, 
 	uint32_t OUT_ARRAY[], int32_t len);
+/*!
+ * SetPixelsFast
+ */
+void __cdecl SetPixelsFast(uint32_t HandleIN, uint32_t Threshold, 
+	int64_t Pixel_sequence[], LVBooleanArray *SETMap, uint32_t *HandleOUT, 
+	LVBoolean *STATUS, int32_t len);
+/*!
+ * Load_pixel_order
+ */
+void __cdecl Load_pixel_order(char PixelsOrder[], int64_t Pixel_sequence[], 
+	int32_t len);
 
 MgErr __cdecl LVDLLStatus(char *errStr, int errStrLen, void *module);
 

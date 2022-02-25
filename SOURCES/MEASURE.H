@@ -1543,6 +1543,7 @@ struct BcdS{
 	char PixelsOrder[STRLEN_LONG];
 	LVBooleanArray *SETMap;
 	int32_t NumPixels;
+	int64_t Pixel_sequence[BCD_MAXPIX];
 	};
 
 struct SurfaceConceptS{

@@ -59,5 +59,16 @@ and the value of the parameter Threshold.
 Pixel "i" is enabled if in the file "PixelsOrder" the i-th row contains a number lower than "threshold".
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+Load_pixel_order
+This function reads the pixel sequence file and returns an array size len=2048 to be used in the function "SetPixels_fast"
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+SetPixels_fast
+This function enables the pixels according to the ranking present in the array populated by Load_pixel_order
+and the value of the parameter Threshold.
+Pixel "i" is enabled if in the file "PixelsOrder" the i-th row contains a number lower than "threshold".
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 Shutdown_DLL
 This function turns off the detector and closes the communication to the FPGA board.
