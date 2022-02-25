@@ -2839,14 +2839,14 @@ void InitBcd(int Board){
 //	B->SETMap=AllocateLVBooleanArray(&(B->NumPixels)); //allocate memory for Map
 	if(!B->IsInitialized){
 		//MakePathname(DIR_INI,B->Calibration,path);
-		sprintf(path,"%s\\%s",DIR_INI,B->Calibration);
+		sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->Calibration);
 		Startup(path,BCD_VDD_CORE,BCD_VDDD_CORE,BCD_VDD_CK,BCD_VHIGH,&status,&B->Handle);
 		P.Spc.Bcd[Board].IsInitialized=TRUE;
 		}
 	if(status<0) ErrHandler(ERR_SPC,status,"BCD_Startup");
 	MoveBcdSync(0,B->Sync0,0); // Set Default Sync Conditions
 	//MakePathname(DIR_INI,B->PixelsOrder,path);
-	sprintf(path,"%s\\%s",DIR_INI,B->PixelsOrder);
+	sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->PixelsOrder);
 	SetPixels(B->Handle,(uint32_t)1,path,B->SETMap,&(B->Handle),&status); // Turn on first pixel
 	
 	Passed();
@@ -2930,7 +2930,7 @@ void MoveBcdPix(char Step,long Goal,char Wait){
 	struct BcdS *B=&P.Spc.Bcd[0];
 	if(Goal==P.Step[Step].Actual) return;
 	//MakePathname(DIR_INI,B->PixelsOrder,path);
-	sprintf(path,"%s\\%s",DIR_INI,B->PixelsOrder);
+	sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->PixelsOrder);
 	SetPixels(B->Handle,(uint32_t) Goal,B->PixelsOrder,B->SETMap,&(B->Handle),&ret);
 	}
 
