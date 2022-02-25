@@ -2930,6 +2930,7 @@ void MoveBcdPix(char Step,long Goal,char Wait){
 	struct BcdS *B=&P.Spc.Bcd[0];
 	if(Goal==P.Step[Step].Actual) return;
 	//MakePathname(DIR_INI,B->PixelsOrder,path);
+	sprintf(path,"%s\\%s",DIR_INI,B->PixelsOrder);
 	SetPixels(B->Handle,(uint32_t) Goal,B->PixelsOrder,B->SETMap,&(B->Handle),&ret);
 	}
 
