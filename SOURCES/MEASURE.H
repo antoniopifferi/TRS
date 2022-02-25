@@ -1527,10 +1527,10 @@ struct BcdS{
 	double VHIGH;
 	
 	// Gate
-	//uint8_t RSTDuration;
-	//LVBoolean LOWPower;
-	char RSTDuration;
-	char LOWPower;
+	uint8_t RSTDuration;
+	LVBoolean LOWPower;
+	//char RSTDuration;
+	//char LOWPower;
 	long int Open0;	// Open of the HW gate (ps)
 	long int Width0;	// Width of the HW gate (ps)
 	long int Sync0; // Delay of the TDC Stop Sync (ps)

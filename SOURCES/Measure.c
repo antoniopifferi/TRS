@@ -2840,14 +2840,14 @@ void InitBcd(int Board){
 	if(!B->IsInitialized){
 		//MakePathname(DIR_INI,B->Calibration,path);
 		sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->Calibration);
-		Startup(path,BCD_VDD_CORE,BCD_VDDD_CORE,BCD_VDD_CK,BCD_VHIGH,&status,&B->Handle);
+		Startup(path,B->VDD_CORE,B->VDDD_CORE,B->VDD_CK,B->VHIGH,&status,&B->Handle);
 		P.Spc.Bcd[Board].IsInitialized=TRUE;
 		}
 	if(status<0) ErrHandler(ERR_SPC,status,"BCD_Startup");
 	MoveBcdSync(0,B->Sync0,0); // Set Default Sync Conditions
 	//MakePathname(DIR_INI,B->PixelsOrder,path);
 	sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->PixelsOrder);
-	SetPixels(B->Handle,(uint32_t)1,path,B->SETMap,&(B->Handle),&status); // Turn on first pixel
+	SetPixels(B->Handle,(uint32_t)3,path,B->SETMap,&(B->Handle),&status); // Turn on first pixel
 	
 	Passed();
 	} 
