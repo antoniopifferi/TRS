@@ -2847,7 +2847,7 @@ void InitBcd(int Board){
 	MoveBcdSync(0,B->Sync0,0); // Set Default Sync Conditions
 	//MakePathname(DIR_INI,B->PixelsOrder,path);
 	sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->PixelsOrder);
-	SetPixels(B->Handle,(uint32_t)3,path,B->SETMap,&(B->Handle),&status); // Turn on first pixel
+	SetPixels(B->Handle,(uint32_t)2,path,B->SETMap,&(B->Handle),&status); // Turn on first pixel
 	
 	Passed();
 	} 
