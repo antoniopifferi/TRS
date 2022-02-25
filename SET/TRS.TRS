@@ -1215,4 +1215,4 @@
 0	1	BcdWidth0	7000
 0	1	BcdSync0	15000
 0	3	BcdPixelsorder	PixelOrder.txt
-0	3	BcdCalibration	BCD_Calibration.dat
+0	3	BcdCalibration	TDC_Calibration_B.dat
