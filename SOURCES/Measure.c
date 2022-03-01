@@ -2923,7 +2923,7 @@ void MoveBcdSync(char Step,long Goal,char Wait){
 // CALC internal BCD delays
 void CalcCoarseFineBcd(long Goal, uint8_t *Coarse, uint8_t *Fine){
 	*Coarse=(uint8_t)(Goal/BCD_STEPCOARSE);
-	*Fine=(uint8_t)(Goal-(*Coarse)*BCD_STEPCOARSE)/BCD_STEPFINE;
+	*Fine=(uint8_t)((Goal-(*Coarse)*BCD_STEPCOARSE)/BCD_STEPFINE);
 	}	
 	
 /* MOVE BCD PIX */	

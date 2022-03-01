@@ -790,7 +790,6 @@
 #define BCD_QUADRANTS		0b00001111
 #define BCD_STEPCOARSE		1280	// (ps) Coarse Step of the Gate/delay
 #define BCD_STEPFINE		100		// (ps) Fine Step of the Gate/delay
-#define DIR_TRS				"C:\\OneDrivePolimi\\OneDrive - Politecnico di Milano\\Beta\\Programs\\TRS"
 
 
 /* TEST CONSTANTS */
