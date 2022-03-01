@@ -20,15 +20,18 @@
 #define  BCD_VHIGH                        5       /* control type: numeric, callback function: Setting */
 #define  BCD_RSTDuration                  6       /* control type: numeric, callback function: Setting */
 #define  BCD_LOWPower                     7       /* control type: binary, callback function: Setting */
-#define  BCD_OPEN0                        8       /* control type: numeric, callback function: Setting */
-#define  BCD_WIDTH0                       9       /* control type: numeric, callback function: Setting */
-#define  BCD_SYNC0                        10      /* control type: numeric, callback function: Setting */
-#define  BCD_CALIBRATION                  11      /* control type: string, callback function: Setting */
-#define  BCD_PIXELSORDER                  12      /* control type: string, callback function: Setting */
-#define  BCD_TITLE_2                      13      /* control type: textMsg, callback function: (none) */
-#define  BCD_TITLE_4                      14      /* control type: textMsg, callback function: (none) */
-#define  BCD_TITLE_3                      15      /* control type: textMsg, callback function: (none) */
-#define  BCD_TITLE                        16      /* control type: textMsg, callback function: (none) */
+#define  BCD_PIXEL_DEFAULT                8       /* control type: numeric, callback function: Setting */
+#define  BCD_OPEN0                        9       /* control type: numeric, callback function: Setting */
+#define  BCD_WIDTH0                       10      /* control type: numeric, callback function: Setting */
+#define  BCD_SYNC0                        11      /* control type: numeric, callback function: Setting */
+#define  BCD_TITLE_5                      12      /* control type: textMsg, callback function: (none) */
+#define  BCD_CALIBRATION                  13      /* control type: string, callback function: Setting */
+#define  BCD_PIXELSORDER                  14      /* control type: string, callback function: Setting */
+#define  BCD_TITLE_2                      15      /* control type: textMsg, callback function: (none) */
+#define  BCD_TITLE_4                      16      /* control type: textMsg, callback function: (none) */
+#define  BCD_TITLE_3                      17      /* control type: textMsg, callback function: (none) */
+#define  BCD_TITLE                        18      /* control type: textMsg, callback function: (none) */
+#define  BCD_PIXEL_SINGLE                 19      /* control type: binary, callback function: Setting */
 
 #define  DISPLAY                          2       /* callback function: ClosePanel */
 #define  DISPLAY_CONTPAUSE                2       /* control type: textButton, callback function: GetCommand */

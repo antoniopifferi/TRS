@@ -2824,6 +2824,7 @@ void StartFileSwab(void){
 void InitBcd(int Board){
 	char message[STRLEN];
 	char path[STRLEN_LONG];
+	char dir_trs[STRLEN_LONG];
 	LVBoolean status=0;
 	struct BcdS *B=&P.Spc.Bcd[0];
 	uint32_t Input=10;
@@ -2834,21 +2835,21 @@ void InitBcd(int Board){
 	sprintf (message, "Initializing BCD, Module #%d, ...", Board);
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
 	
+	GetProjectDir(dir_trs);
 	Basic_test(Input,&Output,OUT_ARRAY,len);
 	if(Output!=Input) ErrHandler(ERR_SPC,status,"BCD_Test_Function");
 //	B->SETMap=AllocateLVBooleanArray(&(B->NumPixels)); //allocate memory for Map
 	if(!B->IsInitialized){
-		//MakePathname(DIR_INI,B->Calibration,path);
-		sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->Calibration);
+		sprintf(path,"%s\\%s\\%s",dir_trs,DIR_INI,B->Calibration);
 		Startup(path,B->VDD_CORE,B->VDDD_CORE,B->VDD_CK,B->VHIGH,&status,&B->Handle);
 		P.Spc.Bcd[Board].IsInitialized=TRUE;
 		}
 	if(status<0) ErrHandler(ERR_SPC,status,"BCD_Startup");
 	MoveBcdSync(0,B->Sync0,0); // Set Default Sync Conditions
-	//MakePathname(DIR_INI,B->PixelsOrder,path);
-	sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->PixelsOrder);
+	sprintf(path,"%s\\%s\\%s",dir_trs,DIR_INI,B->PixelsOrder);
+	
 	Load_pixel_order(path,B->Pixel_sequence,BCD_MAXPIX); // load file
-	SetPixelsFast(B->Handle,(uint32_t)2,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+	SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 	//SetPixels(B->Handle,(uint32_t)2,path,B->SETMap,&(B->Handle),&status); // Turn on first pixel
 	
 	Passed();

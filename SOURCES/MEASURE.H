@@ -85,7 +85,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1221
+#define MAX_TABLE		1223
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1539,7 +1539,8 @@ struct BcdS{
 	//unsigned short Sync0; // Delay of the TDC Stop Sync (ps)
 	
 	// Pixels
-	uint32_t Threshold;
+	int PixelDefault;
+	char PixelSingle;
 	char PixelsOrder[STRLEN_LONG];
 	LVBooleanArray *SETMap;
 	int32_t NumPixels;

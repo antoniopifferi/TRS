@@ -710,6 +710,9 @@ void CreateTable(void){
 	AddTab(CE,TSTRING,BCD,BCD_PIXELSORDER,"BcdPixelsorder",0,0,P.Spc.Bcd[0].PixelsOrder);
 	AddTab(CE,TSTRING,BCD,BCD_CALIBRATION,"BcdCalibration",0,0,P.Spc.Bcd[0].Calibration);
 
+	AddTab(CE,TINT,BCD,BCD_PIXEL_DEFAULT,"BcdPixelDefault",0,0,&P.Spc.Bcd[0].PixelDefault);
+	AddTab(CE,TCHAR,BCD,BCD_PIXEL_SINGLE,"BcdPixelSingle",0,0,&P.Spc.Bcd[0].PixelSingle);
+
 	for(ic=0;ic<T.Num;ic++) T.Dimmed[ic]=FALSE;
 	}
 

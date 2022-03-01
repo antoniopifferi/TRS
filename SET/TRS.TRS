@@ -1216,3 +1216,5 @@
 0	1	BcdSync0	15000
 0	3	BcdPixelsorder	PixelOrder.txt
 0	3	BcdCalibration	TDC_Calibration_B.dat
+0	1	BcdPixelDefault	1
+0	0	BcdPixelSingle	0
