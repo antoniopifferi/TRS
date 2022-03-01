@@ -2831,6 +2831,7 @@ void InitBcd(int Board){
 	uint32_t Output;
 	uint32_t OUT_ARRAY[256];
 	int32_t len=256;
+	int64_t pixel_single[BCD_MAXPIX];
 	
 	sprintf (message, "Initializing BCD, Module #%d, ...", Board);
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
@@ -2838,7 +2839,6 @@ void InitBcd(int Board){
 	GetProjectDir(dir_trs);
 	Basic_test(Input,&Output,OUT_ARRAY,len);
 	if(Output!=Input) ErrHandler(ERR_SPC,status,"BCD_Test_Function");
-//	B->SETMap=AllocateLVBooleanArray(&(B->NumPixels)); //allocate memory for Map
 	if(!B->IsInitialized){
 		sprintf(path,"%s\\%s\\%s",dir_trs,DIR_INI,B->Calibration);
 		Startup(path,B->VDD_CORE,B->VDDD_CORE,B->VDD_CK,B->VHIGH,&status,&B->Handle);
@@ -2849,8 +2849,17 @@ void InitBcd(int Board){
 	sprintf(path,"%s\\%s\\%s",dir_trs,DIR_INI,B->PixelsOrder);
 	
 	Load_pixel_order(path,B->Pixel_sequence,BCD_MAXPIX); // load file
-	SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
-	//SetPixels(B->Handle,(uint32_t)2,path,B->SETMap,&(B->Handle),&status); // Turn on first pixel
+	
+//	SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+
+	if(B->PixelSingle){
+		for(int ip=0;ip<BCD_MAXPIX;ip++) pixel_single[ip]=BCD_MAXPIX+1; // set all pixels to not-reachable 
+		pixel_single[B->PixelDefault]=0; // set required pixel to highest priority 
+		SetPixelsFast(B->Handle,(uint32_t)1,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		}
+	else{
+		SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		}
 	
 	Passed();
 	} 
@@ -2860,7 +2869,6 @@ void InitBcd(int Board){
 void CloseBcd(void){
 	struct BcdS *B=&P.Spc.Bcd[0];
 	if(B->IsInitialized){
-//		DeAllocateLVBooleanArray(B->SETMap);
 		Shutdown_DLL(B->Handle);
 		B->IsInitialized=FALSE;
 		}
@@ -2931,11 +2939,20 @@ void MoveBcdPix(char Step,long Goal,char Wait){
 	LVBoolean status=0;
 	char path[STRLEN_LONG];
 	struct BcdS *B=&P.Spc.Bcd[0];
+	int64_t pixel_single[BCD_MAXPIX];
+
 	if(Goal==P.Step[Step].Actual) return;
-	//MakePathname(DIR_INI,B->PixelsOrder,path);
-	//sprintf(path,"%s\\%s\\%s",DIR_TRS,DIR_INI,B->PixelsOrder);
-	//SetPixels(B->Handle,(uint32_t) Goal,B->PixelsOrder,B->SETMap,&(B->Handle),&ret);
-	SetPixelsFast(B->Handle,(uint32_t)Goal,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+	if(Goal>BCD_MAXPIX-1) Goal=BCD_MAXPIX-1;
+	//SetPixelsFast(B->Handle,(uint32_t)Goal,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+	if(B->PixelSingle){ // switch on only 1 pixel
+		for(int ip=0;ip<BCD_MAXPIX;ip++) pixel_single[ip]=BCD_MAXPIX+1; // set all pixels to not-reachable 
+		pixel_single[Goal]=0; // set required pixel to highest priority 
+		SetPixelsFast(B->Handle,(uint32_t)1,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		}
+	else{ // switch on ALL pixels up to Goal (in ordered list)
+		SetPixelsFast(B->Handle,(uint32_t)Goal,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		}
+
 	}
 
 
