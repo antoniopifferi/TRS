@@ -2854,8 +2854,8 @@ void InitBcd(int Board){
 
 	if(B->PixelSingle){
 		for(int ip=0;ip<BCD_MAXPIX;ip++) pixel_single[ip]=BCD_MAXPIX+1; // set all pixels to not-reachable 
-		pixel_single[B->PixelDefault]=0; // set required pixel to highest priority 
-		SetPixelsFast(B->Handle,(uint32_t)1,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		pixel_single[B->PixelDefault]=1; // set required pixel to highest priority 
+		SetPixelsFast(B->Handle,(uint32_t)10,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 		}
 	else{
 		SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
@@ -2946,8 +2946,8 @@ void MoveBcdPix(char Step,long Goal,char Wait){
 	//SetPixelsFast(B->Handle,(uint32_t)Goal,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 	if(B->PixelSingle){ // switch on only 1 pixel
 		for(int ip=0;ip<BCD_MAXPIX;ip++) pixel_single[ip]=BCD_MAXPIX+1; // set all pixels to not-reachable 
-		pixel_single[Goal]=0; // set required pixel to highest priority 
-		SetPixelsFast(B->Handle,(uint32_t)1,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		pixel_single[Goal]=1; // set required pixel to highest priority 
+		SetPixelsFast(B->Handle,(uint32_t)10,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 		}
 	else{ // switch on ALL pixels up to Goal (in ordered list)
 		SetPixelsFast(B->Handle,(uint32_t)Goal,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
