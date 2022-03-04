@@ -55,6 +55,12 @@ void __cdecl SetPixelsFast(uint32_t HandleIN, uint32_t Threshold,
  */
 void __cdecl Load_pixel_order(char PixelsOrder[], int64_t Pixel_sequence[], 
 	int32_t len);
+/*!
+ * Get_Histogram_set_integration
+ */
+void __cdecl Get_Histogram_set_integration(uint32_t IntegrationUs, 
+	uint32_t HandleIN, uint32_t *COUNTS, uint32_t Histogram[], 
+	uint32_t *HandleOUT, LVBoolean *STATUS, int32_t len);
 
 MgErr __cdecl LVDLLStatus(char *errStr, int errStrLen, void *module);
 

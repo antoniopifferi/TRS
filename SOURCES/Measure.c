@@ -2883,7 +2883,9 @@ void GetDataBcd(void){
 	LVBoolean ret=0;
 	int Board=0;
 
-	Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
+	//Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
+	Get_Histogram_set_integration((uint32_t)(B->Time*1000000),B->Handle,&counts,Histogram,&(B->Handle),&ret,BCD_MAXBIN);
+
 	if(ret<0) ErrHandler(ERR_BCD,ret,"BCD_GetDataBcd");
 	for(int ic=0;ic<P.Chann.Num;ic++) D.Buffer[Board][ic]=Histogram[ic];   
 	}

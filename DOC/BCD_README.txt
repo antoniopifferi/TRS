@@ -31,6 +31,16 @@ The content of that array will be overwritten by the acquired histogram.
 "len" needs to be always 256.
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+Get_Histogram_set_integration
+This function triggers an acquisition of duration equal to "IntegrationUs" microseconds
+and returns the corresponding histogram. This function is locking for the duration of the acquisition.
+Maximum integration time = 100 ms
+You should pass an empty array of uint32_t of size 256 (or greater).
+The content of that array will be overwritten by the acquired histogram.
+"len" needs to be always 256.
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 Gating config
 This function sets the position of:
 - the gate window rising edge according to "OPEN" and "OPEN_fine"
