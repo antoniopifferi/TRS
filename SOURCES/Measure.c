@@ -2883,9 +2883,11 @@ void GetDataBcd(void){
 	LVBoolean ret=0;
 	int Board=0;
 
-	//Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
-	Get_Histogram_set_integration((uint32_t)(B->Time*1000000),B->Handle,&counts,Histogram,&(B->Handle),&ret,BCD_MAXBIN);
-
+	if (P.Wait.Type==WAIT_SPC)
+		Get_Histogram_set_integration((uint32_t)(B->Time*1000000),B->Handle,&counts,Histogram,&(B->Handle),&ret,BCD_MAXBIN);
+	else
+		Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
+		
 	if(ret<0) ErrHandler(ERR_BCD,ret,"BCD_GetDataBcd");
 	for(int ic=0;ic<P.Chann.Num;ic++) D.Buffer[Board][ic]=Histogram[ic];   
 	}
@@ -2899,18 +2901,19 @@ void ClearBcd(void){
 	struct BcdS *B=&P.Spc.Bcd[0];
 	LVBoolean ret=0;
 
-	Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
+	P.Spc.Zero=Timer();
+	//Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);   NO: already contained in Get BCD
 	if(ret<0) ErrHandler(ERR_BCD,ret,"BCD_Clear");
 	}
 
-/* WAIT BCD */
+/* TIME BCD */
 void TimeBcd(float Time){
 	P.Spc.Bcd[0].Time=Time;
 	}
 	
 /* WAIT BCD */
 void WaitBcd(void){
-	SyncWait(P.Spc.Zero,P.Spc.Bcd[0].Time);
+	//SyncWait(P.Spc.Zero,P.Spc.Bcd[0].Time);   NOTE: NOT NEEDED, it is inside the acquisition function
 	}
 	
 /* MOVE BCD SYNC */	
