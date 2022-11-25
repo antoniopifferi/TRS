@@ -563,6 +563,7 @@
 #define ATT_LUCA		25
 #define BCD_SYNC	26
 #define BCD_PIX		27
+#define DMD_TX		28
 
 #define VARRO		 1
 #define NI_6602	     5
@@ -2441,6 +2442,16 @@ void StopMicro(char Step);
 void DefineHomeMicro(char Step);
 void TalkMicro(char Step, char Command, long Value, long *Answer);
 void GetMicro(int Com, long *Answer);
+
+// #### DMD TEXAS STEPPER ####
+void InitDmdTx(char Step);
+void CloseDmdTx(char Step);
+void MoveDmdTx(char Step,long Goal,char Wait);
+void WaitDmdTx(char Step,long Goal);
+void TellPosDmdTx(char Step,long *Actual);
+void StopDmdTx(char Step);
+void DefineHomeDmdTx(char Step);
+
 
 // #### ESP300 STEPPER ####
 void InitEsp300(char Step);

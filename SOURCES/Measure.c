@@ -5818,6 +5818,7 @@ void InitStep(char Step){
 		case ATT_LUCA:	InitAttLuca(Step); break;
 		case BCD_SYNC: InitBcd(0); break;
 		case BCD_PIX: InitBcd(0); break;
+		case DMD_TX: InitDmdTx(Step); break;
 		default:;
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
@@ -5847,6 +5848,7 @@ void CloseStep(char Step){
 		case ATT_LUCA:	CloseAttLuca(Step); break;
 		case BCD_SYNC:
 		case BCD_PIX: CloseBcd(); break;
+		case DMD_TX: CloseDmdTx(Step); break;
 		default:;
 		}
 	}
@@ -5991,6 +5993,7 @@ void DefineHome(char Step){
 		case CHAMALEON: DefineHomeCham(Step); break;
 		case STEP_STANDA2: DefineHomeStanda2(Step); break;
 		case ATT_LUCA: DefineHomeAttLuca(Step); break;
+		case DMD_TX: DefineHomeDmdTx(Step); break;
 		default:;
 		}
 		P.Step[Step].Actual=P.Step[Step].Home;
@@ -6052,6 +6055,7 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case ATT_LUCA: MoveAttLuca(Step,Goal,Wait); break;
 		case BCD_SYNC: MoveBcdSync(Step,Goal,FALSE); break;
 		case BCD_PIX: MoveBcdPix(Step,Goal,FALSE); break;
+		case DMD_TX: MoveDmdTx(Step,Goal,Wait); break;
 		default:;
 		}
 	P.Spc.Trash=TRUE;
@@ -6080,6 +6084,7 @@ void StopStep(char Step){
 		case CHAMALEON: StopCham(Step); break;
 		case STEP_STANDA2: StopStanda2(Step); break;
 		case ATT_LUCA: StopAttLuca(Step); break;
+		case DMD_TX: StopDmdTx(Step); break;
 		default:;
 		}
 	}
@@ -6156,6 +6161,7 @@ void WaitStep(long *Actual,long Goal,char Step,char Status){
 		case CHAMALEON: WaitCham(Step,Goal); break;
 		case STEP_STANDA2: WaitStanda2(Step,Goal); break;
 		case ATT_LUCA: WaitAttLuca(Step,Goal); break;
+		case DMD_TX: WaitDmdTx(Step,Goal); break;
 		default:;
 		}
 	}
@@ -6755,6 +6761,70 @@ void GetMicro(int Com,long *Answer){
 	pChar = (char*) Answer;
 	while(ComRd (Com,pChar,4)<4);
 	}
+
+
+// #### DMD TEXAS STEPPER ####
+	
+/* INITIALIZE DMDTX */
+void InitDmdTx(char Step){
+	char message[STRLEN];
+
+	sprintf(message,"Initializing DMD TEXAS Stepper #%d",Step+1);
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+
+	// code here
+	
+	SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
+	}
+
+
+/* CLOSE DMD TEXAS */
+void CloseDmdTx(char Step){
+	
+	// code here
+	
+	}
+
+
+/* MOVE DMD TEXAS */
+void MoveDmdTx(char Step,long Goal,char Wait){
+
+	// code here
+	
+	if(Wait); // code here
+	}
+
+
+/* WAIT END OF DMD TEXAS MOVEMENT */
+void WaitDmdTx(char Step,long Goal){
+	
+	// code here
+	
+} 
+
+
+/* TELL POSITION DMD TEXAS */
+void TellPosDmdTx(char Step,long *Actual){
+	
+	// code here
+
+}
+
+
+/* STOP DMD TEXAS */
+void StopDmdTx(char Step){
+	
+	// code here
+	
+	}
+
+
+/* DEFINE HOME DMD TEXAS */
+void DefineHomeDmdTx(char Step){
+	
+	// code here
+	
+    }
 
 
 // #### ESP300 STEPPER ####
