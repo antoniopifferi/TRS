@@ -39,6 +39,7 @@
 
 /* ########################   HEADINGS   ################################## */
 
+
 #pragma warning(disable : 4996) // Disable warnings about some functions in VS 2005
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
 
@@ -1678,10 +1679,103 @@ void DisplayStatus(void){
 	}
 
 
+/* TEST ANALYSIS ON PYTHON */
+int TestPython()
+{
+	
+	int N=2000;
+	int M=32;
+    int data[2000];
+    int i=0, j=0, k=0;
+    FILE *suppFile;
+
+    // process creation (https://www.youtube.com/watch?v=W2Qu4RDk__k)
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+    BOOL bProcess;
+
+    // semaphore creation
+    HANDLE hSem, pSem;
+    SECURITY_ATTRIBUTES sS;
+    sS.nLength = sizeof(sS);
+    sS.lpSecurityDescriptor = NULL;
+    sS.bInheritHandle = TRUE;
+    hSem = CreateSemaphore(&sS, 0, 1, "hSem"); // 1 when analysis is running
+    pSem = CreateSemaphore(&sS, 0, 1, "pSem"); // 1 when data collection is running
+    if(hSem == NULL || pSem == NULL){
+        printf("Error in semaphore creation\n");
+        getchar();
+        return 1;
+    }
+
+    // memory clear
+    ZeroMemory(&si, sizeof(si));
+    ZeroMemory(&pi, sizeof(pi));
+
+    // create process
+    bProcess = CreateProcessA("C:\\OneDrivePolimi\\OneDrive - Politecnico di Milano\\Beta\\Programs\\C2PY\\C_to_Py\\bin\\Debug\\childProcess.exe", NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+    Sleep(3000);
+
+    // check process created
+    if(bProcess == FALSE){
+        printf( "CreateProcess failed (%d).\n", GetLastError() );
+        return 1;
+    }
+
+    /*
+    // first creation of data and put data in support file txt (not needed)
+    suppFile = fopen("support.txt", "w");
+    for (i=0; i<N; i++){
+        data[i]=i*j;
+        fprintf(suppFile, "%d\n", data[i]);
+    }
+    fclose(suppFile);
+    */
+
+
+    k=0;
+    while(k<10){
+
+        // parent process: collect new data
+        suppFile = fopen("support.txt", "w");
+        for(j=0; j<M; j++){
+            for(i=0; i<N; i++){
+                data[i]=i*j;
+                if(j==15) data[i] = i*k;
+                if(j==20) data[i] = -i*k;
+                if(i==N-1) fprintf(suppFile, "%d", data[i]*j);
+                else fprintf(suppFile, "%d,", data[i]*j);
+            }
+        fprintf(suppFile, "\n");
+        }
+        fclose(suppFile);
+        ReleaseSemaphore(pSem, 1, NULL);
+
+        // wait end of child (semaphore)
+        WaitForSingleObject(hSem, INFINITE);
+
+        k++;
+    }
+
+    // close child process
+    CloseHandle( pi.hProcess );
+    CloseHandle( pi.hThread );
+
+    printf("\n -> END of C Parent program. Press a key to close... \n");
+    getchar();
+
+    return 0;
+}
+
+
 /* DISPLAY CURVE ON PLOT */
 void DisplayPlot(void){
 	if(P.Graph.Type==GRAPH_PLOT) GraphPlot();
 	if(P.Graph.Type==GRAPH_ROI) GraphRoi();
+	
+	// TEST PY
+	TestPython();
+	// END TEST PY
 	}
 
 /* SET DISPLAY PLOT */
