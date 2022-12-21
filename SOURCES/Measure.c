@@ -77,7 +77,7 @@
 #include <analysis.h>
 #include <cvinetv.h>
 #include "SwabNet.h"
-#include "preSOLUS_BCD.h"
+//#include "preSOLUS_BCD.h"
 
 #include "measure.h"   
 #include "trs.h" 
@@ -99,7 +99,19 @@
 
 
 //#include "MAMM.h"
-
+	
+// FOR DMD_TX
+#include "dmd\ordering.h"
+#include "dmd\getbasis.h"
+#include "dmd\dmd.h"
+	
+// FOR PYTHON
+#include <winbase.h>
+#include "PYTHON\include\Python.h"
+// numpy
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include "PYTHON\Lib\site-packages\numpy\core\include\numpy\ndarrayobject.h"
+#include "PYTHON\Lib\site-packages\numpy\core\include\numpy\ndarraytypes.h"
 
 /* ########################   MEASURE PROCEDURES   ########################### */
 
@@ -1680,7 +1692,137 @@ void DisplayStatus(void){
 
 
 /* TEST ANALYSIS ON PYTHON */
-int TestPython()
+
+int InitPython(){
+	// must be called before using python (only once is ok)
+	// take path of TRS
+	char exePath[300];
+	int pathCode = 1;
+	pathCode = GetDir(exePath);
+	if(pathCode != 0){
+		printf("Python GetDir error\n");
+		return 1;
+	}
+	strcat(exePath, "\\PYTHON");
+	// sent environment variables to open Python
+	int okEnv = 0;
+	okEnv = SetEnvironmentVariable("PYTHONHOME",exePath);
+	if(!okEnv){
+		printf("ENV VAR NOT CORRECTLY SET");
+		return 1;
+	}
+    // init Py interpreter
+	printf("Initializing Python\n");
+    Py_Initialize();
+	return 0;
+}
+
+int ClosePython(){
+	// close interpreter (must be called only when we close TRS)
+	int res = 0;
+    res = Py_FinalizeEx();
+	if(res == -1){
+		printf("Error in closing python");
+		return 1;
+	}
+	return 0;
+}
+	
+
+void checkFunction(PyObject *pFunc, char *name){
+    int cal = PyCallable_Check(pFunc);
+    if(pFunc==NULL || !cal){
+        printf("Function %s not found or not callable\n", name);
+        getchar();
+        exit(1);
+    }
+}
+
+
+int TestPython(){
+	
+	PyObject *pModule = NULL;
+    PyObject *pFunc, *pFunc2, *pFunc3, *pFunc4;
+    PyObject *pArgs, *pArgs2, *pArgs3;
+    PyObject *pList, *pValue, *pArray;
+    PyObject *pRes, *pRes2, *pRes3, *pRes4;
+
+    int dimX = 35;
+    int dimY = 25;
+	
+	
+    // load module (script)
+    pModule = PyImport_ImportModule("pyFunc");
+    if(pModule==NULL){
+        printf("Module not found\n");
+		Py_Finalize();
+        return 1;
+    }
+
+    // load function or method
+    // per fare le cose bene bisognerebbe controllare l'apertura e callable per tutte le funzioni
+    pFunc = PyObject_GetAttrString(pModule, "printData");
+    pFunc2 = PyObject_GetAttrString(pModule, "plot");
+    pFunc3 = PyObject_GetAttrString(pModule, "plot2D");
+    pFunc4 = PyObject_GetAttrString(pModule, "createImage");
+    checkFunction(pFunc4, "createImage");
+
+    // create list containing data
+    int len = 5;
+    int values[5] = {2,4,6,8,10};
+    pList = PyList_New(len);
+    for(int i=0; i<len; i++){
+        pValue = PyLong_FromLong(values[i]);
+        PyList_SetItem(pList, i, pValue);
+    }
+
+    // create array
+    if (PyArray_API == NULL) import_array(); // to be called before using Numpy/C array API
+    int data[2][5] = {{1,3,6,2,0}, {9,6,3,0,1}};
+    npy_intp dims[2] = {2,5}; // dimension of the array
+    pArray = PyArray_SimpleNewFromData(2, dims, NPY_INT, data);
+
+
+    // create tuple to be passed to functions
+    pArgs = PyTuple_New(1);
+    PyTuple_SetItem(pArgs, 0, pList);
+    pArgs2 = PyTuple_New(1);
+    PyTuple_SetItem(pArgs2, 0, pArray);
+    pArgs3 = PyTuple_New(2);
+    PyTuple_SetItem(pArgs3, 0, PyLong_FromLong(dimX));
+    PyTuple_SetItem(pArgs3, 1, PyLong_FromLong(dimY));
+
+    // call function
+    pRes = PyObject_Call(pFunc, pArgs, NULL);
+    pRes2 = PyObject_CallObject(pFunc2, pArgs);
+    pRes3 = PyObject_CallObject(pFunc3, pArgs2);
+    pRes4 = PyObject_CallObject(pFunc4, pArgs3);
+    PyTuple_SetItem(pArgs, 0, pRes4);
+    pRes3 = PyObject_CallObject(pFunc3, pArgs);
+    if (pRes3 == NULL) {
+        printf("Py Function returned NULL\n");
+        Py_DECREF(pRes);
+        return 1;
+    }
+    printf("Result of call: %ld\n", PyLong_AsLong(pRes));
+    printf("Result of call2: %ld\n", PyLong_AsLong(pRes2));
+    printf("Result of call2: %ld\n", PyLong_AsLong(pRes3));
+
+    // per disallocare la memoria dei pyObject... (comunque Py_Finalize() disalloca automaticamente tutto)
+	// tolte perchè se chiamate in ripetizione la variabile va tenuta
+    //Py_DECREF(pModule);
+    //Py_DECREF(pFunc);
+    //Py_DECREF(pArgs);
+    //Py_DECREF(pValue);
+    //Py_DECREF(pRes);
+
+    printf("End of C program. Press key to close ...");
+	getchar();
+
+	return 0;
+}
+	
+int TestPythonEXE()
 {
 	
 	int N=2000;
@@ -1713,7 +1855,7 @@ int TestPython()
     ZeroMemory(&pi, sizeof(pi));
 
     // create process
-    bProcess = CreateProcessA("C:\\OneDrivePolimi\\OneDrive - Politecnico di Milano\\Beta\\Programs\\C2PY\\C_to_Py\\bin\\Debug\\childProcess.exe", NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+    bProcess = CreateProcessA("childProcess.exe", NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
     Sleep(3000);
 
     // check process created
@@ -1761,8 +1903,8 @@ int TestPython()
     CloseHandle( pi.hProcess );
     CloseHandle( pi.hThread );
 
-    printf("\n -> END of C Parent program. Press a key to close... \n");
-    getchar();
+    //printf("\n -> END of C Parent program. Press a key to close... \n");
+    //getchar();
 
     return 0;
 }
@@ -1774,7 +1916,9 @@ void DisplayPlot(void){
 	if(P.Graph.Type==GRAPH_ROI) GraphRoi();
 	
 	// TEST PY
+	InitPython();
 	TestPython();
+	//ClosePython();
 	// END TEST PY
 	}
 
@@ -2931,28 +3075,28 @@ void InitBcd(int Board){
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
 	
 	GetProjectDir(dir_trs);
-	Basic_test(Input,&Output,OUT_ARRAY,len);
+	//Basic_test(Input,&Output,OUT_ARRAY,len);
 	if(Output!=Input) ErrHandler(ERR_SPC,status,"BCD_Test_Function");
 	if(!B->IsInitialized){
 		sprintf(path,"%s\\%s\\%s",dir_trs,DIR_INI,B->Calibration);
-		Startup(path,B->VDD_CORE,B->VDDD_CORE,B->VDD_CK,B->VHIGH,&status,&B->Handle);
+		//Startup(path,B->VDD_CORE,B->VDDD_CORE,B->VDD_CK,B->VHIGH,&status,&B->Handle);
 		P.Spc.Bcd[Board].IsInitialized=TRUE;
 		}
 	if(status<0) ErrHandler(ERR_SPC,status,"BCD_Startup");
 	MoveBcdSync(0,B->Sync0,0); // Set Default Sync Conditions
 	sprintf(path,"%s\\%s\\%s",dir_trs,DIR_INI,B->PixelsOrder);
 	
-	Load_pixel_order(path,B->Pixel_sequence,BCD_MAXPIX); // load file
+	//Load_pixel_order(path,B->Pixel_sequence,BCD_MAXPIX); // load file
 	
 //	SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 
 	if(B->PixelSingle){
 		for(int ip=0;ip<BCD_MAXPIX;ip++) pixel_single[ip]=BCD_MAXPIX+1; // set all pixels to not-reachable 
 		pixel_single[B->PixelDefault]=1; // set required pixel to highest priority 
-		SetPixelsFast(B->Handle,(uint32_t)10,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		//SetPixelsFast(B->Handle,(uint32_t)10,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 		}
 	else{
-		SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		//SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 		}
 	
 	Passed();
@@ -2963,7 +3107,7 @@ void InitBcd(int Board){
 void CloseBcd(void){
 	struct BcdS *B=&P.Spc.Bcd[0];
 	if(B->IsInitialized){
-		Shutdown_DLL(B->Handle);
+		//Shutdown_DLL(B->Handle);
 		B->IsInitialized=FALSE;
 		}
 	} 
@@ -2977,11 +3121,13 @@ void GetDataBcd(void){
 	LVBoolean ret=0;
 	int Board=0;
 
+	/*
 	if (P.Wait.Type==WAIT_SPC)
-		Get_Histogram_set_integration((uint32_t)(B->Time*1000000),B->Handle,&counts,Histogram,&(B->Handle),&ret,BCD_MAXBIN);
+		//Get_Histogram_set_integration((uint32_t)(B->Time*1000000),B->Handle,&counts,Histogram,&(B->Handle),&ret,BCD_MAXBIN);
 	else
-		Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
-		
+		//Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
+	*/
+	
 	if(ret<0) ErrHandler(ERR_BCD,ret,"BCD_GetDataBcd");
 	for(int ic=0;ic<P.Chann.Num;ic++) D.Buffer[Board][ic]=Histogram[ic];   
 	}
@@ -3024,7 +3170,7 @@ void MoveBcdSync(char Step,long Goal,char Wait){
 	CalcCoarseFineBcd(Goal,&STOP_coarse,&STOP_fine); // Calc fine & corase for DELAY of STOP TDC
 	CalcCoarseFineBcd(B->Open0,&OPEN_coarse,&OPEN_fine); // Calc fine & coarse for OPEN of HW GATE
 	CalcCoarseFineBcd(B->Open0+B->Width0,&CLOSE_coarse,&CLOSE_fine); // Calc fine & corase for CLOSE of HW Gate
-	Gating_config(STOP_coarse,CLOSE_fine,CLOSE_coarse,OPEN_fine,STOP_fine,OPEN_coarse,BCD_QUADRANTS,(uint8_t)B->RSTDuration,(LVBoolean)B->LOWPower,B->Handle,&ret,&(B->Handle)); 
+	//Gating_config(STOP_coarse,CLOSE_fine,CLOSE_coarse,OPEN_fine,STOP_fine,OPEN_coarse,BCD_QUADRANTS,(uint8_t)B->RSTDuration,(LVBoolean)B->LOWPower,B->Handle,&ret,&(B->Handle)); 
 	}
 
 // CALC internal BCD delays
@@ -3046,10 +3192,10 @@ void MoveBcdPix(char Step,long Goal,char Wait){
 	if(B->PixelSingle){ // switch on only 1 pixel
 		for(int ip=0;ip<BCD_MAXPIX;ip++) pixel_single[ip]=BCD_MAXPIX+1; // set all pixels to not-reachable 
 		pixel_single[Goal]=1; // set required pixel to highest priority 
-		SetPixelsFast(B->Handle,(uint32_t)10,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		//SetPixelsFast(B->Handle,(uint32_t)10,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 		}
 	else{ // switch on ALL pixels up to Goal (in ordered list)
-		SetPixelsFast(B->Handle,(uint32_t)Goal,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		//SetPixelsFast(B->Handle,(uint32_t)Goal,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 		}
 
 	}
@@ -6859,7 +7005,45 @@ void GetMicro(int Com,long *Answer){
 
 // #### DMD TEXAS STEPPER ####
 	
+int offset(const int startPosition, const int lineWidth, const int previousPos ){
+	return startPosition*lineWidth + previousPos;
+}
+
+void writePatternsOnFile(const int nEl, unsigned char ***basis){
+    for(int f=0; f<nEl; f++){
+        char name[] = "b000.txt";
+        if (f<10){
+            name[3] += f;
+        }
+        else if(f<100){
+            name[2] += f/10;
+            name[3] += f-(f/10)*10;
+        }
+        else if(f<1000){
+            name[1] += f/100;
+            name[2] += f/10-(f/100)*10;
+            name[3] += f-(f/10)*10;
+        }
+        //printf("FileName %s\n", name);
+        FILE *tmpF = fopen(name, "w");
+        for(int j=0; j<HEIGHT; j++){
+            for(int i=0; i<WIDTH; i++){
+                if(i == WIDTH-1) fprintf(tmpF, "%d", basis[f][j][i]);
+                else fprintf(tmpF, "%d,", basis[f][j][i]);
+            }
+        fprintf(tmpF, "\n");
+        }
+        fclose(tmpF);
+    }
+}
+
 /* INITIALIZE DMDTX */
+void allocatePatternTest123(struct Patterns *p, int nEl){
+	p->nEl = nEl;
+	p->defPatterns = (unsigned char(*)[12])malloc(nEl*sizeof(unsigned char[12]));
+
+}
+
 void InitDmdTx(char Step){
 	char message[STRLEN];
 
@@ -6867,6 +7051,236 @@ void InitDmdTx(char Step){
     SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
 
 	// code here
+	// initDmd (hidapi init, getbasis and load basis on dmd)
+	
+	struct DMD dmd;
+	struct InfoDmd info;
+	struct Patterns patt;
+	
+	info.RasterOrHadamard = 1; //info.RasterOrHadamard;
+	info.nBasis = 64; //info.nBasis;
+	info.nMeas = 64; //info.nMeas;
+	info.startPosition = 0; //info.startPosition;
+	info.exp = 500000; //info.exp;
+	info.dark_time = 10000; //info.dark_time;
+	info.repeat = 1; //info.repeat;
+	info.compress = 0; //info.compress;
+	info.sizeBatch = 64; //info.sizeBatch;
+	info.previousPos = 0; //info.previousPos;
+	info.zoom = 1; //info.zoom;
+	info.xC = 540; //info.xC;
+	info.yC = 960; //info.yC;
+	
+	//dmd_setup(info);
+	
+	
+	
+	// Test initialization of structure
+	patt.bitsPackNum = NULL;
+	patt.bmpLoad = NULL;
+	//patt.configureLut = {'0','0','0','0','0','0'};
+	patt.defPatterns = NULL;
+	patt.exposure = NULL;
+	patt.nB = 0;
+	patt.nEl = 0;
+	patt.numOfBatches = 0;
+	patt.packNum = NULL;
+	patt.setBmp = NULL;
+	
+	dmd.pattern = NULL;
+	
+	// initialization of hidapi library and HID device
+	hid_init();
+	dmd.handle = hid_open(0x0451, 0xc900, NULL);
+	Sleep(2000); // dead time to be sure the device is connected
+	if (dmd.handle == NULL) {
+		printf("***Error: unable to open device\n");
+		dmd.handle = NULL;
+		if(!DEBUG){
+            printf("Press any key to exit.\n");
+            getchar();
+            exit(1);
+		}
+	}
+	stopSequence(dmd.handle); // stop the demo pattern sequence
+	changeMode(dmd.handle, 3); // change to pattern-on-the-fly mode
+
+    // setup data needed
+	int RasterOrHadamard = 10; //info.RasterOrHadamard;
+	int nBasis = 64; //info.nBasis;
+	int nMeas = 64; //info.nMeas;
+	int startPosition = 0; //info.startPosition;
+	int exp = 500000; //info.exp;
+	int dark_time = 10000; //info.dark_time;
+	int repeat = 1; //info.repeat;
+	int compress = 0; //info.compress;
+	int sizeBatch = 64; //info.sizeBatch;
+	int previousPos = 0; //info.previousPos;
+	int zoom = 2; //info.zoom;
+	int xC = 960; //info.xC; // long side
+	int yC = 540; //info.yC; // short side
+	int offset_ = offset(startPosition, nBasis, previousPos)/nBasis; // ??
+	int nSet = celing_dmd(nMeas, sizeBatch);
+	dmd.szPattern = nSet;
+	dmd.repeat = repeat;
+	int *exposure;
+	int *trigger_in;  // if 1 the DMD waits for an external trigger to change pattern
+	int *trigger_out; // if 1 the DMD sends a trigger signal when changes the pattern
+	unsigned char ***basis;
+	int totExposure = 0;
+
+	int i,j,k,q;
+	int nEl;
+	int *idx = NULL;
+	
+	// allocation of memory and insertion of basis data 
+	dmd.pattern = (struct Patterns *)malloc(nSet*sizeof(struct Patterns));
+	for (q=0; q<nSet; q++){
+		nEl = minimum(sizeBatch, nMeas-q*sizeBatch); // it's the number of images in the current batch
+		// allocate of memory
+		
+		allocatePattern_dmd(&(dmd.pattern[q]), nEl); // problems with p
+		//allocatePattern_dmd(&patt, nEl);
+		//dmd.pattern[q].nEl = nEl;
+		//dmd.pattern[q].defPatterns = (unsigned char(*)[12])malloc(nEl*sizeof(unsigned char[12]));
+		
+		exposure = (int *) malloc(nEl * sizeof(int));
+		trigger_in = (int *) malloc(nEl * sizeof(int));
+		trigger_out = (int *) malloc(nEl * sizeof(int));
+		basis = (unsigned char***)malloc(nEl*sizeof(unsigned char**));
+		for(i=0; i<nEl; i++){
+            basis[i] = (unsigned char**)malloc(HEIGHT*sizeof(unsigned char*));
+		}
+		for(i=0; i<nEl; i++){
+			for(j=0; j<HEIGHT; j++){
+                basis[i][j] = (unsigned char*)malloc(WIDTH*sizeof(unsigned char));
+			}
+		}
+		// initialize basis
+		for(i=0; i<nEl; i++){
+            for(j=0; j<HEIGHT; j++){
+                for(k=0; k<WIDTH; k++){
+                    basis[i][j][k] = 0;
+                }
+            }
+		}
+		// insert data into pattern
+		for (i=0; i<nEl; i++){
+			exposure[i] = exp;
+			trigger_out[i] = 1;
+			trigger_in[i] = 0;
+        }
+		int nB; // nB contiene le info su quante info vere ci sono, # di basi caricate (nB non assume lo stesso valore di nEl?)
+		if(nMeas > (q+1)*sizeBatch)
+			nB = sizeBatch;
+		else
+			nB = nMeas - q*sizeBatch;
+		idx = (int* )malloc((nB)*sizeof(int)); // index of the first element inside the batch
+		for(i=0; i<nB; i++)
+			idx[i] = q*sizeBatch + i + offset_;
+		getBasis(RasterOrHadamard, nBasis, idx, nB, compress, zoom, xC, yC, basis); // generation of pattern
+		free(idx);
+		
+		printf("\n");
+		for (k=0; k<nEl; k++){
+			for(i=0; i<WIDTH; i+=100)
+				printf("%d ", basis[k][0][i]);
+            printf("\n");
+		}
+		printf("\n");
+		
+		
+		// print bases on txt file
+		// if(DMD_SIMULATOR) writePatternsOnFile(nEl, basis);
+
+		dmd.pattern[q].nB = nB;
+		//patt.nB = nB;
+		int numberOfRepetition;
+		if(repeat)
+			numberOfRepetition = 0;
+		else
+			numberOfRepetition = nEl; // the number can be as large as 500!
+		
+		// Modifica
+		//int nBatches = celing_dmd(nEl, SIZE_PATTERN);
+		//dmd.pattern[q].numOfBatches = nBatches;
+		//dmd.pattern[q].bmpLoad = (unsigned char ***)malloc(nBatches*sizeof(unsigned char **));
+		//dmd.pattern[q].setBmp = (unsigned char (*)[6])malloc(nBatches*sizeof(unsigned char[6]));
+		//dmd.pattern[q].packNum = (int *)malloc(nBatches*sizeof(int *));
+		//dmd.pattern[q].bitsPackNum =(int **)malloc(nBatches*sizeof(int*));
+		//dmd.pattern[q].exposure = (int*)malloc(nEl*sizeof(int));
+		
+
+		defSequence(&(dmd.pattern[q]), basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl); // il penultimo o 1 o nEl1
+		//defSequence(&patt, basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl);
+		for(i=0; i<nEl; i++){
+			for(j=0; j<HEIGHT; j++)
+                free(basis[i][j]);
+            free(basis[i]);
+		}
+		free(basis);
+		free(exposure);
+		free(trigger_out);
+		free(trigger_in);
+	}
+	
+	// All data needed to move the DMD is generated by defSequence and saved in dmd.pattern
+	for(i=0; i<dmd.szPattern; i++){
+		stopSequence(dmd.handle);
+		printf("Uploading pattern (%d of %d)\n", i+1, dmd.szPattern);
+		totExposure = 0;
+
+		for(j=0; j<dmd.pattern[i].nEl; j++){
+			totExposure += dmd.pattern[i].exposure[j];
+			// define the pattern
+			printf("Uploading pattern definitions (%d of %d)\n", j+1, dmd.pattern[i].nEl);
+			talkDMD_char(dmd.handle, 'w', 0x00, 0x1a, 0x34, dmd.pattern[i].defPatterns[j], 12);
+			if(!DEBUG)
+                checkForErrors(dmd.handle);
+        }
+        // configure LUT
+        printf("Uploading LUT\n");
+		talkDMD_char(dmd.handle, 'w', 0x00, 0x1a, 0x31, dmd.pattern[i].configureLut, 6);
+		if(!DEBUG)
+            checkForErrors(dmd.handle);
+		// setBmp
+		for(k = dmd.pattern[i].numOfBatches-1; k>=0; k--){
+            printf("Uploading batch %d of %d\n", dmd.pattern[i].numOfBatches-k, dmd.pattern[i].numOfBatches);
+            talkDMD_char(dmd.handle, 'w', 0x00, 0x1a, 0x2a, dmd.pattern[i].setBmp[k], 6);
+			if(!DEBUG)
+                checkForErrors(dmd.handle);
+			// bmpLoad
+			for(j=0; j<dmd.pattern[i].packNum[k]; j++){
+				talkDMD_char(dmd.handle, 'w', 0x11, 0x1a, 0x2b, dmd.pattern[i].bmpLoad[k][j], dmd.pattern[i].bitsPackNum[k][j]);
+			}
+			if(!DEBUG){
+                checkForErrors(dmd.handle);
+                //checkErrorMessage(dmd.handle); // TEST
+            }
+		}
+	}
+	
+	// After the pattern is loaded on the DMD we can free the local variables containing the pattern
+	for (q = 0; q < dmd.szPattern; q++){
+		free(dmd.pattern[q].defPatterns);  
+		for(k = 0; k<dmd.pattern[q].numOfBatches; k++){
+			for(i = 0; i<dmd.pattern[q].packNum[k]; i++){
+				free(dmd.pattern[q].bmpLoad[k][i]);
+			}
+			free(dmd.pattern[q].bmpLoad[k]);
+			free(dmd.pattern[q].bitsPackNum[k]);
+		}
+		free(dmd.pattern[q].bmpLoad);
+		free(dmd.pattern[q].bitsPackNum);
+		free(dmd.pattern[q].setBmp);
+		free(dmd.pattern[q].packNum);
+		free(dmd.pattern[q].exposure);
+	}
+	free(dmd.pattern);
+	
+	startSequence(dmd.handle);
+	
+	
 	
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
 	}
@@ -6876,6 +7290,10 @@ void InitDmdTx(char Step){
 void CloseDmdTx(char Step){
 	
 	// code here
+	// deallocate memory of dmd variables if used and hidapi close
+	// close communication with DMD
+	//hid_close(dmd.handle);
+	//hid_exit();
 	
 	}
 
@@ -6884,6 +7302,24 @@ void CloseDmdTx(char Step){
 void MoveDmdTx(char Step,long Goal,char Wait){
 
 	// code here
+	// startSequence
+	// startSequence(dmd.handle);
+	
+	// Dead time (ADJUST THE TIME BECFAUSE sleep is in s and Sleep is in ms)
+	/*
+	int tDead = 0; //0.5 s of dead time
+		int tSleep = totExposure/1e6-tDead + 1;
+		printf("totExposure = %d\n", totExposure);
+		if(totExposure/1e6-tDead<0)
+            tSleep = 0;
+		if(dmd.repeat){
+			printf(">> Press ENTER to continue . . .");
+            getchar();
+		}
+		else
+			Sleep(tSleep+1);
+        printf("\n");
+	*/
 	
 	if(Wait); // code here
 	}
@@ -6893,6 +7329,7 @@ void MoveDmdTx(char Step,long Goal,char Wait){
 void WaitDmdTx(char Step,long Goal){
 	
 	// code here
+	// while waiting the measurement is running so this function is not needed (?)
 	
 } 
 
@@ -6901,6 +7338,7 @@ void WaitDmdTx(char Step,long Goal){
 void TellPosDmdTx(char Step,long *Actual){
 	
 	// code here
+	// determine the position of the dmd (number of basis already measured) -> only virtual
 
 }
 
@@ -6909,6 +7347,8 @@ void TellPosDmdTx(char Step,long *Actual){
 void StopDmdTx(char Step){
 	
 	// code here
+	// same to close (stopSequence)
+	//stopSequence(dmd.handle);
 	
 	}
 
@@ -6917,6 +7357,7 @@ void StopDmdTx(char Step){
 void DefineHomeDmdTx(char Step){
 	
 	// code here
+	// can be used to select a subset of bases?
 	
     }
 

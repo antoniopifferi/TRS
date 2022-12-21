@@ -1,0 +1,35 @@
+CMPLRNAME = MSVC10
+VALID_CFG = 0
+DOPARSING = 1
+OPT_LEVEL = 2
+WARNLEVEL = 4
+USERFLAGS = 
+OBJFORMAT = Msvc
+COMPFLAGS = /c /X /u /GS-
+C89_FLAGS = 
+C99_FLAGS = 
+COMPLPATH = cl.exe
+ENV_BATCH = vsvars32.bat
+ENV_OPTNS = 
+OBJ_TEMPL = /Fo$OBJECT
+SRC_TEMPL = $SOURCE
+DEF_TEMPL = /D$MACRO
+DEFVTEMPL = /D$MACRO=$VALUE
+INC_TEMPL = /I$PATH
+OPT_FLAGS
+No Optimizations = /Od
+Optimize for Space = /O1 /Oi-
+Optimize for Speed = /O2 /Oi-
+END_FLAGS
+WARNFLAGS
+Disable Warnings = /w
+Minimal Warnings = /W1
+More Warnings = /W2
+Many Warnings = /W3
+Aggressive Warnings = /W4
+END_FLAGS
+PATH_HINT = HKLM\SOFTWARE\Microsoft\VisualStudio\SxS\VC7\10.0;.\bin
+PATH_HINT = HKLM\SOFTWARE\Microsoft\VisualStudio\SxS\VC7\10.0;..\Common7\Tools
+PATH_HINT = HKLM\SOFTWARE\Microsoft\VisualStudio\10.0\Installdir;..\..\VC\bin
+PATH_HINT = HKLM\SOFTWARE\Microsoft\VisualStudio\10.0\Installdir;..\Tools
+__CEND___

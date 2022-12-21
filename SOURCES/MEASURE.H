@@ -6,7 +6,8 @@
 
 // INCLUDE
 #include "SwabNet.h"	// needed for type definitions in SWAB Structure
-#include "preSOLUS_BCD.h"  // needed for type definitions in BCD functions  
+#include "preSOLUS_BCD.h"  // needed for type definitions in BCD functions
+#include "dmd/hidapi/hidapi.h" // needed for communicating with DMD_TX
 
 // VERSION
 #define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 18.0\nDate: November 2020"
@@ -997,6 +998,56 @@
 /* END GEOMETRY CONSTANTS */												//ALE
 
 /* ########################   TYPE DEFINITION  ############################ */
+
+// DMD_TX Structures
+
+struct Node{
+	unsigned char data;
+	struct Node *next;
+};
+struct List{
+	int *data;
+	struct List *next;
+};
+
+/** This structure contains all the data about the patterns to be sent to the dmd */
+struct Patterns{
+	unsigned char (*defPatterns)[12]; // pattern settings (exposure time, bit-depth, triggers, pattern index...)
+	unsigned char configureLut[6]; // configuration of Look up table (LUT)
+	unsigned char (*setBmp)[6]; // image settings (index, size)
+	unsigned char ***bmpLoad; // compressed BMP image to load
+	int nB;
+	int *packNum; // number of data packets (max 504 bytes) to be loaded
+	int nEl;
+	int **bitsPackNum; // size of each packet
+	int *exposure;
+	int numOfBatches;
+};
+
+/** This structure contains data of the patterns for the dmd */
+struct DMD{
+	hid_device *handle; // pointer to the hid device
+	struct Patterns *pattern; // structure containing the pattern for the DMD (see in dmd.h)
+	int szPattern;
+	int repeat;
+};
+
+/** This structure contains the parameters to set the measurements (type of pattern and duration) */
+struct InfoDmd{
+	int RasterOrHadamard; // selected mode for the measure
+	int nBasis;
+	int nMeas;
+	int startPosition;
+	int previousPos;
+	int exp;
+	int dark_time;
+	int repeat;
+	int compress;
+	int sizeBatch;
+	int zoom;
+	int xC;
+	int yC;
+};
 
 struct FileS {
 	char Type;
@@ -2444,6 +2495,7 @@ void TalkMicro(char Step, char Command, long Value, long *Answer);
 void GetMicro(int Com, long *Answer);
 
 // #### DMD TEXAS STEPPER ####
+void allocatePatternTest123(struct Patterns *p, int nEl);  
 void InitDmdTx(char Step);
 void CloseDmdTx(char Step);
 void MoveDmdTx(char Step,long Goal,char Wait);
