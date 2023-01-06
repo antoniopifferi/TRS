@@ -1280,6 +1280,7 @@ struct ActionS{
 	char StartAdc;
 	char WaitAdc;
 	char ReadUIR;
+	char SpcFlow;
 	char SpcTime;			//EDO
 	char InitMamm;         //EDO
 	char StartMamm;			 //EDO
@@ -2013,6 +2014,16 @@ struct PresentationS {
 	char FStimuliDir[STRLEN];
 	};
 
+struct FlowS {
+	int Flow;
+	int Slot0;
+	int NumSlot;
+	int Page0;
+	int EmptyBank;
+	int FilledFrame;
+	int Bank;
+	};
+
 struct ParmS {
 	struct OscillS Oscill;
 	struct CommandS Command;
@@ -2064,6 +2075,7 @@ struct ParmS {
 	struct TSequenceS TSequence;
 	struct TPartitionS TPartition;
 	struct BlockObjS BlockObj[MAX_ROW_PRES_BLOCK];
+	struct FlowS Flow;
 	};
 
 // Data Structures
@@ -2257,6 +2269,11 @@ void InitSpcm(int Board);
 void GetDataSpcm(void);
 void CloseSpcm(void);
 void ClearSpcm(void);
+
+void SpcFlow(char Status);
+void WaitFlow(void);
+void GetFlow(void);
+void CopyFlow(void);
 
 /* ########################   HYDRA HARP FUNCTIONS   ####################### */
 void InitHydra(int Board);

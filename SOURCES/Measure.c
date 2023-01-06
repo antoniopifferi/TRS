@@ -32,10 +32,14 @@
 
 /* ########################   HELP   ################################## */
 // Board = Physical TCSPC Board
-// Det = Detector channel as determined by the router bits
-// Chann = Channel of the MCA (=minimum time division)
-// Frame = Data transferred from the boards and effectively stored in RAM
-// Page = Curve belonging to a Frame
+// Chann = Channels of the MCA (=minimum time division)
+// Det = Detector channels as determined by the router bits
+// Frame = Complete measurement (e.g. scan of source-detector pairs)
+// Page = Curve belonging to a Frame.
+// P.Chann.Num = number of bins for single curve
+// P.Num.Det = number of SIMULTENEOUS detectors, ruled by routing bits
+// P.Num.Page = total number of Curves for each Frame. Default = P.Acq.Frame * P.Num.Board * P.Num.Det (it includes detectors)
+// P.Acq.Frame = number of acquisitions per each Frame
 
 /* ########################   HEADINGS   ################################## */
 
@@ -271,6 +275,7 @@ void KernelGen(){
 		    		    //if(P.Action.StopAdc) StopAdc();		 // mi da errore...Andrea F
 						if(P.Action.StopOma) StopOma();
 						if(P.Action.SpcOut) SpcOut(P.Action.Status);
+						if(P.Action.SpcFlow) SpcFlow(P.Action.Status);
 						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
 						if(P.Action.DisplayRoi) DisplayRoi();
@@ -582,6 +587,18 @@ void DecideAction(void){
 	if(P.Ophir.Ophir) P.Action.Ophir = new[P.Ophir.Loop];
 	else P.Action.Ophir = FALSE;
 	
+	// Continuous Flow
+	if(P.Flow.Flow){
+		P.Action.SpcFlow=TRUE;
+		P.Action.SpcTime=FALSE;
+	    P.Action.SpcReset=FALSE; 
+		P.Action.WaitEnd=FALSE;
+		P.Action.SpcStop=FALSE;
+		P.Action.SpcOut=FALSE;
+		}
+	else
+		P.Action.SpcFlow=FALSE;
+	
 	// ReadUIR
 	P.Action.ReadUIR=P.Command.ReadUIR;
 	
@@ -704,6 +721,7 @@ void InitMem(void){
 	if(P.Contest.Run!=CONTEST_MEAS){ Passed(); return;}
 	
 	if(P.Moxy.Moxy) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
+	if(P.Flow.Flow) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Info.SubHeader) D.Sub=SAlloc2D(P.Frame.Num,P.Num.Page);
 	D.Data=DAlloc3D(P.Frame.Num,P.Num.Page,P.Chann.Num); 
 	Passed();
@@ -717,6 +735,7 @@ void CloseMem(void){
 	if(P.Spc.Subtract) DFree1D(D.Last); 
 	if(P.Contest.Run!=CONTEST_MEAS) return;
 	if(P.Moxy.Moxy) DFree2D(D.Bank,P.Num.Board); 
+	if(P.Flow.Flow) DFree2D(D.Bank,P.Num.Board); 
 	if(P.Info.SubHeader) SFree2D(D.Sub,P.Frame.Num);
 	DFree3D(D.Data,P.Frame.Num,P.Num.Page); 
 }
@@ -1017,10 +1036,11 @@ void CompleteParmS(void){
 	P.Power.Power=(P.Power.Step!=NEG);
 	if(P.Power.Power) P.Power.Loop=P.Step[P.Power.Step].Loop;
 			
-	// NumPage 
+	// NumPage  NOTE: THIS IS REPLICATED UNDER FILTER. HERE YOU NEED TO CALC PAGE NUM
 	page=0;
-	if(!P.Layout.Layout) P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
-	else{
+	if((!P.Layout.Layout)&&(!P.Flow.Flow)) P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
+	if(P.Flow.Flow) P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
+	if(P.Layout.Layout){
 		for(ir=0;ir<MAX_ROW_PROT;ir++){
 			string = P.TProt.Fibers[ir];
 			strcat(string,",");
@@ -1424,13 +1444,14 @@ void InitSource(void){
 	
 // WRITE FILTER ARRAY
 void InitFilter(void){
-	int ir,ia,ib,id,iff,f1,f2;
+	int ir,ia,ib,is,id,iff,f1,f2;
 	int source, fiber, count_fiber;
 	char *string;
 
 	// NOTE: part of this procedure is set in the CompleteParm to calculate P.Num.Page
 	int page=0;
-	if(!P.Layout.Layout){
+	if((!P.Layout.Layout)&&(!P.Flow.Flow)){
+		P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
 		for(ia=0;ia<P.Acq.Frame;ia++)
 			for(ib=0;ib<P.Num.Board;ib++)
 				for(id=0;id<P.Num.Det;id++){
@@ -1440,9 +1461,21 @@ void InitFilter(void){
 					P.Page[page].Fiber=ib*P.Num.Det+id;
 					P.Page[page].Board=ib; 
 					}
-			P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
-			}
-	else{
+		}
+	if(P.Flow.Flow){ // Flow (e.g. DMD under continuous flow) store all SLOTS (i.e. curves, or basis) in 3rd []
+		P.Num.Page=P.Acq.Frame*P.Num.Board*P.Flow.NumSlot*P.Num.Det;
+		for(ia=0;ia<P.Acq.Frame;ia++)
+			for(ib=0;ib<P.Num.Board;ib++)
+				for(is=0;is<P.Flow.NumSlot;is++)
+					for(id=0;id<P.Num.Det;id++){
+						page=ia*P.Num.Board*P.Flow.NumSlot*P.Num.Det+ib*P.Flow.NumSlot*P.Num.Det+is*P.Num.Det+id;
+						P.Filter.Page[ia][ib][id+is*P.Num.Det]=page;
+						P.Page[page].Source=0;
+						P.Page[page].Fiber=ib*P.Num.Det+id;
+						P.Page[page].Board=ib; 
+						}
+		}
+	if(P.Layout.Layout){
 		for(ia=0;ia<P.Acq.Frame;ia++)
 			for(ib=0;ib<P.Num.Board;ib++)
 				for(id=0;id<P.Num.Det;id++)
@@ -2751,7 +2784,79 @@ short test_fill_state(void){
 	return 0;  
 	}
 	
+	
+/* Wait for Bank, transfer and copy data */
+void SpcFlow(char Status){
+	//TODO: Status? display something?
+	do{
+		if(P.Flow.EmptyBank){
+			WaitFlow();
+			GetFlow();
+			}
+		CopyFlow();
+		}
+	while(!P.Flow.FilledFrame);
+	}
 
+// WAIT FOR FILLED BANK
+void WaitFlow(void){
+	int ib;
+	short ret,finished,spc_state,mod_state[MAX_BOARD];
+	do{
+		spc_state=0;
+		for (ib=0;ib<P.Num.Board;ib++){
+			ret=SPC_test_state(ib,&mod_state[ib]);
+			if(ret<0) ErrHandler(ERR_SPC,ret,"WaitBank:SPC_test_state");
+			spc_state |= mod_state[ib];
+			}
+	    finished = ((spc_state & SPC_ARMED) == 0);
+		}
+	while(!finished);
+	}
+
+// TRANSFER BANK TO BUFFER
+void GetFlow(void){
+	int ib;
+	short ret,state;
+	P.Spc.Overflow=FALSE;
+	for (ib=0;ib<P.Num.Board;ib++){
+		ret=SPC_test_state(ib,&state);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_test_state");
+		P.Spc.Overflow|=(state&SPC_OVERFLOW);
+		ret=SPC_read_data_page(ib,0,(int)(SPC_BANK_DIM/P.Chann.Num),D.Bank[ib]+P.Flow.Bank*SPC_BANK_DIM);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_read_data_page");
+		}
+	P.Flow.Bank=P.Flow.Bank?0:1;
+	ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank);
+	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:MEM_BANK");
+	P.Flow.EmptyBank=FALSE;
+	}
+
+	
+/* COPY FLOW TO DATA */
+void CopyFlow(void){
+	// Initialise @StartFlow: Chan0,Slot0,EmptyBank=TRUE,FilledBuffer=FALSE;
+	long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,P.Num.Page-P.Flow.Page0); // calc min num of slot(i.e. curves) either in Bank or in Frame
+	for(int ib=0;ib<P.Num.Board;ib++)
+		for(int is=0;is<num_slot;is++){	// iterate over Slots (i.e. curves) both on det and buffer
+			long page=P.Filter.Page[P.Acq.Actual][ib][is+P.Flow.Page0]; // last [] is the page num
+			if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page);
+			P.Page[page].Acq=P.Acq.Actual;
+			for(int ic=0;ic<P.Chann.Num;ic++) D.Data[P.Frame.Actual][page][ic]=D.Bank[ib][ic+(P.Flow.Slot0+is)*P.Chann.Num];
+			}
+	P.Flow.Slot0+=num_slot;
+	P.Flow.Page0+=num_slot;
+	if(P.Flow.Slot0==(int)(SPC_BANK_DIM/P.Chann.Num)){	  // reached end of Bank
+		P.Flow.Slot0=0;
+		P.Flow.EmptyBank=TRUE;
+		}
+	if(P.Flow.Page0==P.Num.Page){		// reached end of Frame (i.e. exit function and go to next Loop)
+		P.Flow.Page0=0;
+		P.Flow.FilledFrame=TRUE;
+		}
+	}
+
+	
 /* ########################   SWABIAN INSTRUMENTS FUNCTIONS   ####################### */
 
 
@@ -10881,7 +10986,8 @@ void GetBank(void){
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_read_data_page");
 		}
 	}
-	
+
+
 // DISPLAY STATUS BANK
 void StatusBank(int ActBank, int TotBank){
 	double timeT=P.Loop[LOOP1].Num*P.Loop[LOOP2].Num*P.Loop[LOOP3].Num*P.Loop[LOOP4].Num*P.Loop[LOOP5].Num*P.Spc.TimeM;
