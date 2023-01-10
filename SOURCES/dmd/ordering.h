@@ -16,25 +16,25 @@
 
 /** builds in matrix the Hadamard matrix of order nBasis
 note: matrix must be preallocated and nBasis must be power of 2 (it is not verified!) */
-void hadamard(short int **matrix, const int nBasis);
+void DmdTx_hadamard(short int **matrix, const int nBasis);
 
 /** function to do DFS for a 2D boolean matrix. It only considers the 8 neighbours as adjacent vertices */
-void DFS(short int **M, int row, int col, bool **visited, int ROW, int COL);
+void DmdTx_DFS(short int **M, int row, int col, bool **visited, int ROW, int COL);
 
 /** function that returns count of islands in a given boolean 2D matrix */
-int countIslands(short int **M,int ROW, int COL);
+int DmdTx_countIslands(short int **M,int ROW, int COL);
 
 /** returns 1 if:
 row number is in range, column number is in range and site [row, col] is not yet visited */
-int isSafe(short int **M, int row, int col, bool **visited, int ROW, int COL);
+int DmdTx_isSafe(short int **M, int row, int col, bool **visited, int ROW, int COL);
 
 /** math function: calculate b^(exp) */
-int pow_i(const int b,const int exp);
+int DmdTx_pow_i_GB(const int b,const int exp);
 
 /** math function: calculate 2^(exp) */
-int pow2_i(const int exp);
+int DmdTx_pow2_i_GB(const int exp);
 
 /** math function: returns the minimum between a and b */
-int minimum(const int a, const int b);
+int DmdTx_minimum(const int a, const int b);
 
 #endif

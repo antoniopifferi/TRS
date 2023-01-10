@@ -1001,17 +1001,17 @@
 
 // DMD_TX Structures
 
-struct Node{
+struct DmdTx_Node{
 	unsigned char data;
-	struct Node *next;
+	struct DmdTx_Node *next;
 };
-struct List{
+struct DmdTx_List{
 	int *data;
-	struct List *next;
+	struct DmdTx_List *next;
 };
 
 /** This structure contains all the data about the patterns to be sent to the dmd */
-struct Patterns{
+struct DmdTx_Patterns{
 	unsigned char (*defPatterns)[12]; // pattern settings (exposure time, bit-depth, triggers, pattern index...)
 	unsigned char configureLut[6]; // configuration of Look up table (LUT)
 	unsigned char (*setBmp)[6]; // image settings (index, size)
@@ -1027,7 +1027,7 @@ struct Patterns{
 /** This structure contains data of the patterns for the dmd */
 struct DMD{
 	hid_device *handle; // pointer to the hid device
-	struct Patterns *pattern; // structure containing the pattern for the DMD (see in dmd.h)
+	struct DmdTx_Patterns *pattern; // structure containing the pattern for the DMD (see in dmd.h)
 	int szPattern;
 	int repeat;
 };
