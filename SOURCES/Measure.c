@@ -265,6 +265,7 @@ void KernelGen(){
 			    		if(P.Action.StartSync) StartSync();
 	                    if(P.Action.SpcReset) 
 							SpcReset(P.Action.Status,P.Meas.Clear,P.Meas.Stop);
+						if(P.Action.StartFlow) StartFlow();
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.StartCont[is])
 								StartCont(is,P.Action.Status);		 
@@ -283,6 +284,7 @@ void KernelGen(){
 						if(P.Action.DataSave) DataSave();	 
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.WaitCont[is]) WaitCont(is,P.Action.Status);
+						if(P.Action.StopFlow) StopFlow();
 						if(P.Action.CheckJump) CheckJump();
 						NewAcq();		 
 						}
@@ -590,14 +592,19 @@ void DecideAction(void){
 	// Continuous Flow
 	if(P.Flow.Flow){
 		P.Action.SpcFlow=TRUE;
+		P.Action.StartFlow=TRUE;
+		P.Action.StopFlow=TRUE;
 		P.Action.SpcTime=FALSE;
 	    P.Action.SpcReset=FALSE; 
 		P.Action.WaitEnd=FALSE;
 		P.Action.SpcStop=FALSE;
 		P.Action.SpcOut=FALSE;
 		}
-	else
+	else{
 		P.Action.SpcFlow=FALSE;
+		P.Action.StartFlow=first[LOOP5];
+		P.Action.StopFlow=last[LOOP5];
+		}
 	
 	// ReadUIR
 	P.Action.ReadUIR=P.Command.ReadUIR;
@@ -2856,7 +2863,14 @@ void CopyFlow(void){
 		}
 	}
 
-	
+/* START FLOW */
+void StartFlow(void){
+	}
+
+/* STOP FLOW */
+void StopFlow(void){
+	}
+
 /* ########################   SWABIAN INSTRUMENTS FUNCTIONS   ####################### */
 
 

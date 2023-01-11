@@ -1281,6 +1281,8 @@ struct ActionS{
 	char WaitAdc;
 	char ReadUIR;
 	char SpcFlow;
+	char StartFlow;
+	char StopFlow;
 	char SpcTime;			//EDO
 	char InitMamm;         //EDO
 	char StartMamm;			 //EDO
@@ -2274,6 +2276,8 @@ void SpcFlow(char Status);
 void WaitFlow(void);
 void GetFlow(void);
 void CopyFlow(void);
+void StartFlow(void);
+void StopFlow(void);
 
 /* ########################   HYDRA HARP FUNCTIONS   ####################### */
 void InitHydra(int Board);
