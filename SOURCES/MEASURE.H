@@ -86,7 +86,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1223
+#define MAX_TABLE		1224
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1057,6 +1057,7 @@ struct FileS {
 	char Prefix[PATHLEN];
 	char Path  [PATHLEN];
 	int Tag;
+	char Save;
 	FILE *File;
 	};
 	

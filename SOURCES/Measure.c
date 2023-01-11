@@ -756,7 +756,11 @@ void CompleteParmS(void){
     char loopX, loopY;
 	int fiber,page;
 	char *string;
-    		   
+    
+	// FLOW UIR - TO REPLACE AFTER
+	P.Flow.Flow=TRUE;
+	
+	
    	// Presentation
    	if (P.Presentation.Flag == TRUE) {
    		ips=0;  
@@ -2830,7 +2834,7 @@ void GetFlow(void){
 		ret=SPC_test_state(ib,&state);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_test_state");
 		P.Spc.Overflow|=(state&SPC_OVERFLOW);
-		ret=SPC_read_data_page(ib,0,(int)(SPC_BANK_DIM/P.Chann.Num),D.Bank[ib]+P.Flow.Bank*SPC_BANK_DIM);
+		ret=SPC_read_data_page(ib,0,(int)(SPC_BANK_DIM/P.Chann.Num),D.Bank[ib]);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_read_data_page");
 		}
 	P.Flow.Bank=P.Flow.Bank?0:1;
@@ -2865,11 +2869,50 @@ void CopyFlow(void){
 
 /* START FLOW */
 void StartFlow(void){
+	short ret;
+	int ib;
+	P.Flow.Bank=0;
+	P.Flow.EmptyBank=TRUE;
+	P.Flow.FilledFrame=FALSE;
+	P.Flow.Page0=0;
+	P.Flow.Slot0=0;
+	for (ib=0;ib<P.Num.Board;ib++){
+		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:MEM_BANK");
+	    ret=SPC_start_measurement(ib);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_start_measurement");
+		}
 	}
 
 /* STOP FLOW */
 void StopFlow(void){
 	}
+
+	
+// INITIALIZE CONTINUOUS FLOW
+void InitFlow(void){
+	int ib,ibb;
+	SPCdata spc_dat;
+	short mem_bank,ret;
+	for(ibb=0;ibb<P.Num.Board;ibb++){
+		ret=SPC_get_parameters(ibb,&spc_dat);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_get_parameters");
+		}
+	mem_bank=spc_dat.mem_bank;	  // NOTE: taken from last SPC module
+	ret=SPC_enable_sequencer(SPC_ALL,1);
+	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_enable_sequencer");
+	ret=SPC_set_parameter(SPC_ALL, TRIGGER, 0x302); // trigger each curve
+	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:TRIGGER");
+	for(ib=0;ib<SPC_NUM_BANK;ib++){
+		SpcClear();
+		mem_bank=mem_bank?0:1;
+		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,mem_bank);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:MEM_BANK");
+		}
+	ret=SPC_set_page(SPC_ALL,0);
+	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_page");
+	}
+
 
 /* ########################   SWABIAN INSTRUMENTS FUNCTIONS   ####################### */
 
@@ -9488,6 +9531,7 @@ void StopAdc(void){
 
 /* CLOSE FILE */
 void CloseDataFile(void) {
+	if(!P.File.Save) return;
 	fclose(P.File.File);
 	return;
 	}
@@ -9495,7 +9539,11 @@ void CloseDataFile(void) {
 /* INITIALIZE FILE */
 void InitDataFile(void){
     long size;
-	
+	int answer;
+	if(!P.File.Save){
+		answer = ConfirmPopup ("NOT SAVING FILE", "You selected File.Save=FALSE. Do you Confirm you proceed without saving?");
+		if(answer) Failure("Error in selecting NOT SAVE"); else return;
+		}
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Initializing File ");
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, P.File.Path);
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, " ...");
@@ -9525,6 +9573,7 @@ void EnterName(void){
 
 /* SAVE DATA TO FILE */
 void DataSave(void){ 
+	if(!P.File.Save) return;
 	int ic,ifr,ip,id,ib;			
 /*
 	do {
