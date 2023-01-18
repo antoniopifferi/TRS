@@ -2189,6 +2189,10 @@ double Period;									// period between two IRF peaks (used in rebinning)
 double *BufferTDC;
 double *BufferTDC2;
 
+/* DMD_TX GLOBAL VARIABLES */
+struct DMD DmdTx;
+struct InfoDmd DmdTxInfo;
+struct DmdTx_Patterns DmdTxPatt;
 
 /* #####################    MEASUREMENT FUNCTIONS   ########################### */
 void InitVariable(void);
@@ -2279,6 +2283,8 @@ void GetFlow(void);
 void CopyFlow(void);
 void StartFlow(void);
 void StopFlow(void);
+void InitFlow(void);
+
 
 /* ########################   HYDRA HARP FUNCTIONS   ####################### */
 void InitHydra(int Board);
@@ -2715,6 +2721,7 @@ void CheckTime(clock_t timeorigin);
 void PrintTime(clock_t timeorigin, char *Title);
 void CalibrateTime(double TimeDelay);
 void ErrHandler(int Device, int Code, char* Function);
+void pyErrHandler(char* Function, char* serror);
 
 /* ########################   MEMORY FUNCTIONS   ########################### */
 T_DATA *DAlloc1D(int Num1);

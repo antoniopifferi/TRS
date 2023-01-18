@@ -119,6 +119,300 @@
 
 /* ########################   MEASURE PROCEDURES   ########################### */
 
+
+/* TEST ANALYSIS ON PYTHON */
+
+void InitPython(void){
+	// must be called before using python (only once is ok)
+	// take path of TRS
+	char exePath[300];
+	int pathCode = 1;
+	pathCode = GetDir(exePath);
+	if(pathCode != 0) pyErrHandler("InitPython","GetDir - path not found");
+	strcat(exePath, "\\PYTHON");
+	// sent environment variables to open Python
+	int okEnv = 0;
+	okEnv = SetEnvironmentVariable("PYTHONHOME",exePath);
+	if(!okEnv) pyErrHandler("InitPython","SetEnvironmentVariable");
+    // init Py interpreter
+    Py_Initialize();
+}
+
+void ClosePython(void){
+	// close interpreter (must be called only when we close TRS)
+	int res = 0;
+    res = Py_FinalizeEx();
+	if(res == -1) pyErrHandler("ClosePython","Python not finalized correctly");
+}
+	
+
+void checkFunction(PyObject *pFunc, char *name){
+    int cal = PyCallable_Check(pFunc);
+    if(pFunc==NULL || !cal){
+        printf("Function %s not found or not callable\n", name);
+        getchar();
+        exit(1);
+    }
+}
+
+void CreateFigPy(void){
+	
+	PyObject *pyModule;
+	PyObject *pyCreateFig;
+	PyObject *pyRes;
+	
+	pyModule = PyImport_ImportModule("recons2D");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyCreateFig = PyObject_GetAttrString(pyModule,"createFigure");
+	if(pyCreateFig==NULL || !PyCallable_Check(pyCreateFig)) pyErrHandler("ImportFunction: pyCreateFig","Function not found or not callable");
+	pyRes = PyObject_CallObject(pyCreateFig,NULL);
+	if(pyRes==NULL) {
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: createFigure",pStrErrMsg);
+	}
+	
+}
+
+void CloseFigPy(void){
+	
+	PyObject *pyModule;
+	PyObject *pyCloseFig;
+	PyObject *pyRes;
+	
+	pyModule = PyImport_ImportModule("recons2D");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyCloseFig = PyObject_GetAttrString(pyModule,"closePlt");
+	if(pyCloseFig==NULL || !PyCallable_Check(pyCloseFig)) pyErrHandler("ImportFunction: pyCloseFig","Function not found or not callable");
+	pyRes = PyObject_CallObject(pyCloseFig,NULL);
+	if(pyRes==NULL) {
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: closePlt",pStrErrMsg);
+	}
+	
+}
+
+void ReconsPy(void){
+
+	PyObject *pyModule;
+	PyObject *pyArgs;
+	PyObject *pyRecons2D;
+	PyObject *pyArray, *pyNBasis, *pyZoom, *pyxcp, *pyycp;
+	PyObject *pyRes;
+	
+	if(PyArray_API==NULL) import_array();
+	long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,P.Num.Page-P.Flow.Page0);
+	npy_intp dataDim[2]; // D.Data[P.Frame.Actual][page][ic] // not sure dimensions
+	dataDim[0] = num_slot;
+	dataDim[1] = P.Chann.Num;
+	
+	pyModule = PyImport_ImportModule("recons2D");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyRecons2D = PyObject_GetAttrString(pyModule,"reconstructHad2D");
+	if(pyRecons2D==NULL || !PyCallable_Check(pyRecons2D)) pyErrHandler("ImportFunction: pyRecons2D","Function not found or not callable");
+	
+	pyArray = PyArray_SimpleNewFromData(2,dataDim,NPY_INT,D.Data[0]);
+	pyNBasis = PyLong_FromLong(DmdTxInfo.nBasis);
+	pyZoom = PyLong_FromLong(DmdTxInfo.zoom);
+	pyxcp = PyLong_FromLong(DmdTxInfo.xC);
+	pyycp = PyLong_FromLong(DmdTxInfo.yC);
+	
+	pyArgs = PyTuple_New(5);
+	PyTuple_SetItem(pyArgs,0,pyArray);
+	PyTuple_SetItem(pyArgs,1,pyNBasis);
+	PyTuple_SetItem(pyArgs,2,pyZoom);
+	PyTuple_SetItem(pyArgs,3,pyxcp);
+	PyTuple_SetItem(pyArgs,4,pyycp);
+	
+	pyRes = PyObject_CallObject(pyRecons2D,pyArgs);
+	if(pyRes==NULL){
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: recons2D",pStrErrMsg);
+	}
+	
+}
+
+
+int TestPython(){
+	
+	PyObject *pModule = NULL;
+    PyObject *pFunc, *pFunc2, *pFunc3, *pFunc4;
+    PyObject *pArgs, *pArgs2, *pArgs3;
+    PyObject *pList, *pValue, *pArray;
+    PyObject *pRes, *pRes2, *pRes3, *pRes4;
+
+    int dimX = 35;
+    int dimY = 25;
+	
+	
+    // load module (script)
+    pModule = PyImport_ImportModule("pyFunc");
+    if(pModule==NULL){
+        printf("Module not found\n");
+		Py_Finalize();
+        return 1;
+    }
+
+    // load function or method
+    // per fare le cose bene bisognerebbe controllare l'apertura e callable per tutte le funzioni
+    pFunc = PyObject_GetAttrString(pModule, "printData");
+    pFunc2 = PyObject_GetAttrString(pModule, "plot");
+    pFunc3 = PyObject_GetAttrString(pModule, "plot2D");
+    pFunc4 = PyObject_GetAttrString(pModule, "createImage");
+    checkFunction(pFunc4, "createImage");
+
+    // create list containing data
+    int len = 5;
+    int values[5] = {2,4,6,8,10};
+    pList = PyList_New(len);
+    for(int i=0; i<len; i++){
+        pValue = PyLong_FromLong(values[i]);
+        PyList_SetItem(pList, i, pValue);
+    }
+
+    // create array
+    if (PyArray_API == NULL) import_array(); // to be called before using Numpy/C array API
+    int data[2][5] = {{1,3,6,2,0}, {9,6,3,0,1}};
+    npy_intp dims[2] = {2,5}; // dimension of the array
+    pArray = PyArray_SimpleNewFromData(2, dims, NPY_INT, data);
+
+
+    // create tuple to be passed to functions
+    pArgs = PyTuple_New(1);
+    PyTuple_SetItem(pArgs, 0, pList);
+    pArgs2 = PyTuple_New(1);
+    PyTuple_SetItem(pArgs2, 0, pArray);
+    pArgs3 = PyTuple_New(2);
+    PyTuple_SetItem(pArgs3, 0, PyLong_FromLong(dimX));
+    PyTuple_SetItem(pArgs3, 1, PyLong_FromLong(dimY));
+
+    // call function
+    pRes = PyObject_Call(pFunc, pArgs, NULL);
+    pRes2 = PyObject_CallObject(pFunc2, pArgs);
+    pRes3 = PyObject_CallObject(pFunc3, pArgs2);
+    pRes4 = PyObject_CallObject(pFunc4, pArgs3);
+    PyTuple_SetItem(pArgs, 0, pRes4);
+    pRes3 = PyObject_CallObject(pFunc3, pArgs);
+    if (pRes3 == NULL) {
+        printf("Py Function returned NULL\n");
+        Py_DECREF(pRes);
+        return 1;
+    }
+    printf("Result of call: %ld\n", PyLong_AsLong(pRes));
+    printf("Result of call2: %ld\n", PyLong_AsLong(pRes2));
+    printf("Result of call2: %ld\n", PyLong_AsLong(pRes3));
+
+    // per disallocare la memoria dei pyObject... (comunque Py_Finalize() disalloca automaticamente tutto)
+	// tolte perchè se chiamate in ripetizione la variabile va tenuta
+    //Py_DECREF(pModule);
+    //Py_DECREF(pFunc);
+    //Py_DECREF(pArgs);
+    //Py_DECREF(pValue);
+    //Py_DECREF(pRes);
+
+    printf("End of C program. Press key to close ...");
+	getchar();
+
+	return 0;
+}
+
+
+int TestPythonEXE(){
+	
+	int N=2000;
+	int M=32;
+    int data[2000];
+    int i=0, j=0, k=0;
+    FILE *suppFile;
+
+    // process creation (https://www.youtube.com/watch?v=W2Qu4RDk__k)
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+    BOOL bProcess;
+
+    // semaphore creation
+    HANDLE hSem, pSem;
+    SECURITY_ATTRIBUTES sS;
+    sS.nLength = sizeof(sS);
+    sS.lpSecurityDescriptor = NULL;
+    sS.bInheritHandle = TRUE;
+    hSem = CreateSemaphore(&sS, 0, 1, "hSem"); // 1 when analysis is running
+    pSem = CreateSemaphore(&sS, 0, 1, "pSem"); // 1 when data collection is running
+    if(hSem == NULL || pSem == NULL){
+        printf("Error in semaphore creation\n");
+        getchar();
+        return 1;
+    }
+
+    // memory clear
+    ZeroMemory(&si, sizeof(si));
+    ZeroMemory(&pi, sizeof(pi));
+
+    // create process
+    bProcess = CreateProcessA("childProcess.exe", NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+    Sleep(3000);
+
+    // check process created
+    if(bProcess == FALSE){
+        printf( "CreateProcess failed (%d).\n", GetLastError() );
+        return 1;
+    }
+
+    /*
+    // first creation of data and put data in support file txt (not needed)
+    suppFile = fopen("support.txt", "w");
+    for (i=0; i<N; i++){
+        data[i]=i*j;
+        fprintf(suppFile, "%d\n", data[i]);
+    }
+    fclose(suppFile);
+    */
+
+
+    k=0;
+    while(k<10){
+
+        // parent process: collect new data
+        suppFile = fopen("support.txt", "w");
+        for(j=0; j<M; j++){
+            for(i=0; i<N; i++){
+                data[i]=i*j;
+                if(j==15) data[i] = i*k;
+                if(j==20) data[i] = -i*k;
+                if(i==N-1) fprintf(suppFile, "%d", data[i]*j);
+                else fprintf(suppFile, "%d,", data[i]*j);
+            }
+        fprintf(suppFile, "\n");
+        }
+        fclose(suppFile);
+        ReleaseSemaphore(pSem, 1, NULL);
+
+        // wait end of child (semaphore)
+        WaitForSingleObject(hSem, INFINITE);
+
+        k++;
+    }
+
+    // close child process
+    CloseHandle( pi.hProcess );
+    CloseHandle( pi.hThread );
+
+    //printf("\n -> END of C Parent program. Press a key to close... \n");
+    //getchar();
+
+    return 0;
+}
+
+
+
 /* INITIALIZE VARIABLES */
 void InitVariable(void){
 	// place here alla variables which need to be initialized at startup in TRS (before any oscill or meas is started
@@ -144,6 +438,10 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 		InitDisplay();
 		InitTime();
 		InitMem();
+		
+		InitPython(); // Python
+		CreateFigPy(); // Python
+		
 		for(isw=0;isw<MAX_SWITCH;isw++)
 			if(P.Switch[isw].Switch){
 				InitPosSwitch(isw);
@@ -177,6 +475,7 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 		CloseMem();
 		TextDisplay();
 		
+		CloseFigPy(); // Python
 		
 		if(IS_PROFILING) RecProf("Pre Calib");
 		CalibrateTime(1.0);
@@ -279,6 +578,7 @@ void KernelGen(){
 						if(P.Action.SpcFlow) SpcFlow(P.Action.Status);
 						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
+						/**/ReconsPy();
 						if(P.Action.DisplayRoi) DisplayRoi();
 						if(P.Action.StopMamm) StopMammot();  
 						if(P.Action.DataSave) DataSave();	 
@@ -759,6 +1059,7 @@ void CompleteParmS(void){
     
 	// FLOW UIR - TO REPLACE AFTER
 	P.Flow.Flow=TRUE;
+	P.Flow.NumSlot=16;
 	
 	
    	// Presentation
@@ -1735,233 +2036,15 @@ void DisplayStatus(void){
 	}
 
 
-/* TEST ANALYSIS ON PYTHON */
-
-int InitPython(){
-	// must be called before using python (only once is ok)
-	// take path of TRS
-	char exePath[300];
-	int pathCode = 1;
-	pathCode = GetDir(exePath);
-	if(pathCode != 0){
-		printf("Python GetDir error\n");
-		return 1;
-	}
-	strcat(exePath, "\\PYTHON");
-	// sent environment variables to open Python
-	int okEnv = 0;
-	okEnv = SetEnvironmentVariable("PYTHONHOME",exePath);
-	if(!okEnv){
-		printf("ENV VAR NOT CORRECTLY SET");
-		return 1;
-	}
-    // init Py interpreter
-	printf("Initializing Python\n");
-    Py_Initialize();
-	return 0;
-}
-
-int ClosePython(){
-	// close interpreter (must be called only when we close TRS)
-	int res = 0;
-    res = Py_FinalizeEx();
-	if(res == -1){
-		printf("Error in closing python");
-		return 1;
-	}
-	return 0;
-}
-	
-
-void checkFunction(PyObject *pFunc, char *name){
-    int cal = PyCallable_Check(pFunc);
-    if(pFunc==NULL || !cal){
-        printf("Function %s not found or not callable\n", name);
-        getchar();
-        exit(1);
-    }
-}
-
-
-int TestPython(){
-	
-	PyObject *pModule = NULL;
-    PyObject *pFunc, *pFunc2, *pFunc3, *pFunc4;
-    PyObject *pArgs, *pArgs2, *pArgs3;
-    PyObject *pList, *pValue, *pArray;
-    PyObject *pRes, *pRes2, *pRes3, *pRes4;
-
-    int dimX = 35;
-    int dimY = 25;
-	
-	
-    // load module (script)
-    pModule = PyImport_ImportModule("pyFunc");
-    if(pModule==NULL){
-        printf("Module not found\n");
-		Py_Finalize();
-        return 1;
-    }
-
-    // load function or method
-    // per fare le cose bene bisognerebbe controllare l'apertura e callable per tutte le funzioni
-    pFunc = PyObject_GetAttrString(pModule, "printData");
-    pFunc2 = PyObject_GetAttrString(pModule, "plot");
-    pFunc3 = PyObject_GetAttrString(pModule, "plot2D");
-    pFunc4 = PyObject_GetAttrString(pModule, "createImage");
-    checkFunction(pFunc4, "createImage");
-
-    // create list containing data
-    int len = 5;
-    int values[5] = {2,4,6,8,10};
-    pList = PyList_New(len);
-    for(int i=0; i<len; i++){
-        pValue = PyLong_FromLong(values[i]);
-        PyList_SetItem(pList, i, pValue);
-    }
-
-    // create array
-    if (PyArray_API == NULL) import_array(); // to be called before using Numpy/C array API
-    int data[2][5] = {{1,3,6,2,0}, {9,6,3,0,1}};
-    npy_intp dims[2] = {2,5}; // dimension of the array
-    pArray = PyArray_SimpleNewFromData(2, dims, NPY_INT, data);
-
-
-    // create tuple to be passed to functions
-    pArgs = PyTuple_New(1);
-    PyTuple_SetItem(pArgs, 0, pList);
-    pArgs2 = PyTuple_New(1);
-    PyTuple_SetItem(pArgs2, 0, pArray);
-    pArgs3 = PyTuple_New(2);
-    PyTuple_SetItem(pArgs3, 0, PyLong_FromLong(dimX));
-    PyTuple_SetItem(pArgs3, 1, PyLong_FromLong(dimY));
-
-    // call function
-    pRes = PyObject_Call(pFunc, pArgs, NULL);
-    pRes2 = PyObject_CallObject(pFunc2, pArgs);
-    pRes3 = PyObject_CallObject(pFunc3, pArgs2);
-    pRes4 = PyObject_CallObject(pFunc4, pArgs3);
-    PyTuple_SetItem(pArgs, 0, pRes4);
-    pRes3 = PyObject_CallObject(pFunc3, pArgs);
-    if (pRes3 == NULL) {
-        printf("Py Function returned NULL\n");
-        Py_DECREF(pRes);
-        return 1;
-    }
-    printf("Result of call: %ld\n", PyLong_AsLong(pRes));
-    printf("Result of call2: %ld\n", PyLong_AsLong(pRes2));
-    printf("Result of call2: %ld\n", PyLong_AsLong(pRes3));
-
-    // per disallocare la memoria dei pyObject... (comunque Py_Finalize() disalloca automaticamente tutto)
-	// tolte perchè se chiamate in ripetizione la variabile va tenuta
-    //Py_DECREF(pModule);
-    //Py_DECREF(pFunc);
-    //Py_DECREF(pArgs);
-    //Py_DECREF(pValue);
-    //Py_DECREF(pRes);
-
-    printf("End of C program. Press key to close ...");
-	getchar();
-
-	return 0;
-}
-	
-int TestPythonEXE()
-{
-	
-	int N=2000;
-	int M=32;
-    int data[2000];
-    int i=0, j=0, k=0;
-    FILE *suppFile;
-
-    // process creation (https://www.youtube.com/watch?v=W2Qu4RDk__k)
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
-    BOOL bProcess;
-
-    // semaphore creation
-    HANDLE hSem, pSem;
-    SECURITY_ATTRIBUTES sS;
-    sS.nLength = sizeof(sS);
-    sS.lpSecurityDescriptor = NULL;
-    sS.bInheritHandle = TRUE;
-    hSem = CreateSemaphore(&sS, 0, 1, "hSem"); // 1 when analysis is running
-    pSem = CreateSemaphore(&sS, 0, 1, "pSem"); // 1 when data collection is running
-    if(hSem == NULL || pSem == NULL){
-        printf("Error in semaphore creation\n");
-        getchar();
-        return 1;
-    }
-
-    // memory clear
-    ZeroMemory(&si, sizeof(si));
-    ZeroMemory(&pi, sizeof(pi));
-
-    // create process
-    bProcess = CreateProcessA("childProcess.exe", NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
-    Sleep(3000);
-
-    // check process created
-    if(bProcess == FALSE){
-        printf( "CreateProcess failed (%d).\n", GetLastError() );
-        return 1;
-    }
-
-    /*
-    // first creation of data and put data in support file txt (not needed)
-    suppFile = fopen("support.txt", "w");
-    for (i=0; i<N; i++){
-        data[i]=i*j;
-        fprintf(suppFile, "%d\n", data[i]);
-    }
-    fclose(suppFile);
-    */
-
-
-    k=0;
-    while(k<10){
-
-        // parent process: collect new data
-        suppFile = fopen("support.txt", "w");
-        for(j=0; j<M; j++){
-            for(i=0; i<N; i++){
-                data[i]=i*j;
-                if(j==15) data[i] = i*k;
-                if(j==20) data[i] = -i*k;
-                if(i==N-1) fprintf(suppFile, "%d", data[i]*j);
-                else fprintf(suppFile, "%d,", data[i]*j);
-            }
-        fprintf(suppFile, "\n");
-        }
-        fclose(suppFile);
-        ReleaseSemaphore(pSem, 1, NULL);
-
-        // wait end of child (semaphore)
-        WaitForSingleObject(hSem, INFINITE);
-
-        k++;
-    }
-
-    // close child process
-    CloseHandle( pi.hProcess );
-    CloseHandle( pi.hThread );
-
-    //printf("\n -> END of C Parent program. Press a key to close... \n");
-    //getchar();
-
-    return 0;
-}
-
-
 /* DISPLAY CURVE ON PLOT */
 void DisplayPlot(void){
 	if(P.Graph.Type==GRAPH_PLOT) GraphPlot();
 	if(P.Graph.Type==GRAPH_ROI) GraphRoi();
 	
 	// TEST PY
-	InitPython();
-	TestPython();
+	//InitPython();
+	//ReconsPy();
+	//TestPython();
 	//ClosePython();
 	// END TEST PY
 	}
@@ -2834,7 +2917,7 @@ void GetFlow(void){
 		ret=SPC_test_state(ib,&state);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_test_state");
 		P.Spc.Overflow|=(state&SPC_OVERFLOW);
-		ret=SPC_read_data_page(ib,0,(int)(SPC_BANK_DIM/P.Chann.Num),D.Bank[ib]);
+		ret=SPC_read_data_page(ib,0,(int)(SPC_BANK_DIM/P.Chann.Num)-1,D.Bank[ib]);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_read_data_page");
 		}
 	P.Flow.Bank=P.Flow.Bank?0:1;
@@ -2871,6 +2954,7 @@ void CopyFlow(void){
 void StartFlow(void){
 	short ret;
 	int ib;
+	InitFlow();
 	P.Flow.Bank=0;
 	P.Flow.EmptyBank=TRUE;
 	P.Flow.FilledFrame=FALSE;
@@ -2899,7 +2983,7 @@ void InitFlow(void){
 		if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_get_parameters");
 		}
 	mem_bank=spc_dat.mem_bank;	  // NOTE: taken from last SPC module
-	ret=SPC_enable_sequencer(SPC_ALL,1);
+	ret=SPC_enable_sequencer(SPC_ALL,1); // 1 or 2
 	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_enable_sequencer");
 	ret=SPC_set_parameter(SPC_ALL, TRIGGER, 0x302); // trigger each curve
 	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:TRIGGER");
@@ -7199,10 +7283,16 @@ void writePatternsOnFile(const int nEl, unsigned char ***basis){
     }
 }
 
+// questa funzione è qui perchè non inclusa nella dll di getbasis
+int DmdTx_minimum(const int a, const int b){
+	if(a>b) return b;
+	else return a;
+}
+
 /* INITIALIZE DMDTX */
 
 void InitDmdTx(char Step){
-	char message[STRLEN];
+	char message[STRLEN],smessage[2*STRLEN];
 
 	sprintf(message,"Initializing DMD TEXAS Stepper #%d",Step+1);
     SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
@@ -7210,76 +7300,74 @@ void InitDmdTx(char Step){
 	// code here
 	// initDmd (hidapi init, getbasis and load basis on dmd)
 	
-	struct DMD dmd;
-	struct InfoDmd info;
-	struct DmdTx_Patterns patt;
-	
-	info.RasterOrHadamard = 1; //info.RasterOrHadamard;
-	info.nBasis = 64; //info.nBasis;
-	info.nMeas = 64; //info.nMeas;
-	info.startPosition = 0; //info.startPosition;
-	info.exp = 500000; //info.exp;
-	info.dark_time = 10000; //info.dark_time;
-	info.repeat = 1; //info.repeat;
-	info.compress = 0; //info.compress;
-	info.sizeBatch = 64; //info.sizeBatch;
-	info.previousPos = 0; //info.previousPos;
-	info.zoom = 1; //info.zoom;
-	info.xC = 540; //info.xC;
-	info.yC = 960; //info.yC;
+	DmdTxInfo.RasterOrHadamard = 10; //info.RasterOrHadamard;
+	DmdTxInfo.nBasis = 16; //info.nBasis;
+	DmdTxInfo.nMeas = 16; //info.nMeas;
+	DmdTxInfo.startPosition = 0; //info.startPosition;
+	DmdTxInfo.exp = 500000; //info.exp; // us
+	DmdTxInfo.dark_time = 1000; //info.dark_time; // 1000 = 1ms -> check that spc does not miss the trigger
+	DmdTxInfo.repeat = 1; //info.repeat;
+	DmdTxInfo.compress = 0; //info.compress;
+	DmdTxInfo.sizeBatch = 16; //info.sizeBatch;
+	DmdTxInfo.previousPos = 0; //info.previousPos;
+	DmdTxInfo.zoom = 1; //info.zoom;
+	DmdTxInfo.xC = 540; //info.xC;
+	DmdTxInfo.yC = 960; //info.yC;
 	
 	//dmd_setup(info);
 	
 	
 	
 	// Test initialization of structure
-	patt.bitsPackNum = NULL;
-	patt.bmpLoad = NULL;
+	DmdTxPatt.bitsPackNum = NULL;
+	DmdTxPatt.bmpLoad = NULL;
 	//patt.configureLut = {'0','0','0','0','0','0'};
-	patt.defPatterns = NULL;
-	patt.exposure = NULL;
-	patt.nB = 0;
-	patt.nEl = 0;
-	patt.numOfBatches = 0;
-	patt.packNum = NULL;
-	patt.setBmp = NULL;
+	DmdTxPatt.defPatterns = NULL;
+	DmdTxPatt.exposure = NULL;
+	DmdTxPatt.nB = 0;
+	DmdTxPatt.nEl = 0;
+	DmdTxPatt.numOfBatches = 0;
+	DmdTxPatt.packNum = NULL;
+	DmdTxPatt.setBmp = NULL;
 	
-	dmd.pattern = NULL;
+	DmdTx.pattern = NULL;
 	
 	// initialization of hidapi library and HID device
 	hid_init();
-	dmd.handle = hid_open(0x0451, 0xc900, NULL);
+	DmdTx.handle = hid_open(0x0451, 0xc900, NULL);
 	Sleep(2000); // dead time to be sure the device is connected
-	if (dmd.handle == NULL) {
-		printf("***Error: unable to open device\n");
-		dmd.handle = NULL;
+	if (DmdTx.handle == NULL) {
+		// ErrHandler(DMD_TX,.,.);
+		sprintf(smessage,"Device = DMD_TX\nFunction = hid_open\nMessage = Unable to find device"); 
+		MessagePopup ("ERROR RETURN FUNCTION", smessage);
+		DmdTx.handle = NULL;
 		if(!DEBUG){
             printf("Press any key to exit.\n");
             getchar();
             exit(1);
 		}
 	}
-	DmdTx_stopSequence(dmd.handle); // stop the demo pattern sequence
-	DmdTx_changeMode(dmd.handle, 3); // change to pattern-on-the-fly mode
+	DmdTx_stopSequence(DmdTx.handle); // stop the demo pattern sequence
+	DmdTx_changeMode(DmdTx.handle, 3); // change to pattern-on-the-fly mode
 
     // setup data needed
-	int RasterOrHadamard = 10; //info.RasterOrHadamard;
-	int nBasis = 64; //info.nBasis;
-	int nMeas = 64; //info.nMeas;
-	int startPosition = 0; //info.startPosition;
-	int exp = 500000; //info.exp;
-	int dark_time = 10000; //info.dark_time;
-	int repeat = 1; //info.repeat;
-	int compress = 0; //info.compress;
-	int sizeBatch = 64; //info.sizeBatch;
-	int previousPos = 0; //info.previousPos;
-	int zoom = 2; //info.zoom;
-	int xC = 960; //info.xC; // long side
-	int yC = 540; //info.yC; // short side
+	int RasterOrHadamard = DmdTxInfo.RasterOrHadamard;
+	int nBasis = DmdTxInfo.nBasis;
+	int nMeas = DmdTxInfo.nMeas;
+	int startPosition = DmdTxInfo.startPosition;
+	int exp = DmdTxInfo.exp;
+	int dark_time = DmdTxInfo.dark_time;
+	int repeat = DmdTxInfo.repeat;
+	int compress = DmdTxInfo.compress;
+	int sizeBatch = DmdTxInfo.sizeBatch;
+	int previousPos = DmdTxInfo.previousPos;
+	int zoom = DmdTxInfo.zoom;
+	int xC = DmdTxInfo.xC; // long side
+	int yC = DmdTxInfo.yC; // short side
 	int offset_ = offset(startPosition, nBasis, previousPos)/nBasis; // ??
 	int nSet = DmdTx_celing(nMeas, sizeBatch);
-	dmd.szPattern = nSet;
-	dmd.repeat = repeat;
+	DmdTx.szPattern = nSet;
+	DmdTx.repeat = repeat;
 	int *exposure;
 	int *trigger_in;  // if 1 the DMD waits for an external trigger to change pattern
 	int *trigger_out; // if 1 the DMD sends a trigger signal when changes the pattern
@@ -7291,12 +7379,12 @@ void InitDmdTx(char Step){
 	int *idx = NULL;
 	
 	// allocation of memory and insertion of basis data 
-	dmd.pattern = (struct DmdTx_Patterns *)malloc(nSet*sizeof(struct DmdTx_Patterns));
+	DmdTx.pattern = (struct DmdTx_Patterns *)malloc(nSet*sizeof(struct DmdTx_Patterns));
 	for (q=0; q<nSet; q++){
 		nEl = DmdTx_minimum(sizeBatch, nMeas-q*sizeBatch); // it's the number of images in the current batch
 		// allocate of memory
 		
-		DmdTx_allocatePattern(&(dmd.pattern[q]), nEl); // problems with p
+		DmdTx_allocatePattern(&(DmdTx.pattern[q]), nEl); // problems with p
 		//allocatePattern_dmd(&patt, nEl);
 		//dmd.pattern[q].nEl = nEl;
 		//dmd.pattern[q].defPatterns = (unsigned char(*)[12])malloc(nEl*sizeof(unsigned char[12]));
@@ -7350,7 +7438,7 @@ void InitDmdTx(char Step){
 		// print bases on txt file
 		// if(DMD_SIMULATOR) writePatternsOnFile(nEl, basis);
 
-		dmd.pattern[q].nB = nB;
+		DmdTx.pattern[q].nB = nB;
 		//patt.nB = nB;
 		int numberOfRepetition;
 		if(repeat)
@@ -7368,7 +7456,7 @@ void InitDmdTx(char Step){
 		//dmd.pattern[q].exposure = (int*)malloc(nEl*sizeof(int));
 		
 
-		DmdTx_defSequence(&(dmd.pattern[q]), basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl); // il penultimo o 1 o nEl1
+		DmdTx_defSequence(&(DmdTx.pattern[q]), basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl); // il penultimo o 1 o nEl1
 		//defSequence(&patt, basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl);
 		for(i=0; i<nEl; i++){
 			for(j=0; j<HEIGHT; j++)
@@ -7382,60 +7470,60 @@ void InitDmdTx(char Step){
 	}
 	
 	// All data needed to move the DMD is generated by defSequence and saved in dmd.pattern
-	for(i=0; i<dmd.szPattern; i++){
-		DmdTx_stopSequence(dmd.handle);
-		printf("Uploading pattern (%d of %d)\n", i+1, dmd.szPattern);
+	for(i=0; i<DmdTx.szPattern; i++){
+		DmdTx_stopSequence(DmdTx.handle);
+		printf("Uploading pattern (%d of %d)\n", i+1, DmdTx.szPattern);
 		totExposure = 0;
 
-		for(j=0; j<dmd.pattern[i].nEl; j++){
-			totExposure += dmd.pattern[i].exposure[j];
+		for(j=0; j<DmdTx.pattern[i].nEl; j++){
+			totExposure += DmdTx.pattern[i].exposure[j];
 			// define the pattern
-			printf("Uploading pattern definitions (%d of %d)\n", j+1, dmd.pattern[i].nEl);
-			DmdTx_talkDMD_char(dmd.handle, 'w', 0x00, 0x1a, 0x34, dmd.pattern[i].defPatterns[j], 12);
+			printf("Uploading pattern definitions (%d of %d)\n", j+1, DmdTx.pattern[i].nEl);
+			DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x34, DmdTx.pattern[i].defPatterns[j], 12);
 			if(!DEBUG)
-                DmdTx_checkForErrors(dmd.handle);
+                DmdTx_checkForErrors(DmdTx.handle);
         }
         // configure LUT
         printf("Uploading LUT\n");
-		DmdTx_talkDMD_char(dmd.handle, 'w', 0x00, 0x1a, 0x31, dmd.pattern[i].configureLut, 6);
+		DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x31, DmdTx.pattern[i].configureLut, 6);
 		if(!DEBUG)
-            DmdTx_checkForErrors(dmd.handle);
+            DmdTx_checkForErrors(DmdTx.handle);
 		// setBmp
-		for(k = dmd.pattern[i].numOfBatches-1; k>=0; k--){
-            printf("Uploading batch %d of %d\n", dmd.pattern[i].numOfBatches-k, dmd.pattern[i].numOfBatches);
-            DmdTx_talkDMD_char(dmd.handle, 'w', 0x00, 0x1a, 0x2a, dmd.pattern[i].setBmp[k], 6);
+		for(k = DmdTx.pattern[i].numOfBatches-1; k>=0; k--){
+            printf("Uploading batch %d of %d\n", DmdTx.pattern[i].numOfBatches-k, DmdTx.pattern[i].numOfBatches);
+            DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x2a, DmdTx.pattern[i].setBmp[k], 6);
 			if(!DEBUG)
-                DmdTx_checkForErrors(dmd.handle);
+                DmdTx_checkForErrors(DmdTx.handle);
 			// bmpLoad
-			for(j=0; j<dmd.pattern[i].packNum[k]; j++){
-				DmdTx_talkDMD_char(dmd.handle, 'w', 0x11, 0x1a, 0x2b, dmd.pattern[i].bmpLoad[k][j], dmd.pattern[i].bitsPackNum[k][j]);
+			for(j=0; j<DmdTx.pattern[i].packNum[k]; j++){
+				DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x11, 0x1a, 0x2b, DmdTx.pattern[i].bmpLoad[k][j], DmdTx.pattern[i].bitsPackNum[k][j]);
 			}
 			if(!DEBUG){
-                DmdTx_checkForErrors(dmd.handle);
+                DmdTx_checkForErrors(DmdTx.handle);
                 //checkErrorMessage(dmd.handle); // TEST
             }
 		}
 	}
 	
 	// After the pattern is loaded on the DMD we can free the local variables containing the pattern
-	for (q = 0; q < dmd.szPattern; q++){
-		free(dmd.pattern[q].defPatterns);  
-		for(k = 0; k<dmd.pattern[q].numOfBatches; k++){
-			for(i = 0; i<dmd.pattern[q].packNum[k]; i++){
-				free(dmd.pattern[q].bmpLoad[k][i]);
+	for (q = 0; q < DmdTx.szPattern; q++){
+		free(DmdTx.pattern[q].defPatterns);  
+		for(k = 0; k<DmdTx.pattern[q].numOfBatches; k++){
+			for(i = 0; i<DmdTx.pattern[q].packNum[k]; i++){
+				free(DmdTx.pattern[q].bmpLoad[k][i]);
 			}
-			free(dmd.pattern[q].bmpLoad[k]);
-			free(dmd.pattern[q].bitsPackNum[k]);
+			free(DmdTx.pattern[q].bmpLoad[k]);
+			free(DmdTx.pattern[q].bitsPackNum[k]);
 		}
-		free(dmd.pattern[q].bmpLoad);
-		free(dmd.pattern[q].bitsPackNum);
-		free(dmd.pattern[q].setBmp);
-		free(dmd.pattern[q].packNum);
-		free(dmd.pattern[q].exposure);
+		free(DmdTx.pattern[q].bmpLoad);
+		free(DmdTx.pattern[q].bitsPackNum);
+		free(DmdTx.pattern[q].setBmp);
+		free(DmdTx.pattern[q].packNum);
+		free(DmdTx.pattern[q].exposure);
 	}
-	free(dmd.pattern);
+	free(DmdTx.pattern);
 	
-	DmdTx_startSequence(dmd.handle);
+	DmdTx_startSequence(DmdTx.handle);
 	
 	
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
@@ -9542,7 +9630,7 @@ void InitDataFile(void){
 	int answer;
 	if(!P.File.Save){
 		answer = ConfirmPopup ("NOT SAVING FILE", "You selected File.Save=FALSE. Do you Confirm you proceed without saving?");
-		if(answer) Failure("Error in selecting NOT SAVE"); else return;
+		if(!answer) Failure("Error in selecting NOT SAVE"); else return;
 		}
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Initializing File ");
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, P.File.Path);
@@ -9977,6 +10065,14 @@ void ErrHandler(int Device, int Code, char* Function){
 	sprintf(smessage,"Device = %s\nFunction = %s\nMessage = %s",sdevice,Function,serror); 
 	MessagePopup ("ERROR RETURN FUNCTION", smessage);
 	}
+
+
+/* ERROR HANDLER FOR PYTHON */
+void pyErrHandler(char* Function, char* serror){
+	char smessage[2*STRLEN];
+	sprintf(smessage,"Device = PYTHON\nFunction = %s\nMessage = %s",Function,serror); 
+	MessagePopup ("ERROR RETURN FUNCTION", smessage);
+}
 	
 
 /* ########################   MEMORY ALLOCATION PROCEDURES   ########################### */
