@@ -169,7 +169,7 @@ void CreateFigPy(void){
 	if(pyRes==NULL) {
 		PyObject *ptype, *pval, *pval2, *ptraceback;
 		PyErr_Fetch(&ptype, &pval, &ptraceback);
-		pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
+		pval2 = PyUnicode_AsASCIIString(ptraceback);
 		char *pStrErrMsg = PyBytes_AsString(pval2);
 		pyErrHandler("CallObject: createFigure",pStrErrMsg);
 	}
@@ -190,7 +190,7 @@ void CloseFigPy(void){
 	if(pyRes==NULL) {
 		PyObject *ptype, *pval, *pval2, *ptraceback;
 		PyErr_Fetch(&ptype, &pval, &ptraceback);
-		pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
+		pval2 = PyUnicode_AsASCIIString(ptraceback);
 		char *pStrErrMsg = PyBytes_AsString(pval2);
 		pyErrHandler("CallObject: closePlt",pStrErrMsg);
 	}
@@ -216,7 +216,7 @@ void ReconsPy(void){
 	pyRecons2D = PyObject_GetAttrString(pyModule,"reconstructHad2D");
 	if(pyRecons2D==NULL || !PyCallable_Check(pyRecons2D)) pyErrHandler("ImportFunction: pyRecons2D","Function not found or not callable");
 	
-	pyArray = PyArray_SimpleNewFromData(2,dataDim,NPY_INT,D.Data[0]);
+	pyArray = PyArray_SimpleNewFromData(2,dataDim,NPY_INT,D.Data[P.Frame.Actual]);  // non passa bene i dati
 	pyNBasis = PyLong_FromLong(DmdTxInfo.nBasis);
 	pyZoom = PyLong_FromLong(DmdTxInfo.zoom);
 	pyxcp = PyLong_FromLong(DmdTxInfo.xC);
@@ -233,7 +233,8 @@ void ReconsPy(void){
 	if(pyRes==NULL){
 		PyObject *ptype, *pval, *pval2, *ptraceback;
 		PyErr_Fetch(&ptype, &pval, &ptraceback);
-		pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
+		//pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
+		pval2 = PyUnicode_AsASCIIString(pval);
 		char *pStrErrMsg = PyBytes_AsString(pval2);
 		pyErrHandler("CallObject: recons2D",pStrErrMsg);
 	}
@@ -2822,7 +2823,7 @@ void InitSpcm(int Board){
 /* INIT SPCM */	
 void CloseSpcm(void){
 	short ret;
-	if(P.Moxy.Moxy){
+	if(P.Moxy.Moxy || P.Flow.Flow){
 		ret=SPC_enable_sequencer(SPC_ALL,FALSE);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_enable_sequencer");
 		SPC_set_parameter(SPC_ALL, TRIGGER, 0); // no trigger
@@ -2904,10 +2905,30 @@ void WaitFlow(void){
 			spc_state |= mod_state[ib];
 			}
 	    finished = ((spc_state & SPC_ARMED) == 0);
+		if((spc_state & SPC_WAIT_TRG) == SPC_WAIT_TRG) printf("SPC waiting for trigger\n");
+		if((spc_state & SPC_WAIT_TRG) == 0) printf("TRIGGER RECEIVED\n");
 		}
 	while(!finished);
 	}
 
+// CHECK TRIGGER
+void CheckTriggerFlow(void){
+	int ib;
+	short ret,ver,spc_state,mod_state[MAX_BOARD];
+	do{
+		spc_state=0;
+		for (ib=0;ib<P.Num.Board;ib++){
+			ret=SPC_test_state(ib,&mod_state[ib]);
+			if(ret<0) ErrHandler(ERR_SPC,ret,"WaitBank:SPC_test_state");
+			spc_state |= mod_state[ib];
+			}
+	    //ver = ((spc_state & SPC_WAIT_TRG) == 0);
+		if((spc_state & SPC_WAIT_TRG) == 1) printf("SPC waiting for trigger\n");
+		}
+	while(!ver);
+	}
+	
+	
 // TRANSFER BANK TO BUFFER
 void GetFlow(void){
 	int ib;
@@ -2916,7 +2937,7 @@ void GetFlow(void){
 	for (ib=0;ib<P.Num.Board;ib++){
 		ret=SPC_test_state(ib,&state);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_test_state");
-		P.Spc.Overflow|=(state&SPC_OVERFLOW);
+		P.Spc.Overflow|=(state & SPC_OVERFLOW);
 		ret=SPC_read_data_page(ib,0,(int)(SPC_BANK_DIM/P.Chann.Num)-1,D.Bank[ib]);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_read_data_page");
 		}
@@ -2936,7 +2957,11 @@ void CopyFlow(void){
 			long page=P.Filter.Page[P.Acq.Actual][ib][is+P.Flow.Page0]; // last [] is the page num
 			if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page);
 			P.Page[page].Acq=P.Acq.Actual;
-			for(int ic=0;ic<P.Chann.Num;ic++) D.Data[P.Frame.Actual][page][ic]=D.Bank[ib][ic+(P.Flow.Slot0+is)*P.Chann.Num];
+			for(int ic=0;ic<P.Chann.Num;ic++) {
+				D.Data[P.Frame.Actual][page][ic]=D.Bank[ib][ic+(P.Flow.Slot0+is)*P.Chann.Num];
+				printf("%d;",D.Data[P.Frame.Actual][page][ic]);
+				}
+				printf("\n");
 			}
 	P.Flow.Slot0+=num_slot;
 	P.Flow.Page0+=num_slot;
@@ -2961,7 +2986,7 @@ void StartFlow(void){
 	P.Flow.Page0=0;
 	P.Flow.Slot0=0;
 	for (ib=0;ib<P.Num.Board;ib++){
-		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank);
+		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank); // fa la stessa cosa in initflow (a)
 		if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:MEM_BANK");
 	    ret=SPC_start_measurement(ib);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_start_measurement");
@@ -2985,7 +3010,7 @@ void InitFlow(void){
 	mem_bank=spc_dat.mem_bank;	  // NOTE: taken from last SPC module
 	ret=SPC_enable_sequencer(SPC_ALL,1); // 1 or 2
 	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_enable_sequencer");
-	ret=SPC_set_parameter(SPC_ALL, TRIGGER, 0x302); // trigger each curve
+	ret=SPC_set_parameter(SPC_ALL, TRIGGER, 0x302); // trigger each curve, trigger high
 	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:TRIGGER");
 	for(ib=0;ib<SPC_NUM_BANK;ib++){
 		SpcClear();
@@ -11076,7 +11101,7 @@ void KernelMoxy(void){
 
 
 
-// INITIALIZE CONTINUOUS FLOW
+// INITIALIZE CONTINUOUS FLOW (MOXY)
 void InitBank(void){
 	int ib,ibb;
 	SPCdata spc_dat;

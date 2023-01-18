@@ -2279,6 +2279,7 @@ void ClearSpcm(void);
 
 void SpcFlow(char Status);
 void WaitFlow(void);
+void CheckTriggerFlow(void);
 void GetFlow(void);
 void CopyFlow(void);
 void StartFlow(void);
