@@ -2277,6 +2277,7 @@ void GetDataSpcm(void);
 void CloseSpcm(void);
 void ClearSpcm(void);
 
+void test_sequencer_state(void);
 void SpcFlow(char Status);
 void WaitFlow(void);
 void CheckTriggerFlow(void);

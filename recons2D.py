@@ -118,35 +118,46 @@ def reconstructHad2D(data, nBasis, zoom, xcp, ycp, saveFigures = False, cs = Fal
 		yul = HEIGHT-reHEIGHT
 	if yul<0:
 		yul = 0
+	#np.savetxt("pysupport.txt",data,fmt="%u",delimiter=";")
 	measure = np.sum(data,axis=1)
+	#plt.imshow(data, aspect='auto')
+	#plt.show()
+	#plt.pause(0.01)
+	#for i in range(nBasis):
+	#	plt.plot(data[i])
+	#plt.show()
 	if cs:
 		H = cake_cutting(nBasis)
 	else:
 		H = 0.5*(hadamard(nBasis) + np.ones((nBasis, nBasis)))
 	recons2 = lsmr(H, measure)[0]
+	recons2[0] = recons2[0]/nBasis # problem of first basis which is always one
 	recons2back = Image.fromarray(np.zeros([HEIGHT,WIDTH]))
 	recons2im = Image.fromarray(np.transpose(np.reshape(recons2,(sqNb,sqNb))))
 	recons2imresized = recons2im.resize((reWIDTH,reHEIGHT), resample=Image.Resampling.NEAREST)
 	#recons2imresizedr = recons2imresized.rotate(45) # rotate the image
 	#plt.figure()
 	plt.imshow(np.array(recons2imresized), aspect="equal")
-	#plt.pause(0.1)
+	#ax.draw()
 	#plt.show()
 	#plt.colorbar()
-	#plt.title("recons only in region")
+	plt.title("recons only in region")
+	plt.show()
+	plt.pause(0.01)
 	#if saveFigures:
 	#	plt.savefig(name+".png")
 	#plt.show(block=False)
 	#plt.pause(1)
 	#plt.close()
 	#print("max:", np.max(np.array(recons2imresized)))
-	#recons2back.paste(recons2imresized,(xul,yul))
+	##recons2back.paste(recons2imresized,(xul,yul))
 	#recons2backr = recons2back.rotate(45) # rotate the image
-	#plt.imshow(np.array(recons2back), aspect="equal")
-	#plt.title('recons zone on dmd')
+	##plt.imshow(np.array(recons2back), aspect="equal")
+	##plt.colorbar()
+	##plt.title('recons zone on dmd')
 	#if saveFigures:
 	#	plt.savefig(name+"_dmd.png")
-	#plt.show()
+	##plt.show(block=True)
 		
 def createFigure():
 	plt.ion()

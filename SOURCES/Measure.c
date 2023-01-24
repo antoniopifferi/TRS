@@ -119,6 +119,8 @@
 
 /* ########################   MEASURE PROCEDURES   ########################### */
 
+//unsigned short provaData[1][16][4096];
+
 
 /* TEST ANALYSIS ON PYTHON */
 
@@ -197,6 +199,73 @@ void CloseFigPy(void){
 	
 }
 
+void ReconsPy_new(int*** data){
+
+	PyObject *pyModule;
+	PyObject *pyArgs;
+	PyObject *pyRecons2D;
+	PyObject *pyArray, *pyNBasis, *pyZoom, *pyxcp, *pyycp;
+	PyObject *pyRes;
+	FILE * f;
+	f = fopen("support2.txt","w");
+	
+	if(PyArray_API==NULL) import_array();
+	npy_intp dataDim[3]; // D.Data[P.Frame.Actual][page][ic] // not sure dimensions
+	dataDim[0] = 1;
+	dataDim[1] = 5;
+	dataDim[2] = 6;
+	
+	pyModule = PyImport_ImportModule("recons2D");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyRecons2D = PyObject_GetAttrString(pyModule,"reconstructHad2D");
+	if(pyRecons2D==NULL || !PyCallable_Check(pyRecons2D)) pyErrHandler("ImportFunction: pyRecons2D","Function not found or not callable");
+	
+	for(int ib=0;ib<5;ib++){
+		for(int ic=0;ic<6;ic++) {
+			fprintf(f,"%d;",data[0][ib][ic]);
+			if(ic == 6-1) fprintf(f,"%d\n",data[0][ib][ic]); 
+			}
+		}
+	fclose(f);
+	
+	pyArray = PyArray_SimpleNewFromData(3,dataDim,NPY_INT,data); 
+	/*
+	pyNBasis = PyLong_FromLong(DmdTxInfo.nBasis);
+	pyZoom = PyLong_FromLong(DmdTxInfo.zoom);
+	pyxcp = PyLong_FromLong(DmdTxInfo.xC);
+	pyycp = PyLong_FromLong(DmdTxInfo.yC);
+	*/
+	 
+	pyNBasis = PyLong_FromLong(16);
+	pyZoom = PyLong_FromLong(1);
+	pyxcp = PyLong_FromLong(540);
+	pyycp = PyLong_FromLong(960);
+	
+	pyArgs = PyTuple_New(5);
+	PyTuple_SetItem(pyArgs,0,pyArray);
+	PyTuple_SetItem(pyArgs,1,pyNBasis);
+	PyTuple_SetItem(pyArgs,2,pyZoom);
+	PyTuple_SetItem(pyArgs,3,pyxcp);
+	PyTuple_SetItem(pyArgs,4,pyycp);
+	
+	pyRes = PyObject_CallObject(pyRecons2D,pyArgs);
+	if(pyRes==NULL){
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		//pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
+		pval2 = PyUnicode_AsASCIIString(pval);
+		//if(pval2 == NULL) pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
+		if(pval2 == NULL){
+			pyErrHandler("CallObject: recons2D","Generic Error");
+			return;
+		}
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: recons2D",pStrErrMsg);
+	}
+	
+}
+
+
 void ReconsPy(void){
 
 	PyObject *pyModule;
@@ -204,11 +273,13 @@ void ReconsPy(void){
 	PyObject *pyRecons2D;
 	PyObject *pyArray, *pyNBasis, *pyZoom, *pyxcp, *pyycp;
 	PyObject *pyRes;
+	//FILE * f;
+	//f = fopen("support2.txt","w");
+	//unsigned short provaData[16][4096];
 	
-	if(PyArray_API==NULL) import_array();
-	long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,P.Num.Page-P.Flow.Page0);
+	//if(PyArray_API==NULL) import_array();
 	npy_intp dataDim[2]; // D.Data[P.Frame.Actual][page][ic] // not sure dimensions
-	dataDim[0] = num_slot;
+	dataDim[0] = P.Flow.NumSlot;
 	dataDim[1] = P.Chann.Num;
 	
 	pyModule = PyImport_ImportModule("recons2D");
@@ -216,7 +287,28 @@ void ReconsPy(void){
 	pyRecons2D = PyObject_GetAttrString(pyModule,"reconstructHad2D");
 	if(pyRecons2D==NULL || !PyCallable_Check(pyRecons2D)) pyErrHandler("ImportFunction: pyRecons2D","Function not found or not callable");
 	
-	pyArray = PyArray_SimpleNewFromData(2,dataDim,NPY_INT,D.Data[P.Frame.Actual]);  // non passa bene i dati
+	/*
+	for(int i=0;i<16;i++)
+		for(int j=0;j<4096;j++) provaData[i][j] = D.Data[P.Frame.Actual][i][j];
+	*/
+	/*
+	for(int ib=0;ib<P.Flow.NumSlot;ib++){
+		for(int ic=0;ic<P.Chann.Num;ic++) {
+			fprintf(f,"%d;",D.Data[P.Frame.Actual][ib][ic]);
+			if(ic == P.Chann.Num-1) fprintf(f,"%d\n",D.Data[P.Frame.Actual][ib][ic]); 
+			}
+		}
+	fclose(f);
+	*/
+	
+	//pyArray = PyArray_SimpleNewFromData(2,dataDim,NPY_USHORT,provaData); // not working with 2d array created with malloc 
+	pyArray = PyArray_SimpleNew(2,dataDim,NPY_USHORT);
+	unsigned short *p = (unsigned short*)PyArray_DATA(pyArray);
+	for(int k=0;k<dataDim[0];k++){
+		memcpy(p,D.Data[P.Frame.Actual][k],sizeof(unsigned short)*dataDim[1]);
+		p += dataDim[1];
+	}
+	
 	pyNBasis = PyLong_FromLong(DmdTxInfo.nBasis);
 	pyZoom = PyLong_FromLong(DmdTxInfo.zoom);
 	pyxcp = PyLong_FromLong(DmdTxInfo.xC);
@@ -233,8 +325,13 @@ void ReconsPy(void){
 	if(pyRes==NULL){
 		PyObject *ptype, *pval, *pval2, *ptraceback;
 		PyErr_Fetch(&ptype, &pval, &ptraceback);
-		//pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
+		//pval2 = PyUnicode_AsEncodedString(pval,"utf-8","strict");
 		pval2 = PyUnicode_AsASCIIString(pval);
+		if(pval2 == NULL) pval2 = PyUnicode_AsEncodedString(pval,"utf-8","strict");
+		if(pval2 == NULL){
+			pyErrHandler("CallObject: recons2D","Generic Error");
+			return;
+		}
 		char *pStrErrMsg = PyBytes_AsString(pval2);
 		pyErrHandler("CallObject: recons2D",pStrErrMsg);
 	}
@@ -282,8 +379,11 @@ int TestPython(){
     // create array
     if (PyArray_API == NULL) import_array(); // to be called before using Numpy/C array API
     int data[2][5] = {{1,3,6,2,0}, {9,6,3,0,1}};
+	int** dataM;
+	dataM = (int**)calloc(2,sizeof(int*));
+	for(int x=0; x<2; x++) dataM[x] = (int)calloc(5,sizeof(int));
     npy_intp dims[2] = {2,5}; // dimension of the array
-    pArray = PyArray_SimpleNewFromData(2, dims, NPY_INT, data);
+    pArray = PyArray_SimpleNewFromData(2, dims, NPY_INT, dataM);
 
 
     // create tuple to be passed to functions
@@ -441,7 +541,23 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 		InitMem();
 		
 		InitPython(); // Python
+		if(PyArray_API==NULL) import_array(); // Python: Init Numpy
 		CreateFigPy(); // Python
+		
+		//int ***test;
+		//int i2, i1;
+		//test=DAlloc3D(1,5,6);
+		/*
+		test=(int***)calloc(1,sizeof(int**));
+		for(i1=0;i1<1;i1++){
+			test[i1]=(int**)calloc(5,sizeof(int*));
+			for(i2=0;i2<5;i2++){
+				test[i1][i2]=(int*)calloc(6,sizeof(int));
+				}
+			}
+		*/
+		//ReconsPy_new(test);
+		//TestPython();
 		
 		for(isw=0;isw<MAX_SWITCH;isw++)
 			if(P.Switch[isw].Switch){
@@ -1031,7 +1147,8 @@ void InitMem(void){
 	if(P.Moxy.Moxy) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Flow.Flow) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Info.SubHeader) D.Sub=SAlloc2D(P.Frame.Num,P.Num.Page);
-	D.Data=DAlloc3D(P.Frame.Num,P.Num.Page,P.Chann.Num); 
+	D.Data=DAlloc3D(P.Frame.Num,P.Num.Page,P.Chann.Num);
+	
 	Passed();
 	}
 
@@ -1060,7 +1177,7 @@ void CompleteParmS(void){
     
 	// FLOW UIR - TO REPLACE AFTER
 	P.Flow.Flow=TRUE;
-	P.Flow.NumSlot=16;
+	P.Flow.NumSlot=256;
 	
 	
    	// Presentation
@@ -2820,7 +2937,7 @@ void InitSpcm(int Board){
 	} 
 
 
-/* INIT SPCM */	
+/* CLOSE SPCM */	
 void CloseSpcm(void){
 	short ret;
 	if(P.Moxy.Moxy || P.Flow.Flow){
@@ -2852,7 +2969,7 @@ void GetDataSpcm(void){
 /* CLEAR SPCM */	
 void ClearSpcm(void){
 	short ret;
-	if(P.Moxy.Moxy) ret=SPC_fill_memory(-1,-1,-1,0); 
+	if(P.Moxy.Moxy || P.Flow.Flow) ret=SPC_fill_memory(-1,-1,-1,0); 
 	else ret=SPC_fill_memory(-1,-1,0,0); 
 	if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_fill_memory");
 	ret=test_fill_state();
@@ -2879,36 +2996,75 @@ short test_fill_state(void){
 	return 0;  
 	}
 	
+// TEST SEQUENCER STATE
+void test_sequencer_state(void){
+	short ret,state;
+	int ib;
+	for(ib=0;ib<P.Num.Board;ib++){
+		ret=SPC_get_sequencer_state(ib,&state);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"test_sequencer_state:SPC_get_sequencer_state");
+		if((state & SPC_SEQ_ENABLE) == SPC_SEQ_ENABLE) printf("SEQUENCER ENABLED\n");
+		if((state & SPC_SEQ_RUNNING) == SPC_SEQ_RUNNING) printf("SEQUENCER RUNNING\n");
+		if((state & SPC_SEQ_GAP_BANK) == SPC_SEQ_GAP_BANK) printf("SEQUENCER WAITING OTHER BANK\n");
+		}
+	}
+	
 	
 /* Wait for Bank, transfer and copy data */
 void SpcFlow(char Status){
 	//TODO: Status? display something?
+
+	short ret,ib;
+	
+	DmdTx_startSequence(DmdTx.handle);
+	
 	do{
-		if(P.Flow.EmptyBank){
-			WaitFlow();
-			GetFlow();
-			}
+		//if(P.Flow.EmptyBank){
+		//	WaitFlow();
+		//	GetFlow();
+		//	}
+		WaitFlow();
+		GetFlow();
+		//if(P.Flow.Page0<P.Flow.NumSlot){
+			// 2 banks filled, the measurement needs restart
+		//	for(ib=0;ib<P.Num.Board;ib++){	
+		//		ret = SPC_start_measurement(ib); /*prova spc 2*/
+		//		if(ret<0) ErrHandler(ERR_SPC,ret,"SpcFlow:SPC_start_measurement"); /*prova spc 2*/
+		//		}
+		//	}
 		CopyFlow();
 		}
 	while(!P.Flow.FilledFrame);
+	
 	}
 
 // WAIT FOR FILLED BANK
 void WaitFlow(void){
-	int ib;
+	int ib, waitTrg, nTrg;
+	waitTrg = 1;
+	nTrg = 1;
 	short ret,finished,spc_state,mod_state[MAX_BOARD];
+	finished=0;
 	do{
 		spc_state=0;
 		for (ib=0;ib<P.Num.Board;ib++){
 			ret=SPC_test_state(ib,&mod_state[ib]);
-			if(ret<0) ErrHandler(ERR_SPC,ret,"WaitBank:SPC_test_state");
+			if(ret<0) ErrHandler(ERR_SPC,ret,"WaitFlow:SPC_test_state");
 			spc_state |= mod_state[ib];
 			}
 	    finished = ((spc_state & SPC_ARMED) == 0);
-		if((spc_state & SPC_WAIT_TRG) == SPC_WAIT_TRG) printf("SPC waiting for trigger\n");
-		if((spc_state & SPC_WAIT_TRG) == 0) printf("TRIGGER RECEIVED\n");
+		//if(((spc_state & SPC_WAIT_TRG) == SPC_WAIT_TRG) && waitTrg){ // not sure this works correctly
+			//printf("SPC waiting for trigger\n");
+			//waitTrg = 0;
+			//}
+		//if((spc_state & SPC_WAIT_TRG) == 0 /*&& !waitTrg*/){
+			//printf("TRIGGER RECEIVED %d\n", nTrg);
+			//waitTrg = 1;
+			//nTrg++;
+			//}
 		}
 	while(!finished);
+	//test_sequencer_state();
 	}
 
 // CHECK TRIGGER
@@ -2919,7 +3075,7 @@ void CheckTriggerFlow(void){
 		spc_state=0;
 		for (ib=0;ib<P.Num.Board;ib++){
 			ret=SPC_test_state(ib,&mod_state[ib]);
-			if(ret<0) ErrHandler(ERR_SPC,ret,"WaitBank:SPC_test_state");
+			if(ret<0) ErrHandler(ERR_SPC,ret,"CheckTrigger:SPC_test_state");
 			spc_state |= mod_state[ib];
 			}
 	    //ver = ((spc_state & SPC_WAIT_TRG) == 0);
@@ -2935,15 +3091,28 @@ void GetFlow(void){
 	short ret,state;
 	P.Spc.Overflow=FALSE;
 	for (ib=0;ib<P.Num.Board;ib++){
+		
 		ret=SPC_test_state(ib,&state);
-		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_test_state");
+		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_test_state");
 		P.Spc.Overflow|=(state & SPC_OVERFLOW);
 		ret=SPC_read_data_page(ib,0,(int)(SPC_BANK_DIM/P.Chann.Num)-1,D.Bank[ib]);
-		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_read_data_page");
+		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_read_data_page");
+		
+		SPC_fill_memory(ib,-1,-1,0); /*prova spc 2*/
+		ret=test_fill_state(); /*prova spc 2*/
+		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:test_fill_state"); /*prova spc 2*/
+		
+		ret = SPC_start_measurement(ib); /*prova spc 2*/
+		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_start_measurement"); /*prova spc 2*/
+		
+		//if((state & SPC_SEQ_GAP) == SPC_SEQ_GAP) SPC_start_measurement(ib);
+
 		}
 	P.Flow.Bank=P.Flow.Bank?0:1;
 	ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank);
-	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:MEM_BANK");
+	if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_set_parameter:MEM_BANK");
+	
+	
 	P.Flow.EmptyBank=FALSE;
 	}
 
@@ -2951,7 +3120,10 @@ void GetFlow(void){
 /* COPY FLOW TO DATA */
 void CopyFlow(void){
 	// Initialise @StartFlow: Chan0,Slot0,EmptyBank=TRUE,FilledBuffer=FALSE;
-	long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,P.Num.Page-P.Flow.Page0); // calc min num of slot(i.e. curves) either in Bank or in Frame
+	//FILE * Supp; /**/
+	//Supp = fopen("support.txt","w"); /**/
+	//long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,P.Num.Page-P.Flow.Page0); // calc min num of slot(i.e. curves) either in Bank or in Frame
+	long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,(int)(SPC_BANK_DIM/P.Chann.Num));
 	for(int ib=0;ib<P.Num.Board;ib++)
 		for(int is=0;is<num_slot;is++){	// iterate over Slots (i.e. curves) both on det and buffer
 			long page=P.Filter.Page[P.Acq.Actual][ib][is+P.Flow.Page0]; // last [] is the page num
@@ -2959,9 +3131,10 @@ void CopyFlow(void){
 			P.Page[page].Acq=P.Acq.Actual;
 			for(int ic=0;ic<P.Chann.Num;ic++) {
 				D.Data[P.Frame.Actual][page][ic]=D.Bank[ib][ic+(P.Flow.Slot0+is)*P.Chann.Num];
-				printf("%d;",D.Data[P.Frame.Actual][page][ic]);
+				//D.Data[P.Frame.Actual][page][ic]=10;
+				//fprintf(Supp,"%hu;",D.Data[P.Frame.Actual][page][ic]); /**/
+				//if(ic == P.Chann.Num-1) fprintf(Supp,"%hu\n",D.Data[P.Frame.Actual][ib][ic]); /**/
 				}
-				printf("\n");
 			}
 	P.Flow.Slot0+=num_slot;
 	P.Flow.Page0+=num_slot;
@@ -2973,6 +3146,7 @@ void CopyFlow(void){
 		P.Flow.Page0=0;
 		P.Flow.FilledFrame=TRUE;
 		}
+	//fclose(Supp);
 	}
 
 /* START FLOW */
@@ -2987,15 +3161,22 @@ void StartFlow(void){
 	P.Flow.Slot0=0;
 	for (ib=0;ib<P.Num.Board;ib++){
 		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank); // fa la stessa cosa in initflow (a)
-		if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:MEM_BANK");
+		if(ret<0) ErrHandler(ERR_SPC,ret,"StartFlow:SPC_set_parameter:MEM_BANK");
 	    ret=SPC_start_measurement(ib);
-		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_start_measurement");
+		if(ret<0) ErrHandler(ERR_SPC,ret,"StartFlow:SPC_start_measurement");
+		//test_sequencer_state();
 		}
 	}
 
 /* STOP FLOW */
 void StopFlow(void){
+	short ib,ret;
+	DmdTx_stopSequence(DmdTx.handle);
+	for (ib=0;ib<P.Num.Board;ib++){
+		ret = SPC_stop_measurement(ib); // sequencer is stopped -> reconstruction
+		if(ret<0) ErrHandler(ERR_SPC,ret,"StopFlow:SPC_stop_measurement");
 	}
+}
 
 	
 // INITIALIZE CONTINUOUS FLOW
@@ -3005,21 +3186,22 @@ void InitFlow(void){
 	short mem_bank,ret;
 	for(ibb=0;ibb<P.Num.Board;ibb++){
 		ret=SPC_get_parameters(ibb,&spc_dat);
-		if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_get_parameters");
+		if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_get_parameters");
 		}
 	mem_bank=spc_dat.mem_bank;	  // NOTE: taken from last SPC module
-	ret=SPC_enable_sequencer(SPC_ALL,1); // 1 or 2
-	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_enable_sequencer");
+	ret=SPC_enable_sequencer(SPC_ALL,1); // 1 or 2 (1 -> SPC_ARMED untill all banks are full; 2 -> SPC_ARMED only for one bank (probelms in changing bank))
+	if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_enable_sequencer");
 	ret=SPC_set_parameter(SPC_ALL, TRIGGER, 0x302); // trigger each curve, trigger high
 	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:TRIGGER");
 	for(ib=0;ib<SPC_NUM_BANK;ib++){
 		SpcClear();
 		mem_bank=mem_bank?0:1;
-		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,mem_bank);
-		if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:MEM_BANK");
+		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,mem_bank); // (a)
+		if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_parameter:MEM_BANK");
 		}
 	ret=SPC_set_page(SPC_ALL,0);
-	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_page");
+	if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_page");
+	//test_sequencer_state();
 	}
 
 
@@ -7309,10 +7491,10 @@ void writePatternsOnFile(const int nEl, unsigned char ***basis){
 }
 
 // questa funzione è qui perchè non inclusa nella dll di getbasis
-int DmdTx_minimum(const int a, const int b){
-	if(a>b) return b;
-	else return a;
-}
+//int DmdTx_minimum(const int a, const int b){
+//	if(a>b) return b;
+//	else return a;
+//}
 
 /* INITIALIZE DMDTX */
 
@@ -7325,19 +7507,21 @@ void InitDmdTx(char Step){
 	// code here
 	// initDmd (hidapi init, getbasis and load basis on dmd)
 	
+	int numeroBasi = 256;
+	
 	DmdTxInfo.RasterOrHadamard = 10; //info.RasterOrHadamard;
-	DmdTxInfo.nBasis = 16; //info.nBasis;
-	DmdTxInfo.nMeas = 16; //info.nMeas;
+	DmdTxInfo.nBasis = numeroBasi; //info.nBasis;
+	DmdTxInfo.nMeas = numeroBasi; //info.nMeas;
 	DmdTxInfo.startPosition = 0; //info.startPosition;
-	DmdTxInfo.exp = 500000; //info.exp; // us
+	DmdTxInfo.exp = 15000; //info.exp; // us
 	DmdTxInfo.dark_time = 1000; //info.dark_time; // 1000 = 1ms -> check that spc does not miss the trigger
 	DmdTxInfo.repeat = 1; //info.repeat;
 	DmdTxInfo.compress = 0; //info.compress;
-	DmdTxInfo.sizeBatch = 16; //info.sizeBatch;
+	DmdTxInfo.sizeBatch = numeroBasi; //info.sizeBatch;
 	DmdTxInfo.previousPos = 0; //info.previousPos;
-	DmdTxInfo.zoom = 1; //info.zoom;
-	DmdTxInfo.xC = 540; //info.xC;
-	DmdTxInfo.yC = 960; //info.yC;
+	DmdTxInfo.zoom = 4; //info.zoom;
+	DmdTxInfo.xC = 650; //info.xC;
+	DmdTxInfo.yC = 500; //info.yC;
 	
 	//dmd_setup(info);
 	
@@ -7531,6 +7715,7 @@ void InitDmdTx(char Step){
 	}
 	
 	// After the pattern is loaded on the DMD we can free the local variables containing the pattern
+	// DA SISTEMARE: CVI NON RICONOSCE MALLOC FATTO NELLA DLL -> INSERIRE QUESTO FREE NELLA DLL
 	for (q = 0; q < DmdTx.szPattern; q++){
 		free(DmdTx.pattern[q].defPatterns);  
 		for(k = 0; k<DmdTx.pattern[q].numOfBatches; k++){
@@ -7548,7 +7733,7 @@ void InitDmdTx(char Step){
 	}
 	free(DmdTx.pattern);
 	
-	DmdTx_startSequence(DmdTx.handle);
+	//DmdTx_startSequence(DmdTx.handle);
 	
 	
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
@@ -7561,8 +7746,9 @@ void CloseDmdTx(char Step){
 	// code here
 	// deallocate memory of dmd variables if used and hidapi close
 	// close communication with DMD
-	//hid_close(dmd.handle);
-	//hid_exit();
+	DmdTx_stopSequence(DmdTx.handle);
+	hid_close(DmdTx.handle);
+	hid_exit();
 	
 	}
 
