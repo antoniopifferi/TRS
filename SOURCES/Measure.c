@@ -271,7 +271,7 @@ void ReconsPy(void){
 	PyObject *pyModule;
 	PyObject *pyArgs;
 	PyObject *pyRecons2D;
-	PyObject *pyArray, *pyNBasis, *pyZoom, *pyxcp, *pyycp;
+	PyObject *pyArray, *pyNBasis, *pyZoom, *pyxcp, *pyycp, *pyCs;
 	PyObject *pyRes;
 	//FILE * f;
 	//f = fopen("support2.txt","w");
@@ -313,13 +313,15 @@ void ReconsPy(void){
 	pyZoom = PyLong_FromLong(DmdTxInfo.zoom);
 	pyxcp = PyLong_FromLong(DmdTxInfo.xC);
 	pyycp = PyLong_FromLong(DmdTxInfo.yC);
+	pyCs = PyLong_FromLong(DmdTxInfo.csMode);
 	
-	pyArgs = PyTuple_New(5);
+	pyArgs = PyTuple_New(6);
 	PyTuple_SetItem(pyArgs,0,pyArray);
 	PyTuple_SetItem(pyArgs,1,pyNBasis);
 	PyTuple_SetItem(pyArgs,2,pyZoom);
 	PyTuple_SetItem(pyArgs,3,pyxcp);
 	PyTuple_SetItem(pyArgs,4,pyycp);
+	PyTuple_SetItem(pyArgs,5,pyCs);
 	
 	pyRes = PyObject_CallObject(pyRecons2D,pyArgs);
 	if(pyRes==NULL){
@@ -1899,7 +1901,7 @@ void InitFilter(void){
 				for(is=0;is<P.Flow.NumSlot;is++)
 					for(id=0;id<P.Num.Det;id++){
 						page=ia*P.Num.Board*P.Flow.NumSlot*P.Num.Det+ib*P.Flow.NumSlot*P.Num.Det+is*P.Num.Det+id;
-						P.Filter.Page[ia][ib][id+is*P.Num.Det]=page;
+						P.Filter.Page[ia][ib][id+is*P.Num.Det]=page; //sistemare qui: array troppo piccolo per 256
 						P.Page[page].Source=0;
 						P.Page[page].Fiber=ib*P.Num.Det+id;
 						P.Page[page].Board=ib; 
@@ -7513,15 +7515,16 @@ void InitDmdTx(char Step){
 	DmdTxInfo.nBasis = numeroBasi; //info.nBasis;
 	DmdTxInfo.nMeas = numeroBasi; //info.nMeas;
 	DmdTxInfo.startPosition = 0; //info.startPosition;
-	DmdTxInfo.exp = 15000; //info.exp; // us
+	DmdTxInfo.exp = 4000; //info.exp; // us
 	DmdTxInfo.dark_time = 1000; //info.dark_time; // 1000 = 1ms -> check that spc does not miss the trigger
 	DmdTxInfo.repeat = 1; //info.repeat;
 	DmdTxInfo.compress = 0; //info.compress;
 	DmdTxInfo.sizeBatch = numeroBasi; //info.sizeBatch;
 	DmdTxInfo.previousPos = 0; //info.previousPos;
-	DmdTxInfo.zoom = 4; //info.zoom;
-	DmdTxInfo.xC = 650; //info.xC;
-	DmdTxInfo.yC = 500; //info.yC;
+	DmdTxInfo.zoom = 20; //info.zoom;
+	DmdTxInfo.xC = 820; //info.xC; //(960) centro del dmd
+	DmdTxInfo.yC = 520; //info.yC; //(540)
+	DmdTxInfo.csMode = 0; //cake-cutting
 	
 	//dmd_setup(info);
 	
@@ -7573,6 +7576,8 @@ void InitDmdTx(char Step){
 	int zoom = DmdTxInfo.zoom;
 	int xC = DmdTxInfo.xC; // long side
 	int yC = DmdTxInfo.yC; // short side
+	int csMode = DmdTxInfo.csMode;
+	
 	int offset_ = offset(startPosition, nBasis, previousPos)/nBasis; // ??
 	int nSet = DmdTx_celing(nMeas, sizeBatch);
 	DmdTx.szPattern = nSet;
@@ -7593,7 +7598,7 @@ void InitDmdTx(char Step){
 		nEl = DmdTx_minimum(sizeBatch, nMeas-q*sizeBatch); // it's the number of images in the current batch
 		// allocate of memory
 		
-		DmdTx_allocatePattern(&(DmdTx.pattern[q]), nEl); // problems with p
+		DmdTx_allocatePattern(&(DmdTx.pattern[q]), nEl); 
 		//allocatePattern_dmd(&patt, nEl);
 		//dmd.pattern[q].nEl = nEl;
 		//dmd.pattern[q].defPatterns = (unsigned char(*)[12])malloc(nEl*sizeof(unsigned char[12]));
@@ -7632,7 +7637,7 @@ void InitDmdTx(char Step){
 		idx = (int* )malloc((nB)*sizeof(int)); // index of the first element inside the batch
 		for(i=0; i<nB; i++)
 			idx[i] = q*sizeBatch + i + offset_;
-		DmdTx_getBasis(RasterOrHadamard, nBasis, idx, nB, compress, zoom, xC, yC, basis); // generation of pattern
+		DmdTx_getBasis(RasterOrHadamard, nBasis, idx, nB, compress, zoom, xC, yC, csMode, basis); // generation of pattern
 		free(idx);
 		
 		printf("\n");
@@ -7716,6 +7721,7 @@ void InitDmdTx(char Step){
 	
 	// After the pattern is loaded on the DMD we can free the local variables containing the pattern
 	// DA SISTEMARE: CVI NON RICONOSCE MALLOC FATTO NELLA DLL -> INSERIRE QUESTO FREE NELLA DLL
+	/*
 	for (q = 0; q < DmdTx.szPattern; q++){
 		free(DmdTx.pattern[q].defPatterns);  
 		for(k = 0; k<DmdTx.pattern[q].numOfBatches; k++){
@@ -7731,6 +7737,8 @@ void InitDmdTx(char Step){
 		free(DmdTx.pattern[q].packNum);
 		free(DmdTx.pattern[q].exposure);
 	}
+	*/
+	DmdTx_deallocate(&DmdTx);
 	free(DmdTx.pattern);
 	
 	//DmdTx_startSequence(DmdTx.handle);

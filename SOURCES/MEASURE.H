@@ -1047,6 +1047,7 @@ struct InfoDmd{
 	int zoom;
 	int xC;
 	int yC;
+	int csMode;
 };
 
 struct FileS {
