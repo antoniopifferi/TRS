@@ -1,12 +1,12 @@
 #import sdtfile
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib as mpl
+#import matplotlib as mpl
 from PIL import Image
 from scipy.sparse.linalg import lsmr
 from scipy.linalg import hadamard
 #from transformMatrix import transformMatrix
-#from hadamardOrdering import cake_cutting
+from hadamardOrdering import cake_cutting
 
 #def readSdt(fileName, numBanks):
 #	data = []
@@ -33,24 +33,24 @@ from scipy.linalg import hadamard
 #			data.append(sdt.data[0][j,:])
 #  	return (time,data)
 
-def readDat(filename, n_curves, gain, NUMCHAN = 4096):	   
-	   # bisogna definire come sarà il file .dat (quanti loop ci sono)
-       HEADLEN = 764
-       SUBLEN = 204
-       T = 50 # ns (dipende dalla SPC board)
-       data = []
-       with open(filename,'rb') as data:
-           header = data.read(HEADLEN)   
-       for _ in range(n_curves):
-           subheader = data.read(SUBLEN)
-           res=[]
-           for _ in range(NUMCHAN):
-               value = np.fromfile(data,dtype='H',count=NUMCHAN)
-               res.append(value)
-       data.append(np.array(res))
-       dt = T/NUMCHAN/gain*10**3 # ps
-       time = np.arange(0,dt*NUMCHAN,step=dt)
-       return (time,data)
+# def readDat(filename, n_curves, n_rep, gain, NUMCHAN):	   
+	# # bisogna definire come sarà il file .dat (quanti loop ci sono)
+    # HEADLEN = 764
+    # SUBLEN = 204
+    # T = 50 # ns (dipende dalla SPC board)
+    # data = []
+    # with open(filename+'.dat','rb') as rawdata:
+	    # header = rawdata.read(HEADLEN)
+	    # res=[]
+	    # for _ in range(n_rep):
+			# for _ in range(n_curves):
+				# subheader = rawdata.read(SUBLEN)      
+				# value = np.fromfile(rawdata,dtype='H',count=NUMCHAN)
+				# res.append(value)
+	    # data = np.array(res)
+    # dt = T/NUMCHAN/gain*10**3 # ps
+    # time = np.arange(0,dt*NUMCHAN,step=dt)
+    # return (time,data)
 
 def plotData(time, data, name, startGate, endGate, saveFigures = False):
 	plt.pcolormesh(data)
@@ -83,26 +83,70 @@ def subtractBkg(data, start, end):
 	for k in range(datLen):
 		averageBkg[k] = np.mean(data[k][start:end]) 
 		data[k] -= averageBkg[k]
-	return data	
+	return data
 
-# va considerato che sono 1 e -1
-def reconstructHadamard(data, nBasis, ADCres, cs = False):
-	dataNp = np.zeros((len(data),ADCres)) # non nMeas perchè voglio dim uguali per la ricostruzione. Impongo però basi non misurate a 0
-	i = 0
-	for el in data:
-		dataNp[i,:] = el 
-		i+=1 
+def reconstructRaster(data, nMeas, ADCres, startGate, endGate, saveFigures = False): 
+	H = np.eye(nMeas)
+	recons = np.zeros((nMeas,ADCres))   
+	for i in range(ADCres):
+		recons[:,i] = lsmr(H, data[:,i])[0]
+	recons[0] = recons[1] # per eliminare il segnale della base sempre 1
+	fig, ax = plt.subplots(1,2)
+	ax[0].pcolormesh(recons)
+	ax[0].set_title("Spectrum vs Time")
+	ax[0].axvline(startGate,ymin=0,ymax=1,color='r')
+	ax[0].axvline(endGate,ymin=0,ymax=1,color='r')
+	if saveFigures:
+		plt.savefig(name+".jpg")
+	ax[1].plot(np.sum(recons[:,startGate:endGate], axis = 1))
+	ax[1].set_title("Spectrum")
+	if saveFigures:
+		plt.savefig(name+"linear.jpg")
+	plt.show()
+	plt.pause(0.001)
+
+def reconstructHad1D(data, nBasis, ADCres, startGate, endGate, cs = False, saveFigures = False):
+	#dataNp = np.zeros((len(data),ADCres)) # non nMeas perchè voglio dim uguali per la ricostruzione. Impongo però basi non misurate a 0
+	#i = 0
+	#for el in data:
+	#	dataNp[i,:] = el 
+	#	i+=1 
 	if cs:
-		H = cake_cutting(nBasis)
+		H = cake_cutting(nBasis, False)
 	else:
 		H = 0.5*(hadamard(nBasis) + np.ones((nBasis, nBasis)))
 	H = H[:len(data),:] # data è 2D
 	recons = np.zeros((nBasis,ADCres))   
 	for i in range(ADCres):
-		recons[:,i] = lsmr(H, dataNp[:,i])[0] # spero ordine corretto
-	return recons
+		#recons[:,i] = lsmr(H, dataNp[:,i])[0]
+		recons[:,i] = lsmr(H, data[:,i])[0]
+	recons[0] = recons[1] # per eliminare il segnale della base sempre = a 1
+	# fig, ax = plt.subplots(1,2)
+	# ax[0].pcolormesh(recons)
+	# ax[0].set_title("Spectrum vs Time")
+	# ax[0].axvline(startGate,ymin=0,ymax=1,color='r')
+	# ax[0].axvline(endGate,ymin=0,ymax=1,color='r')
+	# if saveFigures:
+		# plt.savefig(name+".jpg")
+	# ax[1].plot(np.sum(data[:,startGate:endGate], axis = 1))
+	# ax[1].set_title("Spectrum")
+	# if saveFigures:
+		# plt.savefig(name+"linear.jpg")
+	#plt.draw()
+	#plt.show()
+	#plt.pause()
+	#plt.close()
 
 def reconstructHad2D(data, nBasis, zoom, xcp, ycp, saveFigures = False, cs = False):
+
+        #bisogna aggiungere qualcosa del genere nel caso si voglia utilizzare cs
+        #dataNp = np.zeros((len(data),ADCres)) # non nMeas perchè voglio dim uguali per la ricostruzione. Impongo però basi non misurate a 0
+	#i = 0
+	#for el in data:
+	#	dataNp[i,:] = el 
+	#	i+=1
+        #H = H[:len(data),:] # data è 2D
+
 	sqNb = int(np.sqrt(nBasis))
 	WIDTH = 1920
 	HEIGHT = 1080
@@ -118,16 +162,16 @@ def reconstructHad2D(data, nBasis, zoom, xcp, ycp, saveFigures = False, cs = Fal
 		yul = HEIGHT-reHEIGHT
 	if yul<0:
 		yul = 0
-	#np.savetxt("pysupport.txt",data,fmt="%u",delimiter=";")
+	#np.savetxt("pysupport.txt",data,fmt="%u",delimiter=";") # debug: save data to txt file
 	measure = np.sum(data,axis=1)
-	#plt.imshow(data, aspect='auto')
+	#plt.imshow(data, aspect='auto') # debug: plot all measures 
 	#plt.show()
 	#plt.pause(0.01)
 	#for i in range(nBasis):
 	#	plt.plot(data[i])
 	#plt.show()
 	if cs:
-		H = cake_cutting(nBasis)
+		H = cake_cutting(nBasis, True)
 	else:
 		H = 0.5*(hadamard(nBasis) + np.ones((nBasis, nBasis)))
 	recons2 = lsmr(H, measure)[0]
@@ -143,7 +187,7 @@ def reconstructHad2D(data, nBasis, zoom, xcp, ycp, saveFigures = False, cs = Fal
 	#plt.colorbar()
 	plt.title("recons only in region")
 	plt.show()
-	plt.pause(0.01)
+	plt.pause(0.001)
 	#if saveFigures:
 	#	plt.savefig(name+".png")
 	#plt.show(block=False)
@@ -161,12 +205,6 @@ def reconstructHad2D(data, nBasis, zoom, xcp, ycp, saveFigures = False, cs = Fal
 		
 def createFigure():
 	plt.ion()
-	#fig = plt.figure()
-	#ax = fig.add_axes([0.1,0.1,0.8,0.8])
 	
 def closePlt():
 	plt.close()
-
-
-
-

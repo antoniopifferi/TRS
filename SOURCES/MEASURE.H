@@ -638,7 +638,8 @@
 
 /* SPC CONSTANTS */ 
 #define MAX_BOARD	4
-#define MAX_DET		64
+//#define MAX_DET	64 /* per continuos flow è poco */
+#define MAX_DET		256
 #define MAX_PAGE	256*32
 #define MAX_FRAME	1024
 #define MAX_ACQ		1024
@@ -2526,7 +2527,8 @@ void TalkMicro(char Step, char Command, long Value, long *Answer);
 void GetMicro(int Com, long *Answer);
 
 // #### DMD TEXAS STEPPER ####
-void allocatePatternTest123(struct Patterns *p, int nEl);  
+//void allocatePatternTest123(struct Patterns *p, int nEl);
+void SetupDmdTx(struct InfoDmd* info);
 void InitDmdTx(char Step);
 void CloseDmdTx(char Step);
 void MoveDmdTx(char Step,long Goal,char Wait);

@@ -119,8 +119,6 @@
 
 /* ########################   MEASURE PROCEDURES   ########################### */
 
-//unsigned short provaData[1][16][4096];
-
 
 /* TEST ANALYSIS ON PYTHON */
 
@@ -137,7 +135,8 @@ void InitPython(void){
 	okEnv = SetEnvironmentVariable("PYTHONHOME",exePath);
 	if(!okEnv) pyErrHandler("InitPython","SetEnvironmentVariable");
     // init Py interpreter
-    Py_Initialize();
+	Py_Initialize();
+	
 }
 
 void ClosePython(void){
@@ -163,7 +162,7 @@ void CreateFigPy(void){
 	PyObject *pyCreateFig;
 	PyObject *pyRes;
 	
-	pyModule = PyImport_ImportModule("recons2D");
+	pyModule = PyImport_ImportModule("reconsPy");
 	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
 	pyCreateFig = PyObject_GetAttrString(pyModule,"createFigure");
 	if(pyCreateFig==NULL || !PyCallable_Check(pyCreateFig)) pyErrHandler("ImportFunction: pyCreateFig","Function not found or not callable");
@@ -184,7 +183,7 @@ void CloseFigPy(void){
 	PyObject *pyCloseFig;
 	PyObject *pyRes;
 	
-	pyModule = PyImport_ImportModule("recons2D");
+	pyModule = PyImport_ImportModule("reconsPy");
 	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
 	pyCloseFig = PyObject_GetAttrString(pyModule,"closePlt");
 	if(pyCloseFig==NULL || !PyCallable_Check(pyCloseFig)) pyErrHandler("ImportFunction: pyCloseFig","Function not found or not callable");
@@ -199,107 +198,23 @@ void CloseFigPy(void){
 	
 }
 
-void ReconsPy_new(int*** data){
-
-	PyObject *pyModule;
-	PyObject *pyArgs;
-	PyObject *pyRecons2D;
-	PyObject *pyArray, *pyNBasis, *pyZoom, *pyxcp, *pyycp;
-	PyObject *pyRes;
-	FILE * f;
-	f = fopen("support2.txt","w");
-	
-	if(PyArray_API==NULL) import_array();
-	npy_intp dataDim[3]; // D.Data[P.Frame.Actual][page][ic] // not sure dimensions
-	dataDim[0] = 1;
-	dataDim[1] = 5;
-	dataDim[2] = 6;
-	
-	pyModule = PyImport_ImportModule("recons2D");
-	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
-	pyRecons2D = PyObject_GetAttrString(pyModule,"reconstructHad2D");
-	if(pyRecons2D==NULL || !PyCallable_Check(pyRecons2D)) pyErrHandler("ImportFunction: pyRecons2D","Function not found or not callable");
-	
-	for(int ib=0;ib<5;ib++){
-		for(int ic=0;ic<6;ic++) {
-			fprintf(f,"%d;",data[0][ib][ic]);
-			if(ic == 6-1) fprintf(f,"%d\n",data[0][ib][ic]); 
-			}
-		}
-	fclose(f);
-	
-	pyArray = PyArray_SimpleNewFromData(3,dataDim,NPY_INT,data); 
-	/*
-	pyNBasis = PyLong_FromLong(DmdTxInfo.nBasis);
-	pyZoom = PyLong_FromLong(DmdTxInfo.zoom);
-	pyxcp = PyLong_FromLong(DmdTxInfo.xC);
-	pyycp = PyLong_FromLong(DmdTxInfo.yC);
-	*/
-	 
-	pyNBasis = PyLong_FromLong(16);
-	pyZoom = PyLong_FromLong(1);
-	pyxcp = PyLong_FromLong(540);
-	pyycp = PyLong_FromLong(960);
-	
-	pyArgs = PyTuple_New(5);
-	PyTuple_SetItem(pyArgs,0,pyArray);
-	PyTuple_SetItem(pyArgs,1,pyNBasis);
-	PyTuple_SetItem(pyArgs,2,pyZoom);
-	PyTuple_SetItem(pyArgs,3,pyxcp);
-	PyTuple_SetItem(pyArgs,4,pyycp);
-	
-	pyRes = PyObject_CallObject(pyRecons2D,pyArgs);
-	if(pyRes==NULL){
-		PyObject *ptype, *pval, *pval2, *ptraceback;
-		PyErr_Fetch(&ptype, &pval, &ptraceback);
-		//pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
-		pval2 = PyUnicode_AsASCIIString(pval);
-		//if(pval2 == NULL) pval2 = PyUnicode_AsEncodedString(ptraceback,"utf-8","strict");
-		if(pval2 == NULL){
-			pyErrHandler("CallObject: recons2D","Generic Error");
-			return;
-		}
-		char *pStrErrMsg = PyBytes_AsString(pval2);
-		pyErrHandler("CallObject: recons2D",pStrErrMsg);
-	}
-	
-}
-
-
-void ReconsPy(void){
+void Recons2DPy(void){
 
 	PyObject *pyModule;
 	PyObject *pyArgs;
 	PyObject *pyRecons2D;
 	PyObject *pyArray, *pyNBasis, *pyZoom, *pyxcp, *pyycp, *pyCs;
 	PyObject *pyRes;
-	//FILE * f;
-	//f = fopen("support2.txt","w");
-	//unsigned short provaData[16][4096];
 	
 	//if(PyArray_API==NULL) import_array();
 	npy_intp dataDim[2]; // D.Data[P.Frame.Actual][page][ic] // not sure dimensions
 	dataDim[0] = P.Flow.NumSlot;
 	dataDim[1] = P.Chann.Num;
 	
-	pyModule = PyImport_ImportModule("recons2D");
+	pyModule = PyImport_ImportModule("reconsPy");
 	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
 	pyRecons2D = PyObject_GetAttrString(pyModule,"reconstructHad2D");
 	if(pyRecons2D==NULL || !PyCallable_Check(pyRecons2D)) pyErrHandler("ImportFunction: pyRecons2D","Function not found or not callable");
-	
-	/*
-	for(int i=0;i<16;i++)
-		for(int j=0;j<4096;j++) provaData[i][j] = D.Data[P.Frame.Actual][i][j];
-	*/
-	/*
-	for(int ib=0;ib<P.Flow.NumSlot;ib++){
-		for(int ic=0;ic<P.Chann.Num;ic++) {
-			fprintf(f,"%d;",D.Data[P.Frame.Actual][ib][ic]);
-			if(ic == P.Chann.Num-1) fprintf(f,"%d\n",D.Data[P.Frame.Actual][ib][ic]); 
-			}
-		}
-	fclose(f);
-	*/
 	
 	//pyArray = PyArray_SimpleNewFromData(2,dataDim,NPY_USHORT,provaData); // not working with 2d array created with malloc 
 	pyArray = PyArray_SimpleNew(2,dataDim,NPY_USHORT);
@@ -327,7 +242,6 @@ void ReconsPy(void){
 	if(pyRes==NULL){
 		PyObject *ptype, *pval, *pval2, *ptraceback;
 		PyErr_Fetch(&ptype, &pval, &ptraceback);
-		//pval2 = PyUnicode_AsEncodedString(pval,"utf-8","strict");
 		pval2 = PyUnicode_AsASCIIString(pval);
 		if(pval2 == NULL) pval2 = PyUnicode_AsEncodedString(pval,"utf-8","strict");
 		if(pval2 == NULL){
@@ -338,6 +252,120 @@ void ReconsPy(void){
 		pyErrHandler("CallObject: recons2D",pStrErrMsg);
 	}
 	
+}
+
+void Recons1DPy(void){
+
+	PyObject *pyModule;
+	PyObject *pyArgs;
+	PyObject *pyRecons1D;
+	PyObject *pyArray, *pyNBasis, *pyNumCh, *pyStartG, *pyEndG, *pyCs;
+	PyObject *pyRes;
+	
+	npy_intp dataDim[2]; // D.Data[P.Frame.Actual][page][ic] // not sure dimensions
+	dataDim[0] = P.Flow.NumSlot;
+	dataDim[1] = P.Chann.Num;
+	
+	pyModule = PyImport_ImportModule("reconsPy");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyRecons1D = PyObject_GetAttrString(pyModule,"reconstructHad1D");
+	if(pyRecons1D==NULL || !PyCallable_Check(pyRecons1D)) pyErrHandler("ImportFunction: pyRecons1D","Function not found or not callable");
+	
+	pyArray = PyArray_SimpleNew(2,dataDim,NPY_USHORT);
+	unsigned short *p = (unsigned short*)PyArray_DATA(pyArray);
+	for(int k=0;k<dataDim[0];k++){
+		memcpy(p,D.Data[P.Frame.Actual][k],sizeof(unsigned short)*dataDim[1]);
+		p += dataDim[1];
+	}
+	
+	pyNBasis = PyLong_FromLong(DmdTxInfo.nBasis);
+	pyNumCh = PyLong_FromLong(P.Chann.Num);
+	pyStartG = PyLong_FromLong((int)(2*P.Chann.Num/10)); // gate start and end
+	pyEndG = PyLong_FromLong((int)(7*P.Chann.Num/10));
+	pyCs = PyLong_FromLong(DmdTxInfo.csMode);
+	
+	pyArgs = PyTuple_New(6);
+	PyTuple_SetItem(pyArgs,0,pyArray);
+	PyTuple_SetItem(pyArgs,1,pyNBasis);
+	PyTuple_SetItem(pyArgs,2,pyNumCh);
+	PyTuple_SetItem(pyArgs,3,pyStartG);
+	PyTuple_SetItem(pyArgs,4,pyEndG);
+	PyTuple_SetItem(pyArgs,5,pyCs);
+	
+	pyRes = PyObject_CallObject(pyRecons1D,pyArgs);
+	if(pyRes==NULL){
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		pval2 = PyUnicode_AsASCIIString(pval);
+		if(pval2 == NULL) pval2 = PyUnicode_AsEncodedString(pval,"utf-8","strict");
+		if(pval2 == NULL){
+			pyErrHandler("CallObject: recons1D","Generic Error (try to test the function in Python)");
+			return;
+		}
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: recons1D",pStrErrMsg);
+	}
+	
+}
+
+
+void ReconsRastPy(void){
+
+	PyObject *pyModule;
+	PyObject *pyArgs;
+	PyObject *pyReconsRast;
+	PyObject *pyArray, *pyNMeas, *pyNumCh, *pyStartG, *pyEndG;
+	PyObject *pyRes;
+	
+	npy_intp dataDim[2]; // D.Data[P.Frame.Actual][page][ic] // not sure dimensions
+	dataDim[0] = P.Flow.NumSlot;
+	dataDim[1] = P.Chann.Num;
+	
+	pyModule = PyImport_ImportModule("reconsPy");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyReconsRast = PyObject_GetAttrString(pyModule,"reconstructRaster");
+	if(pyReconsRast==NULL || !PyCallable_Check(pyReconsRast)) pyErrHandler("ImportFunction: pyReconsRast","Function not found or not callable");
+	
+	pyArray = PyArray_SimpleNew(2,dataDim,NPY_USHORT);
+	unsigned short *p = (unsigned short*)PyArray_DATA(pyArray);
+	for(int k=0;k<dataDim[0];k++){
+		memcpy(p,D.Data[P.Frame.Actual][k],sizeof(unsigned short)*dataDim[1]);
+		p += dataDim[1];
+	}
+	
+	pyNMeas = PyLong_FromLong(DmdTxInfo.nMeas);
+	pyNumCh = PyLong_FromLong(P.Chann.Num);
+	pyStartG = PyLong_FromLong((int)(2*P.Chann.Num/10)); // gate start and end
+	pyEndG = PyLong_FromLong((int)(7*P.Chann.Num/10));
+	
+	pyArgs = PyTuple_New(5);
+	PyTuple_SetItem(pyArgs,0,pyArray);
+	PyTuple_SetItem(pyArgs,1,pyNMeas);
+	PyTuple_SetItem(pyArgs,2,pyNumCh);
+	PyTuple_SetItem(pyArgs,3,pyStartG);
+	PyTuple_SetItem(pyArgs,4,pyEndG);
+	
+	pyRes = PyObject_CallObject(pyReconsRast,pyArgs);
+	if(pyRes==NULL){
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		pval2 = PyUnicode_AsASCIIString(pval);
+		if(pval2 == NULL) pval2 = PyUnicode_AsEncodedString(pval,"utf-8","strict");
+		if(pval2 == NULL){
+			pyErrHandler("CallObject: reconsRast","Generic Error (try to test the function in Python)");
+			return;
+		}
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: reconsRast",pStrErrMsg);
+	}
+	
+}
+
+void ReconsPy(void){
+	// direct to the right reconstruction
+	if(DmdTxInfo.RasterOrHadamard==0) ReconsRastPy();
+	if(DmdTxInfo.RasterOrHadamard==1) Recons1DPy();
+	if(DmdTxInfo.RasterOrHadamard==10) Recons2DPy();
 }
 
 
@@ -531,6 +559,7 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 	do{ 
 		P.Contest.Run=CONTEST_MEAS;
 		P.Contest.Function=CONTEST_MEAS;
+		SetupDmdTx(&DmdTxInfo); /**/
 		CompleteParmS();
 		UpdatePanel();
 		InitFiber();
@@ -1179,7 +1208,7 @@ void CompleteParmS(void){
     
 	// FLOW UIR - TO REPLACE AFTER
 	P.Flow.Flow=TRUE;
-	P.Flow.NumSlot=256;
+	P.Flow.NumSlot=DmdTxInfo.nMeas;
 	
 	
    	// Presentation
@@ -1901,7 +1930,7 @@ void InitFilter(void){
 				for(is=0;is<P.Flow.NumSlot;is++)
 					for(id=0;id<P.Num.Det;id++){
 						page=ia*P.Num.Board*P.Flow.NumSlot*P.Num.Det+ib*P.Flow.NumSlot*P.Num.Det+is*P.Num.Det+id;
-						P.Filter.Page[ia][ib][id+is*P.Num.Det]=page; //sistemare qui: array troppo piccolo per 256
+							P.Filter.Page[ia][ib][id+is*P.Num.Det]=page; //sistemare qui: array troppo piccolo per 256
 						P.Page[page].Source=0;
 						P.Page[page].Fiber=ib*P.Num.Det+id;
 						P.Page[page].Board=ib; 
@@ -7500,6 +7529,107 @@ void writePatternsOnFile(const int nEl, unsigned char ***basis){
 
 /* INITIALIZE DMDTX */
 
+
+void SetupDmdTx(struct InfoDmd *info){
+
+	int ver;
+	
+	info->previousPos = 0;
+	info->dark_time = 10000; // dark time [microsec] = dead time to better sync DMD and SPC measurement
+
+	// SETTING PARAMETERS 
+    // WIZARD procedure (the program asks every setting) 
+    printf("Choose mode:\n (0) Raster scan\n (1) Hadamard pattern\n (2) All mirrors\n (3) All closed\n (4) Notch filter\n (5) Hadamard Horizontal\n (6) Raster Horizontal\n (7) Add One Line (Horizontal)\n (8) Band Pass\n (9) Add One Line (Oblique)\n (10) Hadamard 2D\n (-1) Exit\n\n >>");
+    scanf("%d", &(info->RasterOrHadamard));
+    getchar();
+    info->startPosition = 0;
+	if(info->RasterOrHadamard==1 || info->RasterOrHadamard==0 || info->RasterOrHadamard==5 || info->RasterOrHadamard==6 || info->RasterOrHadamard==7 || info->RasterOrHadamard==9 || info->RasterOrHadamard==10){
+		if(info->RasterOrHadamard==0 || info->RasterOrHadamard==6 || info->RasterOrHadamard==7 || info->RasterOrHadamard==9 ){
+			printf("\n\n*** RASTER ***\n");
+			printf("Select dimension of lines: ");
+			scanf("%d", &(info->nBasis));
+			printf("Select number of measurements: ");
+            scanf("%d", &(info->nMeas));
+		}
+		else{
+            printf("\n\n*** HADAMARD ***\n");
+            do{
+                printf("Select number of bases (MUST BE POWER OF 2): ");
+                scanf("%d", &(info->nBasis));
+                info->startPosition = 0;
+                for(int i=2; i<5000; i*=2){ // check if nBasis is a power of 2
+                    if (i==info->nBasis){
+                        ver = 1;
+                        break;
+                    }
+                }
+                } while(!ver);
+				printf("Do you want to use cake-cutting ordering (1=yes): ");
+				scanf("%d", &(info->csMode));
+                //if(info->csMode == 0) info->nMeas = info->nBasis; // in Hadamard mode we have 1 measure for each basis
+				printf("Select number of measurements: "); // if we use CS we can do nMeas < nBasis
+				scanf("%d", &(info->nMeas));
+                if(info->RasterOrHadamard == 10){
+                    printf("Select zoom: ");
+                    scanf("%d", &(info->zoom));
+                    printf("Select X (center = 960): ");
+                    scanf("%d", &(info->xC));
+                    printf("Select Y (center = 540): ");
+                    scanf("%d", &(info->yC));
+                }
+			}
+            info->sizeBatch = info->nMeas;
+			printf("Select exposure time in ms: ");
+			scanf("%d", &(info->exp));
+			info->exp *= 1000; // time is in microseconds
+			//printf("Do you want to be repeated? if so press 1: ");
+			//scanf("%d", &(info->repeat));
+			//if(info->repeat != 1) info->repeat = 0;
+			info->repeat = 1;
+			//printf("Do you want to use compression? if so press 1: "); // compression reduces the active part of the DMD to N central pixels
+			//scanf("%d", &(info->compress));
+			getchar();
+			//if(info->compress != 1) info->compress = 0;
+			info->compress = 0;
+			printf("\n");
+		}
+		else if(info->RasterOrHadamard == 2 ){
+			printf("\n\n*** ALL ONES ***\n");
+			info->nBasis = 24;
+			info->nMeas = 24;
+			info->sizeBatch = 24;
+			info->startPosition = 0;
+			info->exp = 500000;
+			info->repeat = 1;
+			info->compress = 0;
+		}
+		else if(info->RasterOrHadamard == 3 ){
+			printf("\n\n*** ALL ZEROS ***\n");
+			info->nBasis = 24;
+			info->nMeas = 24;
+			info->sizeBatch = 24;
+			info->startPosition = 0;
+			info->exp = 500000;
+			info->repeat = 1;
+			info->compress = 0;
+		}
+		else if(info->RasterOrHadamard == 4 || info->RasterOrHadamard == 8){
+			printf("\n\n*** FILTER ***\n");
+			printf("Select dimension of line (in pixels): ");
+			scanf("%d", &(info->nBasis));
+			printf("Select start of band:");  // number of line or wavelength?
+			scanf("%d", &(info->previousPos));
+			getchar();
+			info->nMeas = 24;
+			info->sizeBatch = 24;
+			info->exp = 500000;
+			info->repeat = 1;
+			info->compress = 0;
+		}
+	
+}
+
+
 void InitDmdTx(char Step){
 	char message[STRLEN],smessage[2*STRLEN];
 
@@ -7511,7 +7641,8 @@ void InitDmdTx(char Step){
 	
 	int numeroBasi = 256;
 	
-	DmdTxInfo.RasterOrHadamard = 10; //info.RasterOrHadamard;
+	/* //MANUAL SETUP
+	DmdTxInfo.RasterOrHadamard = 1; //info.RasterOrHadamard;
 	DmdTxInfo.nBasis = numeroBasi; //info.nBasis;
 	DmdTxInfo.nMeas = numeroBasi; //info.nMeas;
 	DmdTxInfo.startPosition = 0; //info.startPosition;
@@ -7521,14 +7652,11 @@ void InitDmdTx(char Step){
 	DmdTxInfo.compress = 0; //info.compress;
 	DmdTxInfo.sizeBatch = numeroBasi; //info.sizeBatch;
 	DmdTxInfo.previousPos = 0; //info.previousPos;
-	DmdTxInfo.zoom = 20; //info.zoom;
-	DmdTxInfo.xC = 820; //info.xC; //(960) centro del dmd
-	DmdTxInfo.yC = 520; //info.yC; //(540)
+	DmdTxInfo.zoom = 1; //info.zoom;
+	DmdTxInfo.xC = 960; //info.xC; //(960) centro del dmd
+	DmdTxInfo.yC = 540; //info.yC; //(540)
 	DmdTxInfo.csMode = 0; //cake-cutting
-	
-	//dmd_setup(info);
-	
-	
+	*/
 	
 	// Test initialization of structure
 	DmdTxPatt.bitsPackNum = NULL;
