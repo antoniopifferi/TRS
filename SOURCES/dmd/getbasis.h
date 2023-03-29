@@ -8,7 +8,6 @@
 
 #ifndef GETBASIS_H
 #define GETBASIS_H
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -23,10 +22,10 @@
 /** readdress to other getbasis functions according to hadamard_raster parameter
  dim: in hadamard mode is the dimension of the hadamard basis, in raster scan mode is the dimension of the line
  idx: is the index of basis or raster to be calculated */
-GETBASIS_DLL_API void DmdTx_getBasis(const int hadamard_raster, const int dim, const int *idx, const int szIdx, int compressImage, int zoom, int xCenter, int yCenter, int csMode, unsigned char ***output);
+GETBASIS_DLL_API void DmdTx_getBasis(const int hadamard_raster, const int dim, const int *idx, const int szIdx, int compressImage, int zoom, int xCenter, int yCenter, int csMode, int startPx, int endPx, unsigned char ***output);
 
 /** generates and puts in basis the Hadamard bases of size nBasis */
-GETBASIS_DLL_API void DmdTx_getBasisHadamard(const int nBasis, const int *idx, const int szIdx,int compressImage, int csMode, unsigned char ***basis);
+GETBASIS_DLL_API void DmdTx_getBasisHadamard(const int nBasis, const int *idx, const int szIdx,int compressImage, int csMode, int startPx, int endPx, unsigned char ***basis);
 
 /** implementation of cake-cutting for ordering Hadamard bases */
 GETBASIS_DLL_API void DmdTx_ordering(short int **H, const int nBasis, const int *idx, int rows, int cols, const int szIdx);
@@ -51,7 +50,7 @@ dim is the width of the closed line (opposite to raster) */
 GETBASIS_DLL_API void DmdTx_getBasisNotchFilter(const int *idx, const int dim, unsigned char ***basis);
 
 /** generates Hadamard pattern (Horizontal) */
-GETBASIS_DLL_API void DmdTx_getBasisHadamardHorizontal(const int nBasis, const int *idx, const int szIdx, int compressImage, int csMode, unsigned char ***basis);
+GETBASIS_DLL_API void DmdTx_getBasisHadamardHorizontal(const int nBasis, const int *idx, const int szIdx, int compressImage, int csMode, int startPx, int endPx, unsigned char ***basis);
 
 /** generates pattern for Raster scan (Horizontal) */
 GETBASIS_DLL_API void DmdTx_getBasisRasterHorizontal(const int dim, const int *idx, const int szIdx,int compressImage, unsigned char ***basis);

@@ -86,24 +86,31 @@ def subtractBkg(data, start, end):
 	return data
 
 def reconstructRaster(data, nMeas, ADCres, startGate, endGate, saveFigures = False): 
-	H = np.eye(nMeas)
-	recons = np.zeros((nMeas,ADCres))   
-	for i in range(ADCres):
-		recons[:,i] = lsmr(H, data[:,i])[0]
-	recons[0] = recons[1] # per eliminare il segnale della base sempre 1
-	fig, ax = plt.subplots(1,2)
-	ax[0].pcolormesh(recons)
-	ax[0].set_title("Spectrum vs Time")
-	ax[0].axvline(startGate,ymin=0,ymax=1,color='r')
-	ax[0].axvline(endGate,ymin=0,ymax=1,color='r')
-	if saveFigures:
-		plt.savefig(name+".jpg")
-	ax[1].plot(np.sum(recons[:,startGate:endGate], axis = 1))
-	ax[1].set_title("Spectrum")
-	if saveFigures:
-		plt.savefig(name+"linear.jpg")
+	# se è raster è inutile fare lsmr
+	# H = np.eye(nMeas)
+	# recons = np.zeros((nMeas,ADCres))   
+	# for i in range(ADCres):
+		# recons[:,i] = lsmr(H, data[:,i])[0]
+	#plt.subplot(1,2,1)
+	#plt.pcolormesh(data)
+	#plt.subplot(1,2,2)
+	plt.clf()
+	plt.plot(np.sum(data[:,startGate:endGate], axis = 1))
 	plt.show()
 	plt.pause(0.001)
+	# fig, ax = plt.subplots(1,2)
+	# ax[0].pcolormesh(recons)
+	# ax[0].set_title("Spectrum vs Time")
+	# ax[0].axvline(startGate,ymin=0,ymax=1,color='r')
+	# ax[0].axvline(endGate,ymin=0,ymax=1,color='r')
+	# if saveFigures:
+		# plt.savefig(name+".jpg")
+	# ax[1].plot(np.sum(recons[:,startGate:endGate], axis = 1))
+	# ax[1].set_title("Spectrum")
+	# if saveFigures:
+		# plt.savefig(name+"linear.jpg")
+	# plt.show()
+	# plt.pause(0.001)
 
 def reconstructHad1D(data, nBasis, ADCres, startGate, endGate, cs = False, saveFigures = False):
 	#dataNp = np.zeros((len(data),ADCres)) # non nMeas perchè voglio dim uguali per la ricostruzione. Impongo però basi non misurate a 0
@@ -121,6 +128,14 @@ def reconstructHad1D(data, nBasis, ADCres, startGate, endGate, cs = False, saveF
 		#recons[:,i] = lsmr(H, dataNp[:,i])[0]
 		recons[:,i] = lsmr(H, data[:,i])[0]
 	recons[0] = recons[1] # per eliminare il segnale della base sempre = a 1
+	#plt.figure()
+	#plt.subplot(1,2,1)
+	#plt.pcolormesh(recons)
+	#plt.subplot(1,2,2)
+	plt.clf()
+	plt.plot(np.sum(recons[:,startGate:endGate], axis = 1))
+	plt.show()
+	plt.pause(0.001)
 	# fig, ax = plt.subplots(1,2)
 	# ax[0].pcolormesh(recons)
 	# ax[0].set_title("Spectrum vs Time")
@@ -181,7 +196,7 @@ def reconstructHad2D(data, nBasis, zoom, xcp, ycp, saveFigures = False, cs = Fal
 	recons2imresized = recons2im.resize((reWIDTH,reHEIGHT), resample=Image.Resampling.NEAREST)
 	#recons2imresizedr = recons2imresized.rotate(45) # rotate the image
 	#plt.figure()
-	plt.imshow(np.array(recons2imresized), aspect="equal")
+	plt.imshow(np.array(recons2imresized), aspect="equal",cmap='Greys')
 	#ax.draw()
 	#plt.show()
 	#plt.colorbar()
@@ -207,4 +222,4 @@ def createFigure():
 	plt.ion()
 	
 def closePlt():
-	plt.close()
+	plt.close('all')

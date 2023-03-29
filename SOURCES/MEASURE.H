@@ -1049,6 +1049,8 @@ struct InfoDmd{
 	int xC;
 	int yC;
 	int csMode;
+	int startPx;
+	int endPx;
 };
 
 struct FileS {

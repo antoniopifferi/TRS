@@ -7521,7 +7521,7 @@ void writePatternsOnFile(const int nEl, unsigned char ***basis){
     }
 }
 
-// questa funzione è qui perchè non inclusa nella dll di getbasis
+// questa funzione è qui perchè non inclusa nella dll di getbasis --> sistemato ora è inclusa
 //int DmdTx_minimum(const int a, const int b){
 //	if(a>b) return b;
 //	else return a;
@@ -7533,6 +7533,7 @@ void writePatternsOnFile(const int nEl, unsigned char ***basis){
 void SetupDmdTx(struct InfoDmd *info){
 
 	int ver;
+	int selectPx=0;
 	
 	info->previousPos = 0;
 	info->dark_time = 10000; // dark time [microsec] = dead time to better sync DMD and SPC measurement
@@ -7550,6 +7551,8 @@ void SetupDmdTx(struct InfoDmd *info){
 			scanf("%d", &(info->nBasis));
 			printf("Select number of measurements: ");
             scanf("%d", &(info->nMeas));
+			printf("Select startPx: ");
+            scanf("%d", &(info->startPosition));
 		}
 		else{
             printf("\n\n*** HADAMARD ***\n");
@@ -7563,22 +7566,41 @@ void SetupDmdTx(struct InfoDmd *info){
                         break;
                     }
                 }
-                } while(!ver);
-				printf("Do you want to use cake-cutting ordering (1=yes): ");
-				scanf("%d", &(info->csMode));
-                //if(info->csMode == 0) info->nMeas = info->nBasis; // in Hadamard mode we have 1 measure for each basis
-				printf("Select number of measurements: "); // if we use CS we can do nMeas < nBasis
-				scanf("%d", &(info->nMeas));
-                if(info->RasterOrHadamard == 10){
-                    printf("Select zoom: ");
-                    scanf("%d", &(info->zoom));
-                    printf("Select X (center = 960): ");
-                    scanf("%d", &(info->xC));
-                    printf("Select Y (center = 540): ");
-                    scanf("%d", &(info->yC));
-                }
+             } while(!ver);
+			printf("Do you want to use cake-cutting ordering (1=yes): ");
+			scanf("%d", &(info->csMode));
+            //if(info->csMode == 0) info->nMeas = info->nBasis; // in Hadamard mode we have 1 measure for each basis
+			printf("Select number of measurements: "); // if we use CS we can do nMeas < nBasis
+			scanf("%d", &(info->nMeas));
+            if(info->RasterOrHadamard == 10){
+                printf("Select zoom: ");
+                scanf("%d", &(info->zoom));
+                printf("Select X (center = 960): ");
+                scanf("%d", &(info->xC));
+                printf("Select Y (center = 540): ");
+                scanf("%d", &(info->yC));
+            }
+			else{
+				printf("Do you want to select startPx and endPx? if so press 1: "); // select active region of the DMD where to collect spectrum
+				scanf("%d", &(selectPx));
+				if (selectPx) {
+					printf("Select startPx: ");
+					scanf("%d", &(info->startPx));
+					printf("Select endPx: ");
+					scanf("%d", &(info->endPx));
+					if ((info->endPx - info->startPx) / info->nBasis < 1) {
+						printf("***ERROR: Range startPx - endPx is too short for nBasis!!"); // andrebbero contollate altre possibilità di errore (es. endPx>WIDTH+HEIGHT, endPx<startPx...)
+						return 1;
+					}
+				}
+				else {
+					info->startPx = 0;
+					if(info->RasterOrHadamard == 1) info->endPx = WIDTH + HEIGHT;
+					if (info->RasterOrHadamard == 5) info->endPx = WIDTH;
+				}
 			}
-            info->sizeBatch = info->nMeas;
+		}
+	        info->sizeBatch = info->nMeas;
 			printf("Select exposure time in ms: ");
 			scanf("%d", &(info->exp));
 			info->exp *= 1000; // time is in microseconds
@@ -7588,9 +7610,9 @@ void SetupDmdTx(struct InfoDmd *info){
 			info->repeat = 1;
 			//printf("Do you want to use compression? if so press 1: "); // compression reduces the active part of the DMD to N central pixels
 			//scanf("%d", &(info->compress));
-			getchar();
 			//if(info->compress != 1) info->compress = 0;
 			info->compress = 0;
+			getchar();
 			printf("\n");
 		}
 		else if(info->RasterOrHadamard == 2 ){
@@ -7599,7 +7621,9 @@ void SetupDmdTx(struct InfoDmd *info){
 			info->nMeas = 24;
 			info->sizeBatch = 24;
 			info->startPosition = 0;
-			info->exp = 500000;
+			printf("Select exposure time in ms: ");
+			scanf("%d", &(info->exp));
+			info->exp *= 1000; // time is in microseconds
 			info->repeat = 1;
 			info->compress = 0;
 		}
@@ -7609,7 +7633,9 @@ void SetupDmdTx(struct InfoDmd *info){
 			info->nMeas = 24;
 			info->sizeBatch = 24;
 			info->startPosition = 0;
-			info->exp = 500000;
+			printf("Select exposure time in ms: ");
+			scanf("%d", &(info->exp));
+			info->exp *= 1000; // time is in microseconds
 			info->repeat = 1;
 			info->compress = 0;
 		}
@@ -7622,7 +7648,9 @@ void SetupDmdTx(struct InfoDmd *info){
 			getchar();
 			info->nMeas = 24;
 			info->sizeBatch = 24;
-			info->exp = 500000;
+			printf("Select exposure time in ms: ");
+			scanf("%d", &(info->exp));
+			info->exp *= 1000; // time is in microseconds
 			info->repeat = 1;
 			info->compress = 0;
 		}
@@ -7690,7 +7718,7 @@ void InitDmdTx(char Step){
 	DmdTx_stopSequence(DmdTx.handle); // stop the demo pattern sequence
 	DmdTx_changeMode(DmdTx.handle, 3); // change to pattern-on-the-fly mode
 
-    // setup data needed
+    // setup data needed --> assegnazione di variabile inutile: si potrebbe sosituire dove necessario DmdTxInfo.
 	int RasterOrHadamard = DmdTxInfo.RasterOrHadamard;
 	int nBasis = DmdTxInfo.nBasis;
 	int nMeas = DmdTxInfo.nMeas;
@@ -7705,8 +7733,10 @@ void InitDmdTx(char Step){
 	int xC = DmdTxInfo.xC; // long side
 	int yC = DmdTxInfo.yC; // short side
 	int csMode = DmdTxInfo.csMode;
+	int startPx = DmdTxInfo.startPx;
+	int endPx = DmdTxInfo.endPx;
 	
-	int offset_ = offset(startPosition, nBasis, previousPos)/nBasis; // ??
+	int offset_ = startPosition/nBasis; //offset(startPosition, nBasis, previousPos)/nBasis; // ??
 	int nSet = DmdTx_celing(nMeas, sizeBatch);
 	DmdTx.szPattern = nSet;
 	DmdTx.repeat = repeat;
@@ -7765,7 +7795,7 @@ void InitDmdTx(char Step){
 		idx = (int* )malloc((nB)*sizeof(int)); // index of the first element inside the batch
 		for(i=0; i<nB; i++)
 			idx[i] = q*sizeBatch + i + offset_;
-		DmdTx_getBasis(RasterOrHadamard, nBasis, idx, nB, compress, zoom, xC, yC, csMode, basis); // generation of pattern
+		DmdTx_getBasis(RasterOrHadamard, nBasis, idx, nB, compress, zoom, xC, yC, csMode, startPx, endPx, basis); // generation of pattern
 		free(idx);
 		
 		printf("\n");
