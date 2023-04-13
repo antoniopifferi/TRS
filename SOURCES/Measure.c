@@ -8028,7 +8028,7 @@ void InitDmdTx(char Step){
 		free(DmdTx.pattern[q].exposure);
 	}
 	*/
-	DmdTx_deallocate(&DmdTx);
+	//** REMOVED  DmdTx_deallocate(&DmdTx);
 	free(DmdTx.pattern);
 	
 	//DmdTx_startSequence(DmdTx.handle);
