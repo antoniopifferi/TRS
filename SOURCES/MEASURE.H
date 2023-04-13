@@ -639,7 +639,8 @@
 
 /* SPC CONSTANTS */ 
 #define MAX_BOARD	4
-#define MAX_DET		64
+//#define MAX_DET	64 /* per continuos flow è poco */
+#define MAX_DET		256
 #define MAX_PAGE	256*32
 #define MAX_FRAME	1024
 #define MAX_ACQ		1024
@@ -1064,6 +1065,9 @@ struct InfoDmd{
 	int zoom;
 	int xC;
 	int yC;
+	int csMode;
+	int startPx;
+	int endPx;
 };
 
 struct FileS {
@@ -2207,6 +2211,10 @@ double Period;									// period between two IRF peaks (used in rebinning)
 double *BufferTDC;
 double *BufferTDC2;
 
+/* DMD_TX GLOBAL VARIABLES */
+struct DMD DmdTx;
+struct InfoDmd DmdTxInfo;
+struct DmdTx_Patterns DmdTxPatt;
 
 /* #####################    MEASUREMENT FUNCTIONS   ########################### */
 void InitVariable(void);
@@ -2291,12 +2299,16 @@ void GetDataSpcm(void);
 void CloseSpcm(void);
 void ClearSpcm(void);
 
+void test_sequencer_state(void);
 void SpcFlow(char Status);
 void WaitFlow(void);
+void CheckTriggerFlow(void);
 void GetFlow(void);
 void CopyFlow(void);
 void StartFlow(void);
 void StopFlow(void);
+void InitFlow(void);
+
 
 /* ########################   HYDRA HARP FUNCTIONS   ####################### */
 void InitHydra(int Board);
@@ -2544,7 +2556,8 @@ void TalkMicro(char Step, char Command, long Value, long *Answer);
 void GetMicro(int Com, long *Answer);
 
 // #### DMD TEXAS STEPPER ####
-void allocatePatternTest123(struct Patterns *p, int nEl);  
+//void allocatePatternTest123(struct Patterns *p, int nEl);
+void SetupDmdTx(struct InfoDmd* info);
 void InitDmdTx(char Step);
 void CloseDmdTx(char Step);
 void MoveDmdTx(char Step,long Goal,char Wait);
@@ -2742,6 +2755,7 @@ void CheckTime(clock_t timeorigin);
 void PrintTime(clock_t timeorigin, char *Title);
 void CalibrateTime(double TimeDelay);
 void ErrHandler(int Device, int Code, char* Function);
+void pyErrHandler(char* Function, char* serror);
 
 /* ########################   MEMORY FUNCTIONS   ########################### */
 T_DATA *DAlloc1D(int Num1);
