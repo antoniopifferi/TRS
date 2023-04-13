@@ -6,7 +6,8 @@
 
 // INCLUDE
 #include "SwabNet.h"	// needed for type definitions in SWAB Structure
-#include "preSOLUS_BCD.h"  // needed for type definitions in BCD functions  
+#include "preSOLUS_BCD.h"  // needed for type definitions in BCD functions
+#include "dmd/hidapi/hidapi.h" // needed for communicating with DMD_TX
 
 // VERSION
 #define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 18.0\nDate: November 2020"
@@ -85,7 +86,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1223
+#define MAX_TABLE		1224
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -563,6 +564,7 @@
 #define ATT_LUCA		25
 #define BCD_SYNC	26
 #define BCD_PIX		27
+#define DMD_TX		28
 
 #define VARRO		 1
 #define NI_6602	     5
@@ -582,6 +584,7 @@
 #define SPC_LUCA		 13
 #define SPC_SWAB		 14
 #define SPC_BCD			 15
+#define SPC_MHARP		 16
 
 #define WAIT_DELAY	 0
 #define WAIT_TIME	 1
@@ -636,7 +639,8 @@
 
 /* SPC CONSTANTS */ 
 #define MAX_BOARD	4
-#define MAX_DET		64
+//#define MAX_DET	64 /* per continuos flow è poco */
+#define MAX_DET		256
 #define MAX_PAGE	256*32
 #define MAX_FRAME	1024
 #define MAX_ACQ		1024
@@ -702,6 +706,21 @@
 #define HYDRA_LENCODE			4 //  Note: HistLen=1024*(2^HYDRA_LENCODE)
 #define HYDRA_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 #define SEC_2_MILLISEC	1000 // conversion factor for second to millisecond
+
+/* MHARP CONSTANTS */
+#define MHARP_BINNING 	0 //you can change this
+#define MHARP_SYNC_OFFSET	0 
+#define MHARP_INPUT_OFFSET	0 
+#define MHARP_HIST_OFFSET	0 
+//#define MHARP_TACQ		1000 //Measurement time in millisec, you can change this
+#define MHARP_SYNC_DIVIDER	2 //Note: you must reduce SYNC rate to <75 MHz 
+//#define MHARP_SYNC_CFDZEROCROSS	10 //you can change this
+#define MHARP_SYNC_LEVEL		-50 //you can change this
+#define MHARP_SYNC_EDGE			0 //you can change this
+#define MHARP_INPUT_LEVEL			-50 //you can change this
+#define MHARP_INPUT_EDGE			0 //you can change this
+//#define MHARP_LENCODE			4 //  Note: HistLen=1024*(2^MHARP_LENCODE)
+#define MHARP_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 
 /* TH260 CONSTANTS */
 #define TH260_BINNING 	0 //you can change this
@@ -953,6 +972,7 @@
 #define ERR_GENERIC	5
 #define ERR_SWAB	6
 #define ERR_BCD 	7
+#define ERR_MHARP	8
 
 
 /* GEOMETRY CONSTANTS */													//ALE
@@ -997,6 +1017,59 @@
 
 /* ########################   TYPE DEFINITION  ############################ */
 
+// DMD_TX Structures
+
+struct DmdTx_Node{
+	unsigned char data;
+	struct DmdTx_Node *next;
+};
+struct DmdTx_List{
+	int *data;
+	struct DmdTx_List *next;
+};
+
+/** This structure contains all the data about the patterns to be sent to the dmd */
+struct DmdTx_Patterns{
+	unsigned char (*defPatterns)[12]; // pattern settings (exposure time, bit-depth, triggers, pattern index...)
+	unsigned char configureLut[6]; // configuration of Look up table (LUT)
+	unsigned char (*setBmp)[6]; // image settings (index, size)
+	unsigned char ***bmpLoad; // compressed BMP image to load
+	int nB;
+	int *packNum; // number of data packets (max 504 bytes) to be loaded
+	int nEl;
+	int **bitsPackNum; // size of each packet
+	int *exposure;
+	int numOfBatches;
+};
+
+/** This structure contains data of the patterns for the dmd */
+struct DMD{
+	hid_device *handle; // pointer to the hid device
+	struct DmdTx_Patterns *pattern; // structure containing the pattern for the DMD (see in dmd.h)
+	int szPattern;
+	int repeat;
+};
+
+/** This structure contains the parameters to set the measurements (type of pattern and duration) */
+struct InfoDmd{
+	int RasterOrHadamard; // selected mode for the measure
+	int nBasis;
+	int nMeas;
+	int startPosition;
+	int previousPos;
+	int exp;
+	int dark_time;
+	int repeat;
+	int compress;
+	int sizeBatch;
+	int zoom;
+	int xC;
+	int yC;
+	int csMode;
+	int startPx;
+	int endPx;
+};
+
 struct FileS {
 	char Type;
 	char Dir   [PATHLEN];
@@ -1005,6 +1078,7 @@ struct FileS {
 	char Prefix[PATHLEN];
 	char Path  [PATHLEN];
 	int Tag;
+	char Save;
 	FILE *File;
 	};
 	
@@ -1228,6 +1302,9 @@ struct ActionS{
 	char StartAdc;
 	char WaitAdc;
 	char ReadUIR;
+	char SpcFlow;
+	char StartFlow;
+	char StopFlow;
 	char SpcTime;			//EDO
 	char InitMamm;         //EDO
 	char StartMamm;			 //EDO
@@ -1626,6 +1703,7 @@ struct SpcS {
 	double TimeO;
 	double TimeM;
 	int	   TimeHydra;
+	int	   TimeMharp;
 	int	   TimeTH260;
 	int	   TH260HistLen;
 	int	   TimeSC1000;
@@ -1961,6 +2039,16 @@ struct PresentationS {
 	char FStimuliDir[STRLEN];
 	};
 
+struct FlowS {
+	int Flow;
+	int Slot0;
+	int NumSlot;
+	int Page0;
+	int EmptyBank;
+	int FilledFrame;
+	int Bank;
+	};
+
 struct ParmS {
 	struct OscillS Oscill;
 	struct CommandS Command;
@@ -2012,6 +2100,7 @@ struct ParmS {
 	struct TSequenceS TSequence;
 	struct TPartitionS TPartition;
 	struct BlockObjS BlockObj[MAX_ROW_PRES_BLOCK];
+	struct FlowS Flow;
 	};
 
 // Data Structures
@@ -2122,6 +2211,10 @@ double Period;									// period between two IRF peaks (used in rebinning)
 double *BufferTDC;
 double *BufferTDC2;
 
+/* DMD_TX GLOBAL VARIABLES */
+struct DMD DmdTx;
+struct InfoDmd DmdTxInfo;
+struct DmdTx_Patterns DmdTxPatt;
 
 /* #####################    MEASUREMENT FUNCTIONS   ########################### */
 void InitVariable(void);
@@ -2206,11 +2299,31 @@ void GetDataSpcm(void);
 void CloseSpcm(void);
 void ClearSpcm(void);
 
+void test_sequencer_state(void);
+void SpcFlow(char Status);
+void WaitFlow(void);
+void CheckTriggerFlow(void);
+void GetFlow(void);
+void CopyFlow(void);
+void StartFlow(void);
+void StopFlow(void);
+void InitFlow(void);
+
+
 /* ########################   HYDRA HARP FUNCTIONS   ####################### */
 void InitHydra(int Board);
 void CloseHydra(void);
 void GetDataHydra(void);
 void ClearHydra(void);
+
+/* ########################   MULTI HARP FUNCTIONS   ####################### */
+void InitMharp(int Board);
+void CloseMharp(void);
+void StopMharp(int Board);
+void GetDataMharp(void);
+void ClearMharp(void);
+void StartMharp(int Board);
+void WaitMharp(int Board);
 
 /* ########################   TH260 HARP FUNCTIONS   ####################### */
 void InitTH260(int Board);
@@ -2442,6 +2555,18 @@ void DefineHomeMicro(char Step);
 void TalkMicro(char Step, char Command, long Value, long *Answer);
 void GetMicro(int Com, long *Answer);
 
+// #### DMD TEXAS STEPPER ####
+//void allocatePatternTest123(struct Patterns *p, int nEl);
+void SetupDmdTx(struct InfoDmd* info);
+void InitDmdTx(char Step);
+void CloseDmdTx(char Step);
+void MoveDmdTx(char Step,long Goal,char Wait);
+void WaitDmdTx(char Step,long Goal);
+void TellPosDmdTx(char Step,long *Actual);
+void StopDmdTx(char Step);
+void DefineHomeDmdTx(char Step);
+
+
 // #### ESP300 STEPPER ####
 void InitEsp300(char Step);
 void CloseEsp300(char Step);
@@ -2630,6 +2755,7 @@ void CheckTime(clock_t timeorigin);
 void PrintTime(clock_t timeorigin, char *Title);
 void CalibrateTime(double TimeDelay);
 void ErrHandler(int Device, int Code, char* Function);
+void pyErrHandler(char* Function, char* serror);
 
 /* ########################   MEMORY FUNCTIONS   ########################### */
 T_DATA *DAlloc1D(int Num1);

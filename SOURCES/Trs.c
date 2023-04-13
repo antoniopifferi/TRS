@@ -397,12 +397,13 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,PARM,PARM_TIME_BASE,"TimeBase",0,0,&P.Time.Time);
 	AddTab(CE,TCHAR,PARM,PARM_READ_UIR,"ReadUIR",0,0,&P.Command.ReadUIR);
 	
-	// 5
+	// 6
 	AddTab(CE,TSTRING,PARM,PARM_FILE_DIR,"FileDir",0,0,P.File.Dir);
 	AddTab(CE,TSTRING,PARM,PARM_FILE_EXT,"FileExt",0,0,P.File.Ext); 
 	AddTab(CE,TSTRING,PARM,PARM_FILE_PREFIX,"FilePrefix",0,0,P.File.Prefix); 
 	AddTab(CE,TINT,PARM,PARM_FILE_TAG,"FileTag",0,0,&P.File.Tag); 
 	AddTab(CE,TCHAR,PARM,PARM_FILE_TYPE,"FileType",0,0,&P.File.Type); 
+	AddTab(CE,TCHAR,PARM,PARM_FILE_SAVE,"FileSave",0,0,&P.File.Save); 
 
 	// 19+4
 	AddTab(CE,TCHAR,PARM,PARM_SPC_TYPE,"SpcType",0,0,&P.Spc.Type);

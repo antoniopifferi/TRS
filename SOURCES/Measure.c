@@ -29,15 +29,22 @@
 // SWITCH Leoni
 // SWITCH ThorWheel
 // SWAB (Swabian TDC)
+// DMD+PYTHON
+// MULTIHARP
 
 /* ########################   HELP   ################################## */
 // Board = Physical TCSPC Board
-// Det = Detector channel as determined by the router bits
-// Chann = Channel of the MCA (=minimum time division)
-// Frame = Data transferred from the boards and effectively stored in RAM
-// Page = Curve belonging to a Frame
+// Chann = Channels of the MCA (=minimum time division)
+// Det = Detector channels as determined by the router bits
+// Frame = Complete measurement (e.g. scan of source-detector pairs)
+// Page = Curve belonging to a Frame.
+// P.Chann.Num = number of bins for single curve
+// P.Num.Det = number of SIMULTENEOUS detectors, ruled by routing bits
+// P.Num.Page = total number of Curves for each Frame. Default = P.Acq.Frame * P.Num.Board * P.Num.Det (it includes detectors)
+// P.Acq.Frame = number of acquisitions per each Frame
 
 /* ########################   HEADINGS   ################################## */
+
 
 #pragma warning(disable : 4996) // Disable warnings about some functions in VS 2005
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
@@ -57,6 +64,7 @@
 #endif
 
 #include "hhlib.h"
+#include "mhlib.h"
 #include "th260lib.h"
 #include "errorcodes.h"
 
@@ -76,7 +84,7 @@
 #include <analysis.h>
 #include <cvinetv.h>
 #include "SwabNet.h"
-#include "preSOLUS_BCD.h"
+//#include "preSOLUS_BCD.h"
 
 #include "measure.h"   
 #include "trs.h" 
@@ -98,9 +106,446 @@
 
 
 //#include "MAMM.h"
-
+	
+// FOR DMD_TX
+#include "dmd\ordering.h"
+#include "dmd\getbasis.h"
+#include "dmd\dmd.h"
+	
+// FOR PYTHON
+#include <winbase.h>
+#include "PYTHON\include\Python.h"
+// numpy
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include "PYTHON\Lib\site-packages\numpy\core\include\numpy\ndarrayobject.h"
+#include "PYTHON\Lib\site-packages\numpy\core\include\numpy\ndarraytypes.h"
 
 /* ########################   MEASURE PROCEDURES   ########################### */
+
+
+/* TEST ANALYSIS ON PYTHON */
+
+void InitPython(void){
+	// must be called before using python (only once is ok)
+	// take path of TRS
+	char exePath[300];
+	int pathCode = 1;
+	pathCode = GetDir(exePath);
+	if(pathCode != 0) pyErrHandler("InitPython","GetDir - path not found");
+	strcat(exePath, "\\PYTHON");
+	// sent environment variables to open Python
+	int okEnv = 0;
+	okEnv = SetEnvironmentVariable("PYTHONHOME",exePath);
+	if(!okEnv) pyErrHandler("InitPython","SetEnvironmentVariable");
+    // init Py interpreter
+	Py_Initialize();
+	
+}
+
+void ClosePython(void){
+	// close interpreter (must be called only when we close TRS)
+	int res = 0;
+    res = Py_FinalizeEx();
+	if(res == -1) pyErrHandler("ClosePython","Python not finalized correctly");
+}
+	
+
+void checkFunction(PyObject *pFunc, char *name){
+    int cal = PyCallable_Check(pFunc);
+    if(pFunc==NULL || !cal){
+        printf("Function %s not found or not callable\n", name);
+        getchar();
+        exit(1);
+    }
+}
+
+void CreateFigPy(void){
+	
+	PyObject *pyModule;
+	PyObject *pyCreateFig;
+	PyObject *pyRes;
+	
+	pyModule = PyImport_ImportModule("reconsPy");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyCreateFig = PyObject_GetAttrString(pyModule,"createFigure");
+	if(pyCreateFig==NULL || !PyCallable_Check(pyCreateFig)) pyErrHandler("ImportFunction: pyCreateFig","Function not found or not callable");
+	pyRes = PyObject_CallObject(pyCreateFig,NULL);
+	if(pyRes==NULL) {
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		pval2 = PyUnicode_AsASCIIString(ptraceback);
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: createFigure",pStrErrMsg);
+	}
+	
+}
+
+void CloseFigPy(void){
+	
+	PyObject *pyModule;
+	PyObject *pyCloseFig;
+	PyObject *pyRes;
+	
+	pyModule = PyImport_ImportModule("reconsPy");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyCloseFig = PyObject_GetAttrString(pyModule,"closePlt");
+	if(pyCloseFig==NULL || !PyCallable_Check(pyCloseFig)) pyErrHandler("ImportFunction: pyCloseFig","Function not found or not callable");
+	pyRes = PyObject_CallObject(pyCloseFig,NULL);
+	if(pyRes==NULL) {
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		pval2 = PyUnicode_AsASCIIString(ptraceback);
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: closePlt",pStrErrMsg);
+	}
+	
+}
+
+void Recons2DPy(void){
+
+	PyObject *pyModule;
+	PyObject *pyArgs;
+	PyObject *pyRecons2D;
+	PyObject *pyArray, *pyNBasis, *pyZoom, *pyxcp, *pyycp, *pyCs;
+	PyObject *pyRes;
+	
+	//if(PyArray_API==NULL) import_array();
+	npy_intp dataDim[2]; // D.Data[P.Frame.Actual][page][ic] // not sure dimensions
+	dataDim[0] = P.Flow.NumSlot;
+	dataDim[1] = P.Chann.Num;
+	
+	pyModule = PyImport_ImportModule("reconsPy");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyRecons2D = PyObject_GetAttrString(pyModule,"reconstructHad2D");
+	if(pyRecons2D==NULL || !PyCallable_Check(pyRecons2D)) pyErrHandler("ImportFunction: pyRecons2D","Function not found or not callable");
+	
+	//pyArray = PyArray_SimpleNewFromData(2,dataDim,NPY_USHORT,provaData); // not working with 2d array created with malloc 
+	pyArray = PyArray_SimpleNew(2,dataDim,NPY_USHORT);
+	unsigned short *p = (unsigned short*)PyArray_DATA(pyArray);
+	for(int k=0;k<dataDim[0];k++){
+		memcpy(p,D.Data[P.Frame.Actual][k],sizeof(unsigned short)*dataDim[1]);
+		p += dataDim[1];
+	}
+	
+	pyNBasis = PyLong_FromLong(DmdTxInfo.nBasis);
+	pyZoom = PyLong_FromLong(DmdTxInfo.zoom);
+	pyxcp = PyLong_FromLong(DmdTxInfo.xC);
+	pyycp = PyLong_FromLong(DmdTxInfo.yC);
+	pyCs = PyLong_FromLong(DmdTxInfo.csMode);
+	
+	pyArgs = PyTuple_New(6);
+	PyTuple_SetItem(pyArgs,0,pyArray);
+	PyTuple_SetItem(pyArgs,1,pyNBasis);
+	PyTuple_SetItem(pyArgs,2,pyZoom);
+	PyTuple_SetItem(pyArgs,3,pyxcp);
+	PyTuple_SetItem(pyArgs,4,pyycp);
+	PyTuple_SetItem(pyArgs,5,pyCs);
+	
+	pyRes = PyObject_CallObject(pyRecons2D,pyArgs);
+	if(pyRes==NULL){
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		pval2 = PyUnicode_AsASCIIString(pval);
+		if(pval2 == NULL) pval2 = PyUnicode_AsEncodedString(pval,"utf-8","strict");
+		if(pval2 == NULL){
+			pyErrHandler("CallObject: recons2D","Generic Error");
+			return;
+		}
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: recons2D",pStrErrMsg);
+	}
+	
+}
+
+void Recons1DPy(void){
+
+	PyObject *pyModule;
+	PyObject *pyArgs;
+	PyObject *pyRecons1D;
+	PyObject *pyArray, *pyNBasis, *pyNumCh, *pyStartG, *pyEndG, *pyCs;
+	PyObject *pyRes;
+	
+	npy_intp dataDim[2]; // D.Data[P.Frame.Actual][page][ic] // not sure dimensions
+	dataDim[0] = P.Flow.NumSlot;
+	dataDim[1] = P.Chann.Num;
+	
+	pyModule = PyImport_ImportModule("reconsPy");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyRecons1D = PyObject_GetAttrString(pyModule,"reconstructHad1D");
+	if(pyRecons1D==NULL || !PyCallable_Check(pyRecons1D)) pyErrHandler("ImportFunction: pyRecons1D","Function not found or not callable");
+	
+	pyArray = PyArray_SimpleNew(2,dataDim,NPY_USHORT);
+	unsigned short *p = (unsigned short*)PyArray_DATA(pyArray);
+	for(int k=0;k<dataDim[0];k++){
+		memcpy(p,D.Data[P.Frame.Actual][k],sizeof(unsigned short)*dataDim[1]);
+		p += dataDim[1];
+	}
+	
+	pyNBasis = PyLong_FromLong(DmdTxInfo.nBasis);
+	pyNumCh = PyLong_FromLong(P.Chann.Num);
+	pyStartG = PyLong_FromLong((int)(2*P.Chann.Num/10)); // gate start and end
+	pyEndG = PyLong_FromLong((int)(7*P.Chann.Num/10));
+	pyCs = PyLong_FromLong(DmdTxInfo.csMode);
+	
+	pyArgs = PyTuple_New(6);
+	PyTuple_SetItem(pyArgs,0,pyArray);
+	PyTuple_SetItem(pyArgs,1,pyNBasis);
+	PyTuple_SetItem(pyArgs,2,pyNumCh);
+	PyTuple_SetItem(pyArgs,3,pyStartG);
+	PyTuple_SetItem(pyArgs,4,pyEndG);
+	PyTuple_SetItem(pyArgs,5,pyCs);
+	
+	pyRes = PyObject_CallObject(pyRecons1D,pyArgs);
+	if(pyRes==NULL){
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		pval2 = PyUnicode_AsASCIIString(pval);
+		if(pval2 == NULL) pval2 = PyUnicode_AsEncodedString(pval,"utf-8","strict");
+		if(pval2 == NULL){
+			pyErrHandler("CallObject: recons1D","Generic Error (try to test the function in Python)");
+			return;
+		}
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: recons1D",pStrErrMsg);
+	}
+	
+}
+
+
+void ReconsRastPy(void){
+
+	PyObject *pyModule;
+	PyObject *pyArgs;
+	PyObject *pyReconsRast;
+	PyObject *pyArray, *pyNMeas, *pyNumCh, *pyStartG, *pyEndG;
+	PyObject *pyRes;
+	
+	npy_intp dataDim[2]; // D.Data[P.Frame.Actual][page][ic] // not sure dimensions
+	dataDim[0] = P.Flow.NumSlot;
+	dataDim[1] = P.Chann.Num;
+	
+	pyModule = PyImport_ImportModule("reconsPy");
+	if(pyModule==NULL) pyErrHandler("ImportModule","Module not found");
+	pyReconsRast = PyObject_GetAttrString(pyModule,"reconstructRaster");
+	if(pyReconsRast==NULL || !PyCallable_Check(pyReconsRast)) pyErrHandler("ImportFunction: pyReconsRast","Function not found or not callable");
+	
+	pyArray = PyArray_SimpleNew(2,dataDim,NPY_USHORT);
+	unsigned short *p = (unsigned short*)PyArray_DATA(pyArray);
+	for(int k=0;k<dataDim[0];k++){
+		memcpy(p,D.Data[P.Frame.Actual][k],sizeof(unsigned short)*dataDim[1]);
+		p += dataDim[1];
+	}
+	
+	pyNMeas = PyLong_FromLong(DmdTxInfo.nMeas);
+	pyNumCh = PyLong_FromLong(P.Chann.Num);
+	pyStartG = PyLong_FromLong((int)(2*P.Chann.Num/10)); // gate start and end
+	pyEndG = PyLong_FromLong((int)(7*P.Chann.Num/10));
+	
+	pyArgs = PyTuple_New(5);
+	PyTuple_SetItem(pyArgs,0,pyArray);
+	PyTuple_SetItem(pyArgs,1,pyNMeas);
+	PyTuple_SetItem(pyArgs,2,pyNumCh);
+	PyTuple_SetItem(pyArgs,3,pyStartG);
+	PyTuple_SetItem(pyArgs,4,pyEndG);
+	
+	pyRes = PyObject_CallObject(pyReconsRast,pyArgs);
+	if(pyRes==NULL){
+		PyObject *ptype, *pval, *pval2, *ptraceback;
+		PyErr_Fetch(&ptype, &pval, &ptraceback);
+		pval2 = PyUnicode_AsASCIIString(pval);
+		if(pval2 == NULL) pval2 = PyUnicode_AsEncodedString(pval,"utf-8","strict");
+		if(pval2 == NULL){
+			pyErrHandler("CallObject: reconsRast","Generic Error (try to test the function in Python)");
+			return;
+		}
+		char *pStrErrMsg = PyBytes_AsString(pval2);
+		pyErrHandler("CallObject: reconsRast",pStrErrMsg);
+	}
+	
+}
+
+void ReconsPy(void){
+	// direct to the right reconstruction
+	if(DmdTxInfo.RasterOrHadamard==0) ReconsRastPy();
+	if(DmdTxInfo.RasterOrHadamard==1) Recons1DPy();
+	if(DmdTxInfo.RasterOrHadamard==10) Recons2DPy();
+}
+
+
+int TestPython(){
+	
+	PyObject *pModule = NULL;
+    PyObject *pFunc, *pFunc2, *pFunc3, *pFunc4;
+    PyObject *pArgs, *pArgs2, *pArgs3;
+    PyObject *pList, *pValue, *pArray;
+    PyObject *pRes, *pRes2, *pRes3, *pRes4;
+
+    int dimX = 35;
+    int dimY = 25;
+	
+	
+    // load module (script)
+    pModule = PyImport_ImportModule("pyFunc");
+    if(pModule==NULL){
+        printf("Module not found\n");
+		Py_Finalize();
+        return 1;
+    }
+
+    // load function or method
+    // per fare le cose bene bisognerebbe controllare l'apertura e callable per tutte le funzioni
+    pFunc = PyObject_GetAttrString(pModule, "printData");
+    pFunc2 = PyObject_GetAttrString(pModule, "plot");
+    pFunc3 = PyObject_GetAttrString(pModule, "plot2D");
+    pFunc4 = PyObject_GetAttrString(pModule, "createImage");
+    checkFunction(pFunc4, "createImage");
+
+    // create list containing data
+    int len = 5;
+    int values[5] = {2,4,6,8,10};
+    pList = PyList_New(len);
+    for(int i=0; i<len; i++){
+        pValue = PyLong_FromLong(values[i]);
+        PyList_SetItem(pList, i, pValue);
+    }
+
+    // create array
+    if (PyArray_API == NULL) import_array(); // to be called before using Numpy/C array API
+    int data[2][5] = {{1,3,6,2,0}, {9,6,3,0,1}};
+	int** dataM;
+	dataM = (int**)calloc(2,sizeof(int*));
+	for(int x=0; x<2; x++) dataM[x] = (int)calloc(5,sizeof(int));
+    npy_intp dims[2] = {2,5}; // dimension of the array
+    pArray = PyArray_SimpleNewFromData(2, dims, NPY_INT, dataM);
+
+
+    // create tuple to be passed to functions
+    pArgs = PyTuple_New(1);
+    PyTuple_SetItem(pArgs, 0, pList);
+    pArgs2 = PyTuple_New(1);
+    PyTuple_SetItem(pArgs2, 0, pArray);
+    pArgs3 = PyTuple_New(2);
+    PyTuple_SetItem(pArgs3, 0, PyLong_FromLong(dimX));
+    PyTuple_SetItem(pArgs3, 1, PyLong_FromLong(dimY));
+
+    // call function
+    pRes = PyObject_Call(pFunc, pArgs, NULL);
+    pRes2 = PyObject_CallObject(pFunc2, pArgs);
+    pRes3 = PyObject_CallObject(pFunc3, pArgs2);
+    pRes4 = PyObject_CallObject(pFunc4, pArgs3);
+    PyTuple_SetItem(pArgs, 0, pRes4);
+    pRes3 = PyObject_CallObject(pFunc3, pArgs);
+    if (pRes3 == NULL) {
+        printf("Py Function returned NULL\n");
+        Py_DECREF(pRes);
+        return 1;
+    }
+    printf("Result of call: %ld\n", PyLong_AsLong(pRes));
+    printf("Result of call2: %ld\n", PyLong_AsLong(pRes2));
+    printf("Result of call2: %ld\n", PyLong_AsLong(pRes3));
+
+    // per disallocare la memoria dei pyObject... (comunque Py_Finalize() disalloca automaticamente tutto)
+	// tolte perchè se chiamate in ripetizione la variabile va tenuta
+    //Py_DECREF(pModule);
+    //Py_DECREF(pFunc);
+    //Py_DECREF(pArgs);
+    //Py_DECREF(pValue);
+    //Py_DECREF(pRes);
+
+    printf("End of C program. Press key to close ...");
+	getchar();
+
+	return 0;
+}
+
+
+int TestPythonEXE(){
+	
+	int N=2000;
+	int M=32;
+    int data[2000];
+    int i=0, j=0, k=0;
+    FILE *suppFile;
+
+    // process creation (https://www.youtube.com/watch?v=W2Qu4RDk__k)
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+    BOOL bProcess;
+
+    // semaphore creation
+    HANDLE hSem, pSem;
+    SECURITY_ATTRIBUTES sS;
+    sS.nLength = sizeof(sS);
+    sS.lpSecurityDescriptor = NULL;
+    sS.bInheritHandle = TRUE;
+    hSem = CreateSemaphore(&sS, 0, 1, "hSem"); // 1 when analysis is running
+    pSem = CreateSemaphore(&sS, 0, 1, "pSem"); // 1 when data collection is running
+    if(hSem == NULL || pSem == NULL){
+        printf("Error in semaphore creation\n");
+        getchar();
+        return 1;
+    }
+
+    // memory clear
+    ZeroMemory(&si, sizeof(si));
+    ZeroMemory(&pi, sizeof(pi));
+
+    // create process
+    bProcess = CreateProcessA("childProcess.exe", NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+    Sleep(3000);
+
+    // check process created
+    if(bProcess == FALSE){
+        printf( "CreateProcess failed (%d).\n", GetLastError() );
+        return 1;
+    }
+
+    /*
+    // first creation of data and put data in support file txt (not needed)
+    suppFile = fopen("support.txt", "w");
+    for (i=0; i<N; i++){
+        data[i]=i*j;
+        fprintf(suppFile, "%d\n", data[i]);
+    }
+    fclose(suppFile);
+    */
+
+
+    k=0;
+    while(k<10){
+
+        // parent process: collect new data
+        suppFile = fopen("support.txt", "w");
+        for(j=0; j<M; j++){
+            for(i=0; i<N; i++){
+                data[i]=i*j;
+                if(j==15) data[i] = i*k;
+                if(j==20) data[i] = -i*k;
+                if(i==N-1) fprintf(suppFile, "%d", data[i]*j);
+                else fprintf(suppFile, "%d,", data[i]*j);
+            }
+        fprintf(suppFile, "\n");
+        }
+        fclose(suppFile);
+        ReleaseSemaphore(pSem, 1, NULL);
+
+        // wait end of child (semaphore)
+        WaitForSingleObject(hSem, INFINITE);
+
+        k++;
+    }
+
+    // close child process
+    CloseHandle( pi.hProcess );
+    CloseHandle( pi.hThread );
+
+    //printf("\n -> END of C Parent program. Press a key to close... \n");
+    //getchar();
+
+    return 0;
+}
+
+
 
 /* INITIALIZE VARIABLES */
 void InitVariable(void){
@@ -117,6 +562,7 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 	do{ 
 		P.Contest.Run=CONTEST_MEAS;
 		P.Contest.Function=CONTEST_MEAS;
+		SetupDmdTx(&DmdTxInfo); /**/
 		CompleteParmS();
 		UpdatePanel();
 		InitFiber();
@@ -127,6 +573,26 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 		InitDisplay();
 		InitTime();
 		InitMem();
+		
+		InitPython(); // Python
+		if(PyArray_API==NULL) import_array(); // Python: Init Numpy
+		CreateFigPy(); // Python
+		
+		//int ***test;
+		//int i2, i1;
+		//test=DAlloc3D(1,5,6);
+		/*
+		test=(int***)calloc(1,sizeof(int**));
+		for(i1=0;i1<1;i1++){
+			test[i1]=(int**)calloc(5,sizeof(int*));
+			for(i2=0;i2<5;i2++){
+				test[i1][i2]=(int*)calloc(6,sizeof(int));
+				}
+			}
+		*/
+		//ReconsPy_new(test);
+		//TestPython();
+		
 		for(isw=0;isw<MAX_SWITCH;isw++)
 			if(P.Switch[isw].Switch){
 				InitPosSwitch(isw);
@@ -160,6 +626,7 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 		CloseMem();
 		TextDisplay();
 		
+		CloseFigPy(); // Python
 		
 		if(IS_PROFILING) RecProf("Pre Calib");
 		CalibrateTime(1.0);
@@ -248,6 +715,7 @@ void KernelGen(){
 			    		if(P.Action.StartSync) StartSync();
 	                    if(P.Action.SpcReset) 
 							SpcReset(P.Action.Status,P.Meas.Clear,P.Meas.Stop);
+						if(P.Action.StartFlow) StartFlow();
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.StartCont[is])
 								StartCont(is,P.Action.Status);		 
@@ -258,13 +726,16 @@ void KernelGen(){
 		    		    //if(P.Action.StopAdc) StopAdc();		 // mi da errore...Andrea F
 						if(P.Action.StopOma) StopOma();
 						if(P.Action.SpcOut) SpcOut(P.Action.Status);
+						if(P.Action.SpcFlow) SpcFlow(P.Action.Status);
 						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
+						/**/ReconsPy();
 						if(P.Action.DisplayRoi) DisplayRoi();
 						if(P.Action.StopMamm) StopMammot();  
 						if(P.Action.DataSave) DataSave();	 
 						for(is=0;is<MAX_STEP;is++)
 							if(P.Action.WaitCont[is]) WaitCont(is,P.Action.Status);
+						if(P.Action.StopFlow) StopFlow();
 						if(P.Action.CheckJump) CheckJump();
 						NewAcq();		 
 						}
@@ -569,6 +1040,23 @@ void DecideAction(void){
 	if(P.Ophir.Ophir) P.Action.Ophir = new[P.Ophir.Loop];
 	else P.Action.Ophir = FALSE;
 	
+	// Continuous Flow
+	if(P.Flow.Flow){
+		P.Action.SpcFlow=TRUE;
+		P.Action.StartFlow=TRUE;
+		P.Action.StopFlow=TRUE;
+		P.Action.SpcTime=FALSE;
+	    P.Action.SpcReset=FALSE; 
+		P.Action.WaitEnd=FALSE;
+		P.Action.SpcStop=FALSE;
+		P.Action.SpcOut=FALSE;
+		}
+	else{
+		P.Action.SpcFlow=FALSE;
+		P.Action.StartFlow=first[LOOP5];
+		P.Action.StopFlow=last[LOOP5];
+		}
+	
 	// ReadUIR
 	P.Action.ReadUIR=P.Command.ReadUIR;
 	
@@ -691,8 +1179,10 @@ void InitMem(void){
 	if(P.Contest.Run!=CONTEST_MEAS){ Passed(); return;}
 	
 	if(P.Moxy.Moxy) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
+	if(P.Flow.Flow) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Info.SubHeader) D.Sub=SAlloc2D(P.Frame.Num,P.Num.Page);
-	D.Data=DAlloc3D(P.Frame.Num,P.Num.Page,P.Chann.Num); 
+	D.Data=DAlloc3D(P.Frame.Num,P.Num.Page,P.Chann.Num);
+	
 	Passed();
 	}
 
@@ -704,6 +1194,7 @@ void CloseMem(void){
 	if(P.Spc.Subtract) DFree1D(D.Last); 
 	if(P.Contest.Run!=CONTEST_MEAS) return;
 	if(P.Moxy.Moxy) DFree2D(D.Bank,P.Num.Board); 
+	if(P.Flow.Flow) DFree2D(D.Bank,P.Num.Board); 
 	if(P.Info.SubHeader) SFree2D(D.Sub,P.Frame.Num);
 	DFree3D(D.Data,P.Frame.Num,P.Num.Page); 
 }
@@ -717,7 +1208,12 @@ void CompleteParmS(void){
     char loopX, loopY;
 	int fiber,page;
 	char *string;
-    		   
+    
+	// FLOW UIR - TO REPLACE AFTER
+	P.Flow.Flow=TRUE;
+	P.Flow.NumSlot=DmdTxInfo.nMeas;
+	
+	
    	// Presentation
    	if (P.Presentation.Flag == TRUE) {
    		ips=0;  
@@ -1004,10 +1500,11 @@ void CompleteParmS(void){
 	P.Power.Power=(P.Power.Step!=NEG);
 	if(P.Power.Power) P.Power.Loop=P.Step[P.Power.Step].Loop;
 			
-	// NumPage 
+	// NumPage  NOTE: THIS IS REPLICATED UNDER FILTER. HERE YOU NEED TO CALC PAGE NUM
 	page=0;
-	if(!P.Layout.Layout) P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
-	else{
+	if((!P.Layout.Layout)&&(!P.Flow.Flow)) P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
+	if(P.Flow.Flow) P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
+	if(P.Layout.Layout){
 		for(ir=0;ir<MAX_ROW_PROT;ir++){
 			string = P.TProt.Fibers[ir];
 			strcat(string,",");
@@ -1411,13 +1908,14 @@ void InitSource(void){
 	
 // WRITE FILTER ARRAY
 void InitFilter(void){
-	int ir,ia,ib,id,iff,f1,f2;
+	int ir,ia,ib,is,id,iff,f1,f2;
 	int source, fiber, count_fiber;
 	char *string;
 
 	// NOTE: part of this procedure is set in the CompleteParm to calculate P.Num.Page
 	int page=0;
-	if(!P.Layout.Layout){
+	if((!P.Layout.Layout)&&(!P.Flow.Flow)){
+		P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
 		for(ia=0;ia<P.Acq.Frame;ia++)
 			for(ib=0;ib<P.Num.Board;ib++)
 				for(id=0;id<P.Num.Det;id++){
@@ -1427,9 +1925,21 @@ void InitFilter(void){
 					P.Page[page].Fiber=ib*P.Num.Det+id;
 					P.Page[page].Board=ib; 
 					}
-			P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
-			}
-	else{
+		}
+	if(P.Flow.Flow){ // Flow (e.g. DMD under continuous flow) store all SLOTS (i.e. curves, or basis) in 3rd []
+		P.Num.Page=P.Acq.Frame*P.Num.Board*P.Flow.NumSlot*P.Num.Det;
+		for(ia=0;ia<P.Acq.Frame;ia++)
+			for(ib=0;ib<P.Num.Board;ib++)
+				for(is=0;is<P.Flow.NumSlot;is++)
+					for(id=0;id<P.Num.Det;id++){
+						page=ia*P.Num.Board*P.Flow.NumSlot*P.Num.Det+ib*P.Flow.NumSlot*P.Num.Det+is*P.Num.Det+id;
+							P.Filter.Page[ia][ib][id+is*P.Num.Det]=page; //sistemare qui: array troppo piccolo per 256
+						P.Page[page].Source=0;
+						P.Page[page].Fiber=ib*P.Num.Det+id;
+						P.Page[page].Board=ib; 
+						}
+		}
+	if(P.Layout.Layout){
 		for(ia=0;ia<P.Acq.Frame;ia++)
 			for(ib=0;ib<P.Num.Board;ib++)
 				for(id=0;id<P.Num.Det;id++)
@@ -1682,6 +2192,13 @@ void DisplayStatus(void){
 void DisplayPlot(void){
 	if(P.Graph.Type==GRAPH_PLOT) GraphPlot();
 	if(P.Graph.Type==GRAPH_ROI) GraphRoi();
+	
+	// TEST PY
+	//InitPython();
+	//ReconsPy();
+	//TestPython();
+	//ClosePython();
+	// END TEST PY
 	}
 
 /* SET DISPLAY PLOT */
@@ -1965,6 +2482,7 @@ void SpcInit(void){
 		case SPC630:  
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) InitSpcm(ib);break;
 		case HYDRA: for(ib=0;ib<P.Num.Board;ib++) InitHydra(ib);break;
+		case SPC_MHARP: for(ib=0;ib<P.Num.Board;ib++) InitMharp(ib);break;
 		case TH260: for(ib=0;ib<P.Num.Board;ib++) InitTH260(ib);break;
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++) InitSC1000(ib);break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) InitSpad(ib);break;
@@ -1986,6 +2504,7 @@ void SpcClose(void){
 		case SPC630:  
 		case SPC130: CloseSpcm(); break;
 		case HYDRA: CloseHydra(); break;
+		case SPC_MHARP: CloseMharp(); break;
 		case TH260: CloseTH260(); break;
 		case SPC_SC1000: CloseSC1000(); break;
 		case SPC_SPADLAB: CloseSpad(); break;
@@ -2010,6 +2529,7 @@ void SpcPause(void){
 		case SPC630:  
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_pause_measurement(ib); break;
 		case HYDRA: HH_StopMeas(HYDRA_DEV0); break;
+		case SPC_MHARP: for(ib=0;ib<P.Num.Board;ib++) StopMharp(ib); break;
 		case TH260: TH260_StopMeas(TH260_DEV0); break;
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++) sc_tdc_interrupt2(P.Spc.ScBoard[ib]); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) PauseSpad(ib); break;
@@ -2032,6 +2552,7 @@ void SpcClear(void){
 		case SPC630:
 		case SPC130: ClearSpcm(); break;
 		case HYDRA: ClearHydra(); break;
+		case SPC_MHARP: ClearMharp(); break;
 		case TH260: ClearTH260(); break;
 		case SPC_SPADLAB: ClearSpad(); break;
 		case SPC_SC1000: ClearSC1000(); break; 
@@ -2056,6 +2577,7 @@ void SpcIn(){
 		case SPC630: 
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_start_measurement(ib); break;
 		case HYDRA: HH_StartMeas(HYDRA_DEV0,P.Spc.TimeHydra); break;
+		case SPC_MHARP: for(ib=0;ib<P.Num.Board;ib++) StartMharp(ib); break;
 		case TH260: TH260_StartMeas(TH260_DEV0,P.Spc.TimeTH260); break;
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++){} break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
@@ -2081,6 +2603,7 @@ void SpcRestart(void){  //TODO: check
 		case SPC630: 
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_restart_measurement(ib); break;
 		case HYDRA: HH_StartMeas(HYDRA_DEV0,P.Spc.TimeHydra); break;
+		case SPC_MHARP: for(ib=0;ib<P.Num.Board;ib++) StartMharp(ib); break;
 		case TH260: TH260_StartMeas(TH260_DEV0,P.Spc.TimeHydra); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
@@ -2116,6 +2639,7 @@ void SpcTime(float Time){
 		case SPC630: 
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_set_parameter(ib,COLLECT_TIME,Time); break;
 		case HYDRA: P.Spc.TimeHydra = (int) (Time*SEC_2_MILLISEC); break;
+		case SPC_MHARP: P.Spc.TimeMharp = (int) (Time*SEC_2_MILLISEC); break;
 		case TH260: P.Spc.TimeTH260 = (int) (Time*SEC_2_MILLISEC); break;
 		case SPC_SC1000: P.Spc.TimeSC1000 = (int) (Time*SEC_2_MILLISEC); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) TimeSpad(ib,Time); break;
@@ -2140,6 +2664,7 @@ void SpcStop(char Status){
 		case SPC630:
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_stop_measurement(ib);break;
 		case HYDRA: HH_StopMeas(HYDRA_DEV0); break;
+		case SPC_MHARP: for(ib=0;ib<P.Num.Board;ib++) MH_StopMeas(ib); break;
 		case TH260: TH260_StopMeas(TH260_DEV0); break;
 		case SPC_SC1000: break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StopSpad(ib);break;
@@ -2176,6 +2701,7 @@ void SpcWait(void){
 		case HYDRA: for(ib=0;ib<P.Num.Board;ib++)
     					do HH_CTCStatus(HYDRA_DEV0,&mod_state2);
 						while(mod_state2==0);break;
+		case SPC_MHARP: for (ib = 0; ib < P.Num.Board; ib++) WaitMharp(ib); break;
 		case TH260: for(ib=0;ib<P.Num.Board;ib++)
     					do TH260_CTCStatus(TH260_DEV0,&mod_state2);
 						while(mod_state2==0);break;
@@ -2205,6 +2731,7 @@ void SpcGet(void){
 		case SPC630:   
 		case SPC130: GetDataSpcm();break;
 		case HYDRA: GetDataHydra();break;
+		case SPC_MHARP: GetDataMharp(); break;
 		case TH260: GetDataTH260();break;
 		case SPC_SC1000: GetDataSC1000();break;
 		case SPC_SPADLAB: GetDataSpad();break;
@@ -2276,6 +2803,12 @@ void CalcTime(void){
 		case HYDRA:
 			HH_GetElapsedMeasTime(HYDRA_DEV0,&elapsed_time);
 			for(ib=0;ib<P.Num.Board;ib++) P.Spc.EffTime[ib] = elapsed_time;
+			break;
+		case SPC_MHARP:
+			for (ib = 0; ib < P.Num.Board; ib++) {
+				MH_GetElapsedMeasTime(ib, &elapsed_time);
+				P.Spc.EffTime[ib] = (1.0*elapsed_time)/SEC_2_MILLISEC;
+				}
 			break;
 		case TH260:
 			TH260_GetElapsedMeasTime(TH260_DEV0,&elapsed_time);
@@ -2454,10 +2987,10 @@ void InitSpcm(int Board){
 	} 
 
 
-/* INIT SPCM */	
+/* CLOSE SPCM */	
 void CloseSpcm(void){
 	short ret;
-	if(P.Moxy.Moxy){
+	if(P.Moxy.Moxy || P.Flow.Flow){
 		ret=SPC_enable_sequencer(SPC_ALL,FALSE);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_enable_sequencer");
 		SPC_set_parameter(SPC_ALL, TRIGGER, 0); // no trigger
@@ -2486,7 +3019,7 @@ void GetDataSpcm(void){
 /* CLEAR SPCM */	
 void ClearSpcm(void){
 	short ret;
-	if(P.Moxy.Moxy) ret=SPC_fill_memory(-1,-1,-1,0); 
+	if(P.Moxy.Moxy || P.Flow.Flow) ret=SPC_fill_memory(-1,-1,-1,0); 
 	else ret=SPC_fill_memory(-1,-1,0,0); 
 	if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_fill_memory");
 	ret=test_fill_state();
@@ -2513,6 +3046,214 @@ short test_fill_state(void){
 	return 0;  
 	}
 	
+// TEST SEQUENCER STATE
+void test_sequencer_state(void){
+	short ret,state;
+	int ib;
+	for(ib=0;ib<P.Num.Board;ib++){
+		ret=SPC_get_sequencer_state(ib,&state);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"test_sequencer_state:SPC_get_sequencer_state");
+		if((state & SPC_SEQ_ENABLE) == SPC_SEQ_ENABLE) printf("SEQUENCER ENABLED\n");
+		if((state & SPC_SEQ_RUNNING) == SPC_SEQ_RUNNING) printf("SEQUENCER RUNNING\n");
+		if((state & SPC_SEQ_GAP_BANK) == SPC_SEQ_GAP_BANK) printf("SEQUENCER WAITING OTHER BANK\n");
+		}
+	}
+	
+	
+/* Wait for Bank, transfer and copy data */
+void SpcFlow(char Status){
+	//TODO: Status? display something?
+
+	short ret,ib;
+	
+	DmdTx_startSequence(DmdTx.handle);
+	
+	do{
+		//if(P.Flow.EmptyBank){
+		//	WaitFlow();
+		//	GetFlow();
+		//	}
+		WaitFlow();
+		GetFlow();
+		//if(P.Flow.Page0<P.Flow.NumSlot){
+			// 2 banks filled, the measurement needs restart
+		//	for(ib=0;ib<P.Num.Board;ib++){	
+		//		ret = SPC_start_measurement(ib); /*prova spc 2*/
+		//		if(ret<0) ErrHandler(ERR_SPC,ret,"SpcFlow:SPC_start_measurement"); /*prova spc 2*/
+		//		}
+		//	}
+		CopyFlow();
+		}
+	while(!P.Flow.FilledFrame);
+	
+	}
+
+// WAIT FOR FILLED BANK
+void WaitFlow(void){
+	int ib, waitTrg, nTrg;
+	waitTrg = 1;
+	nTrg = 1;
+	short ret,finished,spc_state,mod_state[MAX_BOARD];
+	finished=0;
+	do{
+		spc_state=0;
+		for (ib=0;ib<P.Num.Board;ib++){
+			ret=SPC_test_state(ib,&mod_state[ib]);
+			if(ret<0) ErrHandler(ERR_SPC,ret,"WaitFlow:SPC_test_state");
+			spc_state |= mod_state[ib];
+			}
+	    finished = ((spc_state & SPC_ARMED) == 0);
+		//if(((spc_state & SPC_WAIT_TRG) == SPC_WAIT_TRG) && waitTrg){ // not sure this works correctly
+			//printf("SPC waiting for trigger\n");
+			//waitTrg = 0;
+			//}
+		//if((spc_state & SPC_WAIT_TRG) == 0 /*&& !waitTrg*/){
+			//printf("TRIGGER RECEIVED %d\n", nTrg);
+			//waitTrg = 1;
+			//nTrg++;
+			//}
+		}
+	while(!finished);
+	//test_sequencer_state();
+	}
+
+// CHECK TRIGGER
+void CheckTriggerFlow(void){
+	int ib;
+	short ret,ver,spc_state,mod_state[MAX_BOARD];
+	do{
+		spc_state=0;
+		for (ib=0;ib<P.Num.Board;ib++){
+			ret=SPC_test_state(ib,&mod_state[ib]);
+			if(ret<0) ErrHandler(ERR_SPC,ret,"CheckTrigger:SPC_test_state");
+			spc_state |= mod_state[ib];
+			}
+	    //ver = ((spc_state & SPC_WAIT_TRG) == 0);
+		if((spc_state & SPC_WAIT_TRG) == 1) printf("SPC waiting for trigger\n");
+		}
+	while(!ver);
+	}
+	
+	
+// TRANSFER BANK TO BUFFER
+void GetFlow(void){
+	int ib;
+	short ret,state;
+	P.Spc.Overflow=FALSE;
+	for (ib=0;ib<P.Num.Board;ib++){
+		
+		ret=SPC_test_state(ib,&state);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_test_state");
+		P.Spc.Overflow|=(state & SPC_OVERFLOW);
+		ret=SPC_read_data_page(ib,0,(int)(SPC_BANK_DIM/P.Chann.Num)-1,D.Bank[ib]);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_read_data_page");
+		
+		SPC_fill_memory(ib,-1,-1,0); /*prova spc 2*/
+		ret=test_fill_state(); /*prova spc 2*/
+		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:test_fill_state"); /*prova spc 2*/
+		
+		ret = SPC_start_measurement(ib); /*prova spc 2*/
+		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_start_measurement"); /*prova spc 2*/
+		
+		//if((state & SPC_SEQ_GAP) == SPC_SEQ_GAP) SPC_start_measurement(ib);
+
+		}
+	P.Flow.Bank=P.Flow.Bank?0:1;
+	ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank);
+	if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_set_parameter:MEM_BANK");
+	
+	
+	P.Flow.EmptyBank=FALSE;
+	}
+
+	
+/* COPY FLOW TO DATA */
+void CopyFlow(void){
+	// Initialise @StartFlow: Chan0,Slot0,EmptyBank=TRUE,FilledBuffer=FALSE;
+	//FILE * Supp; /**/
+	//Supp = fopen("support.txt","w"); /**/
+	//long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,P.Num.Page-P.Flow.Page0); // calc min num of slot(i.e. curves) either in Bank or in Frame
+	long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,(int)(SPC_BANK_DIM/P.Chann.Num));
+	for(int ib=0;ib<P.Num.Board;ib++)
+		for(int is=0;is<num_slot;is++){	// iterate over Slots (i.e. curves) both on det and buffer
+			long page=P.Filter.Page[P.Acq.Actual][ib][is+P.Flow.Page0]; // last [] is the page num
+			if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page);
+			P.Page[page].Acq=P.Acq.Actual;
+			for(int ic=0;ic<P.Chann.Num;ic++) {
+				D.Data[P.Frame.Actual][page][ic]=D.Bank[ib][ic+(P.Flow.Slot0+is)*P.Chann.Num];
+				//D.Data[P.Frame.Actual][page][ic]=10;
+				//fprintf(Supp,"%hu;",D.Data[P.Frame.Actual][page][ic]); /**/
+				//if(ic == P.Chann.Num-1) fprintf(Supp,"%hu\n",D.Data[P.Frame.Actual][ib][ic]); /**/
+				}
+			}
+	P.Flow.Slot0+=num_slot;
+	P.Flow.Page0+=num_slot;
+	if(P.Flow.Slot0==(int)(SPC_BANK_DIM/P.Chann.Num)){	  // reached end of Bank
+		P.Flow.Slot0=0;
+		P.Flow.EmptyBank=TRUE;
+		}
+	if(P.Flow.Page0==P.Num.Page){		// reached end of Frame (i.e. exit function and go to next Loop)
+		P.Flow.Page0=0;
+		P.Flow.FilledFrame=TRUE;
+		}
+	//fclose(Supp);
+	}
+
+/* START FLOW */
+void StartFlow(void){
+	short ret;
+	int ib;
+	InitFlow();
+	P.Flow.Bank=0;
+	P.Flow.EmptyBank=TRUE;
+	P.Flow.FilledFrame=FALSE;
+	P.Flow.Page0=0;
+	P.Flow.Slot0=0;
+	for (ib=0;ib<P.Num.Board;ib++){
+		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank); // fa la stessa cosa in initflow (a)
+		if(ret<0) ErrHandler(ERR_SPC,ret,"StartFlow:SPC_set_parameter:MEM_BANK");
+	    ret=SPC_start_measurement(ib);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"StartFlow:SPC_start_measurement");
+		//test_sequencer_state();
+		}
+	}
+
+/* STOP FLOW */
+void StopFlow(void){
+	short ib,ret;
+	DmdTx_stopSequence(DmdTx.handle);
+	for (ib=0;ib<P.Num.Board;ib++){
+		ret = SPC_stop_measurement(ib); // sequencer is stopped -> reconstruction
+		if(ret<0) ErrHandler(ERR_SPC,ret,"StopFlow:SPC_stop_measurement");
+	}
+}
+
+	
+// INITIALIZE CONTINUOUS FLOW
+void InitFlow(void){
+	int ib,ibb;
+	SPCdata spc_dat;
+	short mem_bank,ret;
+	for(ibb=0;ibb<P.Num.Board;ibb++){
+		ret=SPC_get_parameters(ibb,&spc_dat);
+		if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_get_parameters");
+		}
+	mem_bank=spc_dat.mem_bank;	  // NOTE: taken from last SPC module
+	ret=SPC_enable_sequencer(SPC_ALL,1); // 1 or 2 (1 -> SPC_ARMED untill all banks are full; 2 -> SPC_ARMED only for one bank (probelms in changing bank))
+	if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_enable_sequencer");
+	ret=SPC_set_parameter(SPC_ALL, TRIGGER, 0x302); // trigger each curve, trigger high
+	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:TRIGGER");
+	for(ib=0;ib<SPC_NUM_BANK;ib++){
+		SpcClear();
+		mem_bank=mem_bank?0:1;
+		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,mem_bank); // (a)
+		if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_parameter:MEM_BANK");
+		}
+	ret=SPC_set_page(SPC_ALL,0);
+	if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_page");
+	//test_sequencer_state();
+	}
+
 
 /* ########################   SWABIAN INSTRUMENTS FUNCTIONS   ####################### */
 
@@ -2837,28 +3578,28 @@ void InitBcd(int Board){
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, message); 
 	
 	GetProjectDir(dir_trs);
-	Basic_test(Input,&Output,OUT_ARRAY,len);
+	//Basic_test(Input,&Output,OUT_ARRAY,len);
 	if(Output!=Input) ErrHandler(ERR_SPC,status,"BCD_Test_Function");
 	if(!B->IsInitialized){
 		sprintf(path,"%s\\%s\\%s",dir_trs,DIR_INI,B->Calibration);
-		Startup(path,B->VDD_CORE,B->VDDD_CORE,B->VDD_CK,B->VHIGH,&status,&B->Handle);
+		//Startup(path,B->VDD_CORE,B->VDDD_CORE,B->VDD_CK,B->VHIGH,&status,&B->Handle);
 		P.Spc.Bcd[Board].IsInitialized=TRUE;
 		}
 	if(status<0) ErrHandler(ERR_SPC,status,"BCD_Startup");
 	MoveBcdSync(0,B->Sync0,0); // Set Default Sync Conditions
 	sprintf(path,"%s\\%s\\%s",dir_trs,DIR_INI,B->PixelsOrder);
 	
-	Load_pixel_order(path,B->Pixel_sequence,BCD_MAXPIX); // load file
+	//Load_pixel_order(path,B->Pixel_sequence,BCD_MAXPIX); // load file
 	
 //	SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 
 	if(B->PixelSingle){
 		for(int ip=0;ip<BCD_MAXPIX;ip++) pixel_single[ip]=BCD_MAXPIX+1; // set all pixels to not-reachable 
 		pixel_single[B->PixelDefault]=1; // set required pixel to highest priority 
-		SetPixelsFast(B->Handle,(uint32_t)10,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		//SetPixelsFast(B->Handle,(uint32_t)10,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 		}
 	else{
-		SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		//SetPixelsFast(B->Handle,(uint32_t)B->PixelDefault,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 		}
 	
 	Passed();
@@ -2869,7 +3610,7 @@ void InitBcd(int Board){
 void CloseBcd(void){
 	struct BcdS *B=&P.Spc.Bcd[0];
 	if(B->IsInitialized){
-		Shutdown_DLL(B->Handle);
+		//Shutdown_DLL(B->Handle);
 		B->IsInitialized=FALSE;
 		}
 	} 
@@ -2883,11 +3624,13 @@ void GetDataBcd(void){
 	LVBoolean ret=0;
 	int Board=0;
 
+	/*
 	if (P.Wait.Type==WAIT_SPC)
-		Get_Histogram_set_integration((uint32_t)(B->Time*1000000),B->Handle,&counts,Histogram,&(B->Handle),&ret,BCD_MAXBIN);
+		//Get_Histogram_set_integration((uint32_t)(B->Time*1000000),B->Handle,&counts,Histogram,&(B->Handle),&ret,BCD_MAXBIN);
 	else
-		Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
-		
+		//Get_Histogram(B->Handle,&ret,&(B->Handle),&counts,Histogram,BCD_MAXBIN);
+	*/
+	
 	if(ret<0) ErrHandler(ERR_BCD,ret,"BCD_GetDataBcd");
 	for(int ic=0;ic<P.Chann.Num;ic++) D.Buffer[Board][ic]=Histogram[ic];   
 	}
@@ -2930,7 +3673,7 @@ void MoveBcdSync(char Step,long Goal,char Wait){
 	CalcCoarseFineBcd(Goal,&STOP_coarse,&STOP_fine); // Calc fine & corase for DELAY of STOP TDC
 	CalcCoarseFineBcd(B->Open0,&OPEN_coarse,&OPEN_fine); // Calc fine & coarse for OPEN of HW GATE
 	CalcCoarseFineBcd(B->Open0+B->Width0,&CLOSE_coarse,&CLOSE_fine); // Calc fine & corase for CLOSE of HW Gate
-	Gating_config(STOP_coarse,CLOSE_fine,CLOSE_coarse,OPEN_fine,STOP_fine,OPEN_coarse,BCD_QUADRANTS,(uint8_t)B->RSTDuration,(LVBoolean)B->LOWPower,B->Handle,&ret,&(B->Handle)); 
+	//Gating_config(STOP_coarse,CLOSE_fine,CLOSE_coarse,OPEN_fine,STOP_fine,OPEN_coarse,BCD_QUADRANTS,(uint8_t)B->RSTDuration,(LVBoolean)B->LOWPower,B->Handle,&ret,&(B->Handle)); 
 	}
 
 // CALC internal BCD delays
@@ -2952,10 +3695,10 @@ void MoveBcdPix(char Step,long Goal,char Wait){
 	if(B->PixelSingle){ // switch on only 1 pixel
 		for(int ip=0;ip<BCD_MAXPIX;ip++) pixel_single[ip]=BCD_MAXPIX+1; // set all pixels to not-reachable 
 		pixel_single[Goal]=1; // set required pixel to highest priority 
-		SetPixelsFast(B->Handle,(uint32_t)10,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		//SetPixelsFast(B->Handle,(uint32_t)10,pixel_single,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 		}
 	else{ // switch on ALL pixels up to Goal (in ordered list)
-		SetPixelsFast(B->Handle,(uint32_t)Goal,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
+		//SetPixelsFast(B->Handle,(uint32_t)Goal,B->Pixel_sequence,B->SETMap,&(B->Handle),&status,BCD_MAXPIX);
 		}
 
 	}
@@ -3050,6 +3793,119 @@ void ClearHydra(void){
 		}
 	while((ret<0)&&(i_trial<10));
 	if(ret<0) ErrHandler(ERR_HYDRA,ret,"HH_ClearHistMem");
+	}
+
+
+/* ########################   MULTI HARP FUNCTIONS (Mharp)  ####################### */
+
+/* INIT SPC_MHARP */
+void InitMharp(int Board) {
+	char message[STRLEN];
+	int ret;
+	int HistLen;
+	char HW_Serial[8];
+	double resolution;
+	int binsteps;
+	char LIB_Version[8];
+
+	sprintf(message, "Initializing MharpHarp, Module #%d, ...", Board);
+	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+
+	// initialize
+	ret=MH_GetLibraryVersion(LIB_Version); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetLibraryVersion");
+	sprintf(message, "Lib Version=%s, ...", LIB_Version);
+	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+
+	ret = MH_OpenDevice(Board, HW_Serial); // Check for Serial Number of Device = 0 (NOTE: Many MharpHarp Devices can be controlled)
+	if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_OpenDevice");
+	else {
+		sprintf(message, "...Serial Number = %s", HW_Serial);
+		SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+		}
+	ret = MH_Initialize(Board, MODE_HIST, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
+
+	// set ini parameters
+	ret = MH_SetSyncDiv(Board, MHARP_SYNC_DIVIDER); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncDiv");
+	ret = MH_SetSyncEdgeTrg(Board, MHARP_SYNC_LEVEL, MHARP_SYNC_EDGE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
+	ret = MH_SetSyncChannelOffset(Board, MHARP_SYNC_OFFSET);  if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncChannelOffset"); // add cable to SYNC
+	for (int id = 0; id < P.Num.Det; id++){
+		ret = MH_SetInputEdgeTrg(Board, id, MHARP_INPUT_LEVEL, MHARP_INPUT_EDGE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
+		ret = MH_SetInputChannelOffset(Board, id, MHARP_INPUT_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
+		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
+		}
+	ret = MH_SetHistoLen(Board, MAXLENCODE, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
+	ret = MH_SetBinning(Board, MHARP_BINNING); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
+	ret = MH_SetOffset(Board, MHARP_HIST_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
+
+	// get temporal scale
+	ret = MH_GetResolution(Board, &resolution); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetResolution");
+	P.Spc.Calib = 1000 * resolution;
+	P.Spc.Factor = P.Spc.Calib * P.Spc.Scale;
+
+	// init time
+	P.Spc.TimeInit = TimerN();   // era Timer() 
+
+	Passed();
+}
+
+
+/* CLOSE SPC_MHARP */
+void CloseMharp(void) {
+	short ret;
+	for (int ib = 0; ib < P.Num.Board; ib++) {
+		ret = MH_CloseDevice(ib); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_CloseDevice");
+		}
+	}
+
+
+/* STOP SPC_MHARP */
+void StopMharp(int Board) {
+	short ret;
+	ret = MH_StopMeas(Board); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
+	}
+
+
+/* TRANSFER DATA FROM SPC_MHARP */
+void GetDataMharp(void) {
+	//short state;
+	int ib;
+	int ic;
+	unsigned int DataMharp[1024 * 16];
+	int ret = 0;
+
+	P.Spc.Overflow = FALSE;
+	for (ib = 0; ib < P.Num.Board; ib++) {
+		ret = MH_GetHistogram(MHARP_DEV0, DataMharp, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
+		for (ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic] = (unsigned short)DataMharp[ic];
+	}
+}
+
+
+/* CLEAR SPC_MHARP */
+void ClearMharp(void) {
+	short ret;
+	for (int ib = 0; ib < P.Num.Board; ib++) {
+		ret = MH_ClearHistMem(ib); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_ClearHistMem");
+		}
+}
+
+/* START SPC_MHARP */
+void StartMharp(int Board) {
+	short ret;
+	//MEASCTRL_C1_START_CTC_STOP
+	//if ((P.Contest.Run == CONTEST_MEAS) && (P.Spc.Mharp.HwStart == TRUE))
+	//	ret = MH_SetMeasControl(Board, MEASCTRL_C1_START_CTC_STOP, 1, 1); // set HW start on rising edge
+	//else
+		ret = MH_SetMeasControl(Board, MEASCTRL_SINGLESHOT_CTC, 1, 1); // standard software start
+	if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");
+	ret = MH_StartMeas(MHARP_DEV0, P.Spc.TimeMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas");
+	}
+
+/* WAIT MHARP */
+void WaitMharp(int Board) {
+	int mod_state;
+	do MH_CTCStatus(MHARP_DEV0,&mod_state);
+	while(mod_state==0);
 	}
 
 
@@ -5818,6 +6674,7 @@ void InitStep(char Step){
 		case ATT_LUCA:	InitAttLuca(Step); break;
 		case BCD_SYNC: InitBcd(0); break;
 		case BCD_PIX: InitBcd(0); break;
+		case DMD_TX: InitDmdTx(Step); break;
 		default:;
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
@@ -5847,6 +6704,7 @@ void CloseStep(char Step){
 		case ATT_LUCA:	CloseAttLuca(Step); break;
 		case BCD_SYNC:
 		case BCD_PIX: CloseBcd(); break;
+		case DMD_TX: CloseDmdTx(Step); break;
 		default:;
 		}
 	}
@@ -5991,6 +6849,7 @@ void DefineHome(char Step){
 		case CHAMALEON: DefineHomeCham(Step); break;
 		case STEP_STANDA2: DefineHomeStanda2(Step); break;
 		case ATT_LUCA: DefineHomeAttLuca(Step); break;
+		case DMD_TX: DefineHomeDmdTx(Step); break;
 		default:;
 		}
 		P.Step[Step].Actual=P.Step[Step].Home;
@@ -6052,6 +6911,7 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case ATT_LUCA: MoveAttLuca(Step,Goal,Wait); break;
 		case BCD_SYNC: MoveBcdSync(Step,Goal,FALSE); break;
 		case BCD_PIX: MoveBcdPix(Step,Goal,FALSE); break;
+		case DMD_TX: MoveDmdTx(Step,Goal,Wait); break;
 		default:;
 		}
 	P.Spc.Trash=TRUE;
@@ -6080,6 +6940,7 @@ void StopStep(char Step){
 		case CHAMALEON: StopCham(Step); break;
 		case STEP_STANDA2: StopStanda2(Step); break;
 		case ATT_LUCA: StopAttLuca(Step); break;
+		case DMD_TX: StopDmdTx(Step); break;
 		default:;
 		}
 	}
@@ -6156,6 +7017,7 @@ void WaitStep(long *Actual,long Goal,char Step,char Status){
 		case CHAMALEON: WaitCham(Step,Goal); break;
 		case STEP_STANDA2: WaitStanda2(Step,Goal); break;
 		case ATT_LUCA: WaitAttLuca(Step,Goal); break;
+		case DMD_TX: WaitDmdTx(Step,Goal); break;
 		default:;
 		}
 	}
@@ -6755,6 +7617,502 @@ void GetMicro(int Com,long *Answer){
 	pChar = (char*) Answer;
 	while(ComRd (Com,pChar,4)<4);
 	}
+
+
+// #### DMD TEXAS STEPPER ####
+	
+int offset(const int startPosition, const int lineWidth, const int previousPos ){
+	return startPosition*lineWidth + previousPos;
+}
+
+void writePatternsOnFile(const int nEl, unsigned char ***basis){
+    for(int f=0; f<nEl; f++){
+        char name[] = "b000.txt";
+        if (f<10){
+            name[3] += f;
+        }
+        else if(f<100){
+            name[2] += f/10;
+            name[3] += f-(f/10)*10;
+        }
+        else if(f<1000){
+            name[1] += f/100;
+            name[2] += f/10-(f/100)*10;
+            name[3] += f-(f/10)*10;
+        }
+        //printf("FileName %s\n", name);
+        FILE *tmpF = fopen(name, "w");
+        for(int j=0; j<HEIGHT; j++){
+            for(int i=0; i<WIDTH; i++){
+                if(i == WIDTH-1) fprintf(tmpF, "%d", basis[f][j][i]);
+                else fprintf(tmpF, "%d,", basis[f][j][i]);
+            }
+        fprintf(tmpF, "\n");
+        }
+        fclose(tmpF);
+    }
+}
+
+// questa funzione è qui perchè non inclusa nella dll di getbasis --> sistemato ora è inclusa
+//int DmdTx_minimum(const int a, const int b){
+//	if(a>b) return b;
+//	else return a;
+//}
+
+/* INITIALIZE DMDTX */
+
+
+void SetupDmdTx(struct InfoDmd *info){
+
+	int ver;
+	int selectPx=0;
+	
+	info->previousPos = 0;
+	info->dark_time = 10000; // dark time [microsec] = dead time to better sync DMD and SPC measurement
+
+	// SETTING PARAMETERS 
+    // WIZARD procedure (the program asks every setting) 
+    printf("Choose mode:\n (0) Raster scan\n (1) Hadamard pattern\n (2) All mirrors\n (3) All closed\n (4) Notch filter\n (5) Hadamard Horizontal\n (6) Raster Horizontal\n (7) Add One Line (Horizontal)\n (8) Band Pass\n (9) Add One Line (Oblique)\n (10) Hadamard 2D\n (-1) Exit\n\n >>");
+    scanf("%d", &(info->RasterOrHadamard));
+    getchar();
+    info->startPosition = 0;
+	if(info->RasterOrHadamard==1 || info->RasterOrHadamard==0 || info->RasterOrHadamard==5 || info->RasterOrHadamard==6 || info->RasterOrHadamard==7 || info->RasterOrHadamard==9 || info->RasterOrHadamard==10){
+		if(info->RasterOrHadamard==0 || info->RasterOrHadamard==6 || info->RasterOrHadamard==7 || info->RasterOrHadamard==9 ){
+			printf("\n\n*** RASTER ***\n");
+			printf("Select dimension of lines: ");
+			scanf("%d", &(info->nBasis));
+			printf("Select number of measurements: ");
+            scanf("%d", &(info->nMeas));
+			printf("Select startPx: ");
+            scanf("%d", &(info->startPosition));
+		}
+		else{
+            printf("\n\n*** HADAMARD ***\n");
+            do{
+                printf("Select number of bases (MUST BE POWER OF 2): ");
+                scanf("%d", &(info->nBasis));
+                info->startPosition = 0;
+                for(int i=2; i<5000; i*=2){ // check if nBasis is a power of 2
+                    if (i==info->nBasis){
+                        ver = 1;
+                        break;
+                    }
+                }
+             } while(!ver);
+			printf("Do you want to use cake-cutting ordering (1=yes): ");
+			scanf("%d", &(info->csMode));
+            //if(info->csMode == 0) info->nMeas = info->nBasis; // in Hadamard mode we have 1 measure for each basis
+			printf("Select number of measurements: "); // if we use CS we can do nMeas < nBasis
+			scanf("%d", &(info->nMeas));
+            if(info->RasterOrHadamard == 10){
+                printf("Select zoom: ");
+                scanf("%d", &(info->zoom));
+                printf("Select X (center = 960): ");
+                scanf("%d", &(info->xC));
+                printf("Select Y (center = 540): ");
+                scanf("%d", &(info->yC));
+            }
+			else{
+				printf("Do you want to select startPx and endPx? if so press 1: "); // select active region of the DMD where to collect spectrum
+				scanf("%d", &(selectPx));
+				if (selectPx) {
+					printf("Select startPx: ");
+					scanf("%d", &(info->startPx));
+					printf("Select endPx: ");
+					scanf("%d", &(info->endPx));
+					if ((info->endPx - info->startPx) / info->nBasis < 1) {
+						printf("***ERROR: Range startPx - endPx is too short for nBasis!!"); // andrebbero contollate altre possibilità di errore (es. endPx>WIDTH+HEIGHT, endPx<startPx...)
+						return 1;
+					}
+				}
+				else {
+					info->startPx = 0;
+					if(info->RasterOrHadamard == 1) info->endPx = WIDTH + HEIGHT;
+					if (info->RasterOrHadamard == 5) info->endPx = WIDTH;
+				}
+			}
+		}
+	        info->sizeBatch = info->nMeas;
+			printf("Select exposure time in ms: ");
+			scanf("%d", &(info->exp));
+			info->exp *= 1000; // time is in microseconds
+			//printf("Do you want to be repeated? if so press 1: ");
+			//scanf("%d", &(info->repeat));
+			//if(info->repeat != 1) info->repeat = 0;
+			info->repeat = 1;
+			//printf("Do you want to use compression? if so press 1: "); // compression reduces the active part of the DMD to N central pixels
+			//scanf("%d", &(info->compress));
+			//if(info->compress != 1) info->compress = 0;
+			info->compress = 0;
+			getchar();
+			printf("\n");
+		}
+		else if(info->RasterOrHadamard == 2 ){
+			printf("\n\n*** ALL ONES ***\n");
+			info->nBasis = 24;
+			info->nMeas = 24;
+			info->sizeBatch = 24;
+			info->startPosition = 0;
+			printf("Select exposure time in ms: ");
+			scanf("%d", &(info->exp));
+			info->exp *= 1000; // time is in microseconds
+			info->repeat = 1;
+			info->compress = 0;
+		}
+		else if(info->RasterOrHadamard == 3 ){
+			printf("\n\n*** ALL ZEROS ***\n");
+			info->nBasis = 24;
+			info->nMeas = 24;
+			info->sizeBatch = 24;
+			info->startPosition = 0;
+			printf("Select exposure time in ms: ");
+			scanf("%d", &(info->exp));
+			info->exp *= 1000; // time is in microseconds
+			info->repeat = 1;
+			info->compress = 0;
+		}
+		else if(info->RasterOrHadamard == 4 || info->RasterOrHadamard == 8){
+			printf("\n\n*** FILTER ***\n");
+			printf("Select dimension of line (in pixels): ");
+			scanf("%d", &(info->nBasis));
+			printf("Select start of band:");  // number of line or wavelength?
+			scanf("%d", &(info->previousPos));
+			getchar();
+			info->nMeas = 24;
+			info->sizeBatch = 24;
+			printf("Select exposure time in ms: ");
+			scanf("%d", &(info->exp));
+			info->exp *= 1000; // time is in microseconds
+			info->repeat = 1;
+			info->compress = 0;
+		}
+	
+}
+
+
+void InitDmdTx(char Step){
+	char message[STRLEN],smessage[2*STRLEN];
+
+	sprintf(message,"Initializing DMD TEXAS Stepper #%d",Step+1);
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+
+	// code here
+	// initDmd (hidapi init, getbasis and load basis on dmd)
+	
+	int numeroBasi = 256;
+	
+	/* //MANUAL SETUP
+	DmdTxInfo.RasterOrHadamard = 1; //info.RasterOrHadamard;
+	DmdTxInfo.nBasis = numeroBasi; //info.nBasis;
+	DmdTxInfo.nMeas = numeroBasi; //info.nMeas;
+	DmdTxInfo.startPosition = 0; //info.startPosition;
+	DmdTxInfo.exp = 4000; //info.exp; // us
+	DmdTxInfo.dark_time = 1000; //info.dark_time; // 1000 = 1ms -> check that spc does not miss the trigger
+	DmdTxInfo.repeat = 1; //info.repeat;
+	DmdTxInfo.compress = 0; //info.compress;
+	DmdTxInfo.sizeBatch = numeroBasi; //info.sizeBatch;
+	DmdTxInfo.previousPos = 0; //info.previousPos;
+	DmdTxInfo.zoom = 1; //info.zoom;
+	DmdTxInfo.xC = 960; //info.xC; //(960) centro del dmd
+	DmdTxInfo.yC = 540; //info.yC; //(540)
+	DmdTxInfo.csMode = 0; //cake-cutting
+	*/
+	
+	// Test initialization of structure
+	DmdTxPatt.bitsPackNum = NULL;
+	DmdTxPatt.bmpLoad = NULL;
+	//patt.configureLut = {'0','0','0','0','0','0'};
+	DmdTxPatt.defPatterns = NULL;
+	DmdTxPatt.exposure = NULL;
+	DmdTxPatt.nB = 0;
+	DmdTxPatt.nEl = 0;
+	DmdTxPatt.numOfBatches = 0;
+	DmdTxPatt.packNum = NULL;
+	DmdTxPatt.setBmp = NULL;
+	
+	DmdTx.pattern = NULL;
+	
+	// initialization of hidapi library and HID device
+	hid_init();
+	DmdTx.handle = hid_open(0x0451, 0xc900, NULL);
+	Sleep(2000); // dead time to be sure the device is connected
+	if (DmdTx.handle == NULL) {
+		// ErrHandler(DMD_TX,.,.);
+		sprintf(smessage,"Device = DMD_TX\nFunction = hid_open\nMessage = Unable to find device"); 
+		MessagePopup ("ERROR RETURN FUNCTION", smessage);
+		DmdTx.handle = NULL;
+		if(!DEBUG){
+            printf("Press any key to exit.\n");
+            getchar();
+            exit(1);
+		}
+	}
+	DmdTx_stopSequence(DmdTx.handle); // stop the demo pattern sequence
+	DmdTx_changeMode(DmdTx.handle, 3); // change to pattern-on-the-fly mode
+
+    // setup data needed --> assegnazione di variabile inutile: si potrebbe sosituire dove necessario DmdTxInfo.
+	int RasterOrHadamard = DmdTxInfo.RasterOrHadamard;
+	int nBasis = DmdTxInfo.nBasis;
+	int nMeas = DmdTxInfo.nMeas;
+	int startPosition = DmdTxInfo.startPosition;
+	int exp = DmdTxInfo.exp;
+	int dark_time = DmdTxInfo.dark_time;
+	int repeat = DmdTxInfo.repeat;
+	int compress = DmdTxInfo.compress;
+	int sizeBatch = DmdTxInfo.sizeBatch;
+	int previousPos = DmdTxInfo.previousPos;
+	int zoom = DmdTxInfo.zoom;
+	int xC = DmdTxInfo.xC; // long side
+	int yC = DmdTxInfo.yC; // short side
+	int csMode = DmdTxInfo.csMode;
+	int startPx = DmdTxInfo.startPx;
+	int endPx = DmdTxInfo.endPx;
+	
+	int offset_ = startPosition/nBasis; //offset(startPosition, nBasis, previousPos)/nBasis; // ??
+	int nSet = DmdTx_celing(nMeas, sizeBatch);
+	DmdTx.szPattern = nSet;
+	DmdTx.repeat = repeat;
+	int *exposure;
+	int *trigger_in;  // if 1 the DMD waits for an external trigger to change pattern
+	int *trigger_out; // if 1 the DMD sends a trigger signal when changes the pattern
+	unsigned char ***basis;
+	int totExposure = 0;
+
+	int i,j,k,q;
+	int nEl;
+	int *idx = NULL;
+	
+	// allocation of memory and insertion of basis data 
+	DmdTx.pattern = (struct DmdTx_Patterns *)malloc(nSet*sizeof(struct DmdTx_Patterns));
+	for (q=0; q<nSet; q++){
+		nEl = DmdTx_minimum(sizeBatch, nMeas-q*sizeBatch); // it's the number of images in the current batch
+		// allocate of memory
+		
+		DmdTx_allocatePattern(&(DmdTx.pattern[q]), nEl); 
+		//allocatePattern_dmd(&patt, nEl);
+		//dmd.pattern[q].nEl = nEl;
+		//dmd.pattern[q].defPatterns = (unsigned char(*)[12])malloc(nEl*sizeof(unsigned char[12]));
+		
+		exposure = (int *) malloc(nEl * sizeof(int));
+		trigger_in = (int *) malloc(nEl * sizeof(int));
+		trigger_out = (int *) malloc(nEl * sizeof(int));
+		basis = (unsigned char***)malloc(nEl*sizeof(unsigned char**));
+		for(i=0; i<nEl; i++){
+            basis[i] = (unsigned char**)malloc(HEIGHT*sizeof(unsigned char*));
+		}
+		for(i=0; i<nEl; i++){
+			for(j=0; j<HEIGHT; j++){
+                basis[i][j] = (unsigned char*)malloc(WIDTH*sizeof(unsigned char));
+			}
+		}
+		// initialize basis
+		for(i=0; i<nEl; i++){
+            for(j=0; j<HEIGHT; j++){
+                for(k=0; k<WIDTH; k++){
+                    basis[i][j][k] = 0;
+                }
+            }
+		}
+		// insert data into pattern
+		for (i=0; i<nEl; i++){
+			exposure[i] = exp;
+			trigger_out[i] = 1;
+			trigger_in[i] = 0;
+        }
+		int nB; // nB contiene le info su quante info vere ci sono, # di basi caricate (nB non assume lo stesso valore di nEl?)
+		if(nMeas > (q+1)*sizeBatch)
+			nB = sizeBatch;
+		else
+			nB = nMeas - q*sizeBatch;
+		idx = (int* )malloc((nB)*sizeof(int)); // index of the first element inside the batch
+		for(i=0; i<nB; i++)
+			idx[i] = q*sizeBatch + i + offset_;
+		DmdTx_getBasis(RasterOrHadamard, nBasis, idx, nB, compress, zoom, xC, yC, csMode, startPx, endPx, basis); // generation of pattern
+		free(idx);
+		
+		printf("\n");
+		for (k=0; k<nEl; k++){
+			for(i=0; i<WIDTH; i+=100)
+				printf("%d ", basis[k][0][i]);
+            printf("\n");
+		}
+		printf("\n");
+		
+		
+		// print bases on txt file
+		// if(DMD_SIMULATOR) writePatternsOnFile(nEl, basis);
+
+		DmdTx.pattern[q].nB = nB;
+		//patt.nB = nB;
+		int numberOfRepetition;
+		if(repeat)
+			numberOfRepetition = 0;
+		else
+			numberOfRepetition = nEl; // the number can be as large as 500!
+		
+		// Modifica
+		//int nBatches = celing_dmd(nEl, SIZE_PATTERN);
+		//dmd.pattern[q].numOfBatches = nBatches;
+		//dmd.pattern[q].bmpLoad = (unsigned char ***)malloc(nBatches*sizeof(unsigned char **));
+		//dmd.pattern[q].setBmp = (unsigned char (*)[6])malloc(nBatches*sizeof(unsigned char[6]));
+		//dmd.pattern[q].packNum = (int *)malloc(nBatches*sizeof(int *));
+		//dmd.pattern[q].bitsPackNum =(int **)malloc(nBatches*sizeof(int*));
+		//dmd.pattern[q].exposure = (int*)malloc(nEl*sizeof(int));
+		
+
+		DmdTx_defSequence(&(DmdTx.pattern[q]), basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl); // il penultimo o 1 o nEl1
+		//defSequence(&patt, basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl);
+		for(i=0; i<nEl; i++){
+			for(j=0; j<HEIGHT; j++)
+                free(basis[i][j]);
+            free(basis[i]);
+		}
+		free(basis);
+		free(exposure);
+		free(trigger_out);
+		free(trigger_in);
+	}
+	
+	// All data needed to move the DMD is generated by defSequence and saved in dmd.pattern
+	for(i=0; i<DmdTx.szPattern; i++){
+		DmdTx_stopSequence(DmdTx.handle);
+		printf("Uploading pattern (%d of %d)\n", i+1, DmdTx.szPattern);
+		totExposure = 0;
+
+		for(j=0; j<DmdTx.pattern[i].nEl; j++){
+			totExposure += DmdTx.pattern[i].exposure[j];
+			// define the pattern
+			printf("Uploading pattern definitions (%d of %d)\n", j+1, DmdTx.pattern[i].nEl);
+			DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x34, DmdTx.pattern[i].defPatterns[j], 12);
+			if(!DEBUG)
+                DmdTx_checkForErrors(DmdTx.handle);
+        }
+        // configure LUT
+        printf("Uploading LUT\n");
+		DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x31, DmdTx.pattern[i].configureLut, 6);
+		if(!DEBUG)
+            DmdTx_checkForErrors(DmdTx.handle);
+		// setBmp
+		for(k = DmdTx.pattern[i].numOfBatches-1; k>=0; k--){
+            printf("Uploading batch %d of %d\n", DmdTx.pattern[i].numOfBatches-k, DmdTx.pattern[i].numOfBatches);
+            DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x2a, DmdTx.pattern[i].setBmp[k], 6);
+			if(!DEBUG)
+                DmdTx_checkForErrors(DmdTx.handle);
+			// bmpLoad
+			for(j=0; j<DmdTx.pattern[i].packNum[k]; j++){
+				DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x11, 0x1a, 0x2b, DmdTx.pattern[i].bmpLoad[k][j], DmdTx.pattern[i].bitsPackNum[k][j]);
+			}
+			if(!DEBUG){
+                DmdTx_checkForErrors(DmdTx.handle);
+                //checkErrorMessage(dmd.handle); // TEST
+            }
+		}
+	}
+	
+	// After the pattern is loaded on the DMD we can free the local variables containing the pattern
+	// DA SISTEMARE: CVI NON RICONOSCE MALLOC FATTO NELLA DLL -> INSERIRE QUESTO FREE NELLA DLL
+	/*
+	for (q = 0; q < DmdTx.szPattern; q++){
+		free(DmdTx.pattern[q].defPatterns);  
+		for(k = 0; k<DmdTx.pattern[q].numOfBatches; k++){
+			for(i = 0; i<DmdTx.pattern[q].packNum[k]; i++){
+				free(DmdTx.pattern[q].bmpLoad[k][i]);
+			}
+			free(DmdTx.pattern[q].bmpLoad[k]);
+			free(DmdTx.pattern[q].bitsPackNum[k]);
+		}
+		free(DmdTx.pattern[q].bmpLoad);
+		free(DmdTx.pattern[q].bitsPackNum);
+		free(DmdTx.pattern[q].setBmp);
+		free(DmdTx.pattern[q].packNum);
+		free(DmdTx.pattern[q].exposure);
+	}
+	*/
+	DmdTx_deallocate(&DmdTx);
+	free(DmdTx.pattern);
+	
+	//DmdTx_startSequence(DmdTx.handle);
+	
+	
+	SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
+	}
+
+
+/* CLOSE DMD TEXAS */
+void CloseDmdTx(char Step){
+	
+	// code here
+	// deallocate memory of dmd variables if used and hidapi close
+	// close communication with DMD
+	DmdTx_stopSequence(DmdTx.handle);
+	hid_close(DmdTx.handle);
+	hid_exit();
+	
+	}
+
+
+/* MOVE DMD TEXAS */
+void MoveDmdTx(char Step,long Goal,char Wait){
+
+	// code here
+	// startSequence
+	// startSequence(dmd.handle);
+	
+	// Dead time (ADJUST THE TIME BECFAUSE sleep is in s and Sleep is in ms)
+	/*
+	int tDead = 0; //0.5 s of dead time
+		int tSleep = totExposure/1e6-tDead + 1;
+		printf("totExposure = %d\n", totExposure);
+		if(totExposure/1e6-tDead<0)
+            tSleep = 0;
+		if(dmd.repeat){
+			printf(">> Press ENTER to continue . . .");
+            getchar();
+		}
+		else
+			Sleep(tSleep+1);
+        printf("\n");
+	*/
+	
+	if(Wait); // code here
+	}
+
+
+/* WAIT END OF DMD TEXAS MOVEMENT */
+void WaitDmdTx(char Step,long Goal){
+	
+	// code here
+	// while waiting the measurement is running so this function is not needed (?)
+	
+} 
+
+
+/* TELL POSITION DMD TEXAS */
+void TellPosDmdTx(char Step,long *Actual){
+	
+	// code here
+	// determine the position of the dmd (number of basis already measured) -> only virtual
+
+}
+
+
+/* STOP DMD TEXAS */
+void StopDmdTx(char Step){
+	
+	// code here
+	// same to close (stopSequence)
+	//stopSequence(dmd.handle);
+	
+	}
+
+
+/* DEFINE HOME DMD TEXAS */
+void DefineHomeDmdTx(char Step){
+	
+	// code here
+	// can be used to select a subset of bases?
+	
+    }
 
 
 // #### ESP300 STEPPER ####
@@ -8770,6 +10128,7 @@ void StopAdc(void){
 
 /* CLOSE FILE */
 void CloseDataFile(void) {
+	if(!P.File.Save) return;
 	fclose(P.File.File);
 	return;
 	}
@@ -8777,7 +10136,11 @@ void CloseDataFile(void) {
 /* INITIALIZE FILE */
 void InitDataFile(void){
     long size;
-	
+	int answer;
+	if(!P.File.Save){
+		answer = ConfirmPopup ("NOT SAVING FILE", "You selected File.Save=FALSE. Do you Confirm you proceed without saving?");
+		if(!answer) Failure("Error in selecting NOT SAVE"); else return;
+		}
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Initializing File ");
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, P.File.Path);
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, " ...");
@@ -8807,6 +10170,7 @@ void EnterName(void){
 
 /* SAVE DATA TO FILE */
 void DataSave(void){ 
+	if(!P.File.Save) return;
 	int ic,ifr,ip,id,ib;			
 /*
 	do {
@@ -9188,6 +10552,10 @@ void ErrHandler(int Device, int Code, char* Function){
 			HH_GetErrorString(serror, Code);
 			strcpy (sdevice, "HYDRA");
 			break;
+		case ERR_MHARP:
+			MH_GetErrorString(serror, Code);
+			strcpy (sdevice, "MHARP");
+			break;
 		case ERR_TH260:
 			TH260_GetErrorString(serror, Code);
 			strcpy (sdevice, "TH260");
@@ -9210,6 +10578,14 @@ void ErrHandler(int Device, int Code, char* Function){
 	sprintf(smessage,"Device = %s\nFunction = %s\nMessage = %s",sdevice,Function,serror); 
 	MessagePopup ("ERROR RETURN FUNCTION", smessage);
 	}
+
+
+/* ERROR HANDLER FOR PYTHON */
+void pyErrHandler(char* Function, char* serror){
+	char smessage[2*STRLEN];
+	sprintf(smessage,"Device = PYTHON\nFunction = %s\nMessage = %s",Function,serror); 
+	MessagePopup ("ERROR RETURN FUNCTION", smessage);
+}
 	
 
 /* ########################   MEMORY ALLOCATION PROCEDURES   ########################### */
@@ -10213,7 +11589,7 @@ void KernelMoxy(void){
 
 
 
-// INITIALIZE CONTINUOUS FLOW
+// INITIALIZE CONTINUOUS FLOW (MOXY)
 void InitBank(void){
 	int ib,ibb;
 	SPCdata spc_dat;
@@ -10276,7 +11652,8 @@ void GetBank(void){
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_read_data_page");
 		}
 	}
-	
+
+
 // DISPLAY STATUS BANK
 void StatusBank(int ActBank, int TotBank){
 	double timeT=P.Loop[LOOP1].Num*P.Loop[LOOP2].Num*P.Loop[LOOP3].Num*P.Loop[LOOP4].Num*P.Loop[LOOP5].Num*P.Spc.TimeM;

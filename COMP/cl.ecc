@@ -1,0 +1,29 @@
+CMPLRNAME = Clang2.9
+VALID_CFG = 1
+DOPARSING = 1
+OPT_LEVEL = 2
+WARNLEVEL = 1
+USERFLAGS = 
+OBJFORMAT = Msvc
+COMPFLAGS = -cc1 -triple i386-pc-win32 -D_M_IX86=400 -emit-obj -ffreestanding -fms-extensions -mms-bitfields -fno-caret-diagnostics
+C89_FLAGS = -std=gnu89
+C99_FLAGS = -std=c99
+COMPLPATH = c:\program files (x86)\national instruments\cvi2013\bin\clang\2.9\clang.exe
+ENV_BATCH = c:\program files (x86)\national instruments\cvi2013\bin\clang\2.9\clang.bat
+ENV_OPTNS = 
+OBJ_TEMPL = -o $OBJECT
+SRC_TEMPL = $SOURCE
+DEF_TEMPL = -D$MACRO
+DEFVTEMPL = -D$MACRO=$VALUE
+INC_TEMPL = -I $PATH
+OPT_FLAGS
+No Optimizations = -O0
+Optimize for Space = -Os
+Optimize for Speed = -O2
+END_FLAGS
+WARNFLAGS
+Disable Warnings = -w
+Default Warnings = -Wall -Wno-microsoft -Wno-unknown-pragmas
+More Warnings = -Wall -Wextra -Wno-microsoft -Wno-unknown-pragmas -fdiagnostics-show-option
+END_FLAGS
+__CEND___
