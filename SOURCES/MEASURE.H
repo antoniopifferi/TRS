@@ -584,6 +584,7 @@
 #define SPC_LUCA		 13
 #define SPC_SWAB		 14
 #define SPC_BCD			 15
+#define SPC_MHARP		 16
 
 #define WAIT_DELAY	 0
 #define WAIT_TIME	 1
@@ -704,6 +705,21 @@
 #define HYDRA_LENCODE			4 //  Note: HistLen=1024*(2^HYDRA_LENCODE)
 #define HYDRA_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 #define SEC_2_MILLISEC	1000 // conversion factor for second to millisecond
+
+/* MHARP CONSTANTS */
+#define MHARP_BINNING 	0 //you can change this
+#define MHARP_SYNC_OFFSET	0 
+#define MHARP_INPUT_OFFSET	0 
+#define MHARP_HIST_OFFSET	0 
+//#define MHARP_TACQ		1000 //Measurement time in millisec, you can change this
+#define MHARP_SYNC_DIVIDER	2 //Note: you must reduce SYNC rate to <75 MHz 
+//#define MHARP_SYNC_CFDZEROCROSS	10 //you can change this
+#define MHARP_SYNC_LEVEL		-50 //you can change this
+#define MHARP_SYNC_EDGE			0 //you can change this
+#define MHARP_INPUT_LEVEL			-50 //you can change this
+#define MHARP_INPUT_EDGE			0 //you can change this
+//#define MHARP_LENCODE			4 //  Note: HistLen=1024*(2^MHARP_LENCODE)
+#define MHARP_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 
 /* TH260 CONSTANTS */
 #define TH260_BINNING 	0 //you can change this
@@ -955,6 +971,7 @@
 #define ERR_GENERIC	5
 #define ERR_SWAB	6
 #define ERR_BCD 	7
+#define ERR_MHARP	8
 
 
 /* GEOMETRY CONSTANTS */													//ALE
@@ -1682,6 +1699,7 @@ struct SpcS {
 	double TimeO;
 	double TimeM;
 	int	   TimeHydra;
+	int	   TimeMharp;
 	int	   TimeTH260;
 	int	   TH260HistLen;
 	int	   TimeSC1000;
@@ -2285,6 +2303,15 @@ void InitHydra(int Board);
 void CloseHydra(void);
 void GetDataHydra(void);
 void ClearHydra(void);
+
+/* ########################   MULTI HARP FUNCTIONS   ####################### */
+void InitMharp(int Board);
+void CloseMharp(void);
+void StopMharp(int Board);
+void GetDataMharp(void);
+void ClearMharp(void);
+void StartMharp(int Board);
+void WaitMharp(int Board);
 
 /* ########################   TH260 HARP FUNCTIONS   ####################### */
 void InitTH260(int Board);

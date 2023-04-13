@@ -29,6 +29,8 @@
 // SWITCH Leoni
 // SWITCH ThorWheel
 // SWAB (Swabian TDC)
+// DMD+PYTHON
+// MULTIHARP
 
 /* ########################   HELP   ################################## */
 // Board = Physical TCSPC Board
@@ -62,6 +64,7 @@
 #endif
 
 #include "hhlib.h"
+#include "mhlib.h"
 #include "th260lib.h"
 #include "errorcodes.h"
 
@@ -2247,6 +2250,7 @@ void SpcInit(void){
 		case SPC630:  
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) InitSpcm(ib);break;
 		case HYDRA: for(ib=0;ib<P.Num.Board;ib++) InitHydra(ib);break;
+		case SPC_MHARP: for(ib=0;ib<P.Num.Board;ib++) InitMharp(ib);break;
 		case TH260: for(ib=0;ib<P.Num.Board;ib++) InitTH260(ib);break;
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++) InitSC1000(ib);break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) InitSpad(ib);break;
@@ -2268,6 +2272,7 @@ void SpcClose(void){
 		case SPC630:  
 		case SPC130: CloseSpcm(); break;
 		case HYDRA: CloseHydra(); break;
+		case SPC_MHARP: CloseMharp(); break;
 		case TH260: CloseTH260(); break;
 		case SPC_SC1000: CloseSC1000(); break;
 		case SPC_SPADLAB: CloseSpad(); break;
@@ -2292,6 +2297,7 @@ void SpcPause(void){
 		case SPC630:  
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_pause_measurement(ib); break;
 		case HYDRA: HH_StopMeas(HYDRA_DEV0); break;
+		case SPC_MHARP: for(ib=0;ib<P.Num.Board;ib++) StopMharp(ib); break;
 		case TH260: TH260_StopMeas(TH260_DEV0); break;
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++) sc_tdc_interrupt2(P.Spc.ScBoard[ib]); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) PauseSpad(ib); break;
@@ -2314,6 +2320,7 @@ void SpcClear(void){
 		case SPC630:
 		case SPC130: ClearSpcm(); break;
 		case HYDRA: ClearHydra(); break;
+		case SPC_MHARP: ClearMharp(); break;
 		case TH260: ClearTH260(); break;
 		case SPC_SPADLAB: ClearSpad(); break;
 		case SPC_SC1000: ClearSC1000(); break; 
@@ -2338,6 +2345,7 @@ void SpcIn(){
 		case SPC630: 
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_start_measurement(ib); break;
 		case HYDRA: HH_StartMeas(HYDRA_DEV0,P.Spc.TimeHydra); break;
+		case SPC_MHARP: for(ib=0;ib<P.Num.Board;ib++) StartMharp(ib); break;
 		case TH260: TH260_StartMeas(TH260_DEV0,P.Spc.TimeTH260); break;
 		case SPC_SC1000: for(ib=0;ib<P.Num.Board;ib++){} break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
@@ -2363,6 +2371,7 @@ void SpcRestart(void){  //TODO: check
 		case SPC630: 
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_restart_measurement(ib); break;
 		case HYDRA: HH_StartMeas(HYDRA_DEV0,P.Spc.TimeHydra); break;
+		case SPC_MHARP: for(ib=0;ib<P.Num.Board;ib++) StartMharp(ib); break;
 		case TH260: TH260_StartMeas(TH260_DEV0,P.Spc.TimeHydra); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StartSpad(ib); break;
 		case SPC_NIRS: for(ib=0;ib<P.Num.Board;ib++) StartNirs(ib); break;
@@ -2398,6 +2407,7 @@ void SpcTime(float Time){
 		case SPC630: 
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_set_parameter(ib,COLLECT_TIME,Time); break;
 		case HYDRA: P.Spc.TimeHydra = (int) (Time*SEC_2_MILLISEC); break;
+		case SPC_MHARP: P.Spc.TimeMharp = (int) (Time*SEC_2_MILLISEC); break;
 		case TH260: P.Spc.TimeTH260 = (int) (Time*SEC_2_MILLISEC); break;
 		case SPC_SC1000: P.Spc.TimeSC1000 = (int) (Time*SEC_2_MILLISEC); break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) TimeSpad(ib,Time); break;
@@ -2422,6 +2432,7 @@ void SpcStop(char Status){
 		case SPC630:
 		case SPC130: for(ib=0;ib<P.Num.Board;ib++) SPC_stop_measurement(ib);break;
 		case HYDRA: HH_StopMeas(HYDRA_DEV0); break;
+		case SPC_MHARP: for(ib=0;ib<P.Num.Board;ib++) MH_StopMeas(ib); break;
 		case TH260: TH260_StopMeas(TH260_DEV0); break;
 		case SPC_SC1000: break;
 		case SPC_SPADLAB: for(ib=0;ib<P.Num.Board;ib++) StopSpad(ib);break;
@@ -2458,6 +2469,7 @@ void SpcWait(void){
 		case HYDRA: for(ib=0;ib<P.Num.Board;ib++)
     					do HH_CTCStatus(HYDRA_DEV0,&mod_state2);
 						while(mod_state2==0);break;
+		case SPC_MHARP: for (ib = 0; ib < P.Num.Board; ib++) WaitMharp(ib); break;
 		case TH260: for(ib=0;ib<P.Num.Board;ib++)
     					do TH260_CTCStatus(TH260_DEV0,&mod_state2);
 						while(mod_state2==0);break;
@@ -2487,6 +2499,7 @@ void SpcGet(void){
 		case SPC630:   
 		case SPC130: GetDataSpcm();break;
 		case HYDRA: GetDataHydra();break;
+		case SPC_MHARP: GetDataMharp(); break;
 		case TH260: GetDataTH260();break;
 		case SPC_SC1000: GetDataSC1000();break;
 		case SPC_SPADLAB: GetDataSpad();break;
@@ -2558,6 +2571,12 @@ void CalcTime(void){
 		case HYDRA:
 			HH_GetElapsedMeasTime(HYDRA_DEV0,&elapsed_time);
 			for(ib=0;ib<P.Num.Board;ib++) P.Spc.EffTime[ib] = elapsed_time;
+			break;
+		case SPC_MHARP:
+			for (ib = 0; ib < P.Num.Board; ib++) {
+				MH_GetElapsedMeasTime(ib, &elapsed_time);
+				P.Spc.EffTime[ib] = (1.0*elapsed_time)/SEC_2_MILLISEC;
+				}
 			break;
 		case TH260:
 			TH260_GetElapsedMeasTime(TH260_DEV0,&elapsed_time);
@@ -3452,6 +3471,119 @@ void ClearHydra(void){
 		}
 	while((ret<0)&&(i_trial<10));
 	if(ret<0) ErrHandler(ERR_HYDRA,ret,"HH_ClearHistMem");
+	}
+
+
+/* ########################   MULTI HARP FUNCTIONS (Mharp)  ####################### */
+
+/* INIT SPC_MHARP */
+void InitMharp(int Board) {
+	char message[STRLEN];
+	int ret;
+	int HistLen;
+	char HW_Serial[8];
+	double resolution;
+	int binsteps;
+	char LIB_Version[8];
+
+	sprintf(message, "Initializing MharpHarp, Module #%d, ...", Board);
+	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+
+	// initialize
+	ret=MH_GetLibraryVersion(LIB_Version); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetLibraryVersion");
+	sprintf(message, "Lib Version=%s, ...", LIB_Version);
+	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+
+	ret = MH_OpenDevice(Board, HW_Serial); // Check for Serial Number of Device = 0 (NOTE: Many MharpHarp Devices can be controlled)
+	if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_OpenDevice");
+	else {
+		sprintf(message, "...Serial Number = %s", HW_Serial);
+		SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+		}
+	ret = MH_Initialize(Board, MODE_HIST, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
+
+	// set ini parameters
+	ret = MH_SetSyncDiv(Board, MHARP_SYNC_DIVIDER); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncDiv");
+	ret = MH_SetSyncEdgeTrg(Board, MHARP_SYNC_LEVEL, MHARP_SYNC_EDGE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
+	ret = MH_SetSyncChannelOffset(Board, MHARP_SYNC_OFFSET);  if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncChannelOffset"); // add cable to SYNC
+	for (int id = 0; id < P.Num.Det; id++){
+		ret = MH_SetInputEdgeTrg(Board, id, MHARP_INPUT_LEVEL, MHARP_INPUT_EDGE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
+		ret = MH_SetInputChannelOffset(Board, id, MHARP_INPUT_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
+		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
+		}
+	ret = MH_SetHistoLen(Board, MAXLENCODE, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
+	ret = MH_SetBinning(Board, MHARP_BINNING); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
+	ret = MH_SetOffset(Board, MHARP_HIST_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
+
+	// get temporal scale
+	ret = MH_GetResolution(Board, &resolution); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetResolution");
+	P.Spc.Calib = 1000 * resolution;
+	P.Spc.Factor = P.Spc.Calib * P.Spc.Scale;
+
+	// init time
+	P.Spc.TimeInit = TimerN();   // era Timer() 
+
+	Passed();
+}
+
+
+/* CLOSE SPC_MHARP */
+void CloseMharp(void) {
+	short ret;
+	for (int ib = 0; ib < P.Num.Board; ib++) {
+		ret = MH_CloseDevice(ib); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_CloseDevice");
+		}
+	}
+
+
+/* STOP SPC_MHARP */
+void StopMharp(int Board) {
+	short ret;
+	ret = MH_StopMeas(Board); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
+	}
+
+
+/* TRANSFER DATA FROM SPC_MHARP */
+void GetDataMharp(void) {
+	//short state;
+	int ib;
+	int ic;
+	unsigned int DataMharp[1024 * 16];
+	int ret = 0;
+
+	P.Spc.Overflow = FALSE;
+	for (ib = 0; ib < P.Num.Board; ib++) {
+		ret = MH_GetHistogram(MHARP_DEV0, DataMharp, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
+		for (ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic] = (unsigned short)DataMharp[ic];
+	}
+}
+
+
+/* CLEAR SPC_MHARP */
+void ClearMharp(void) {
+	short ret;
+	for (int ib = 0; ib < P.Num.Board; ib++) {
+		ret = MH_ClearHistMem(ib); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_ClearHistMem");
+		}
+}
+
+/* START SPC_MHARP */
+void StartMharp(int Board) {
+	short ret;
+	//MEASCTRL_C1_START_CTC_STOP
+	//if ((P.Contest.Run == CONTEST_MEAS) && (P.Spc.Mharp.HwStart == TRUE))
+	//	ret = MH_SetMeasControl(Board, MEASCTRL_C1_START_CTC_STOP, 1, 1); // set HW start on rising edge
+	//else
+		ret = MH_SetMeasControl(Board, MEASCTRL_SINGLESHOT_CTC, 1, 1); // standard software start
+	if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");
+	ret = MH_StartMeas(MHARP_DEV0, P.Spc.TimeMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas");
+	}
+
+/* WAIT MHARP */
+void WaitMharp(int Board) {
+	int mod_state;
+	do MH_CTCStatus(MHARP_DEV0,&mod_state);
+	while(mod_state==0);
 	}
 
 
@@ -9954,6 +10086,10 @@ void ErrHandler(int Device, int Code, char* Function){
 		case ERR_HYDRA:
 			HH_GetErrorString(serror, Code);
 			strcpy (sdevice, "HYDRA");
+			break;
+		case ERR_MHARP:
+			MH_GetErrorString(serror, Code);
+			strcpy (sdevice, "MHARP");
 			break;
 		case ERR_TH260:
 			TH260_GetErrorString(serror, Code);
