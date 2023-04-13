@@ -572,7 +572,7 @@
 #define NIDAQmx      7
 #define SILENA		 2
 #define SPC300		 3
-#define HYDRA	     4
+#define HYDRA	     16  //4
 #define SPC630       5
 #define SPC130       6
 #define TEST		 7
@@ -584,7 +584,7 @@
 #define SPC_LUCA		 13
 #define SPC_SWAB		 14
 #define SPC_BCD			 15
-#define SPC_MHARP		 16
+#define SPC_MHARP		 4   //16
 
 #define WAIT_DELAY	 0
 #define WAIT_TIME	 1
@@ -715,11 +715,11 @@
 //#define MHARP_TACQ		1000 //Measurement time in millisec, you can change this
 #define MHARP_SYNC_DIVIDER	2 //Note: you must reduce SYNC rate to <75 MHz 
 //#define MHARP_SYNC_CFDZEROCROSS	10 //you can change this
-#define MHARP_SYNC_LEVEL		-50 //you can change this
+#define MHARP_SYNC_LEVEL		-200 //you can change this
 #define MHARP_SYNC_EDGE			0 //you can change this
-#define MHARP_INPUT_LEVEL			-50 //you can change this
-#define MHARP_INPUT_EDGE			0 //you can change this
-//#define MHARP_LENCODE			4 //  Note: HistLen=1024*(2^MHARP_LENCODE)
+#define MHARP_INPUT_LEVEL			200 //you can change this
+#define MHARP_INPUT_EDGE			1 //you can change this
+#define MHARP_LENCODE			2 //  Note: HistLen=1024*(2^MHARP_LENCODE)
 #define MHARP_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 
 /* TH260 CONSTANTS */

@@ -562,7 +562,7 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 	do{ 
 		P.Contest.Run=CONTEST_MEAS;
 		P.Contest.Function=CONTEST_MEAS;
-		SetupDmdTx(&DmdTxInfo); /**/
+		//TODO1 SetupDmdTx(&DmdTxInfo); /**/
 		CompleteParmS();
 		UpdatePanel();
 		InitFiber();
@@ -574,9 +574,9 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 		InitTime();
 		InitMem();
 		
-		InitPython(); // Python
-		if(PyArray_API==NULL) import_array(); // Python: Init Numpy
-		CreateFigPy(); // Python
+		//TODO1 InitPython(); // Python
+		//TODO1 if(PyArray_API==NULL) import_array(); // Python: Init Numpy
+		//TODO1 CreateFigPy(); // Python
 		
 		//int ***test;
 		//int i2, i1;
@@ -3833,7 +3833,8 @@ void InitMharp(int Board) {
 		ret = MH_SetInputChannelOffset(Board, id, MHARP_INPUT_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
 		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
 		}
-	ret = MH_SetHistoLen(Board, MAXLENCODE, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
+	ret = MH_SetHistoLen(Board, MHARP_LENCODE, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
+//	ret = MH_SetHistoLen(Board, MAXLENCODE, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
 	ret = MH_SetBinning(Board, MHARP_BINNING); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
 	ret = MH_SetOffset(Board, MHARP_HIST_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
 
@@ -8028,7 +8029,7 @@ void InitDmdTx(char Step){
 		free(DmdTx.pattern[q].exposure);
 	}
 	*/
-	//** REMOVED  DmdTx_deallocate(&DmdTx);
+	//TODO1  DmdTx_deallocate(&DmdTx);
 	free(DmdTx.pattern);
 	
 	//DmdTx_startSequence(DmdTx.handle);
