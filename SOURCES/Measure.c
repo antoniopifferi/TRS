@@ -3061,198 +3061,198 @@ void test_sequencer_state(void){
 	
 	
 /* Wait for Bank, transfer and copy data */
-void SpcFlow(char Status){
-	//TODO: Status? display something?
+//void SpcFlow(char Status){
+//	//TODO: Status? display something?
 
-	short ret,ib;
-	
-	DmdTx_startSequence(DmdTx.handle);
-	
-	do{
-		//if(P.Flow.EmptyBank){
-		//	WaitFlow();
-		//	GetFlow();
-		//	}
-		WaitFlow();
-		GetFlow();
-		//if(P.Flow.Page0<P.Flow.NumSlot){
-			// 2 banks filled, the measurement needs restart
-		//	for(ib=0;ib<P.Num.Board;ib++){	
-		//		ret = SPC_start_measurement(ib); /*prova spc 2*/
-		//		if(ret<0) ErrHandler(ERR_SPC,ret,"SpcFlow:SPC_start_measurement"); /*prova spc 2*/
-		//		}
-		//	}
-		CopyFlow();
-		}
-	while(!P.Flow.FilledFrame);
-	
-	}
+//	short ret,ib;
+//	
+//	DmdTx_startSequence(DmdTx.handle);
+//	
+//	do{
+//		//if(P.Flow.EmptyBank){
+//		//	WaitFlow();
+//		//	GetFlow();
+//		//	}
+//		WaitFlow();
+//		GetFlow();
+//		//if(P.Flow.Page0<P.Flow.NumSlot){
+//			// 2 banks filled, the measurement needs restart
+//		//	for(ib=0;ib<P.Num.Board;ib++){	
+//		//		ret = SPC_start_measurement(ib); /*prova spc 2*/
+//		//		if(ret<0) ErrHandler(ERR_SPC,ret,"SpcFlow:SPC_start_measurement"); /*prova spc 2*/
+//		//		}
+//		//	}
+//		CopyFlow();
+//		}
+//	while(!P.Flow.FilledFrame);
+//	
+//	}
 
-// WAIT FOR FILLED BANK
-void WaitFlow(void){
-	int ib, waitTrg, nTrg;
-	waitTrg = 1;
-	nTrg = 1;
-	short ret,finished,spc_state,mod_state[MAX_BOARD];
-	finished=0;
-	do{
-		spc_state=0;
-		for (ib=0;ib<P.Num.Board;ib++){
-			ret=SPC_test_state(ib,&mod_state[ib]);
-			if(ret<0) ErrHandler(ERR_SPC,ret,"WaitFlow:SPC_test_state");
-			spc_state |= mod_state[ib];
-			}
-	    finished = ((spc_state & SPC_ARMED) == 0);
-		//if(((spc_state & SPC_WAIT_TRG) == SPC_WAIT_TRG) && waitTrg){ // not sure this works correctly
-			//printf("SPC waiting for trigger\n");
-			//waitTrg = 0;
-			//}
-		//if((spc_state & SPC_WAIT_TRG) == 0 /*&& !waitTrg*/){
-			//printf("TRIGGER RECEIVED %d\n", nTrg);
-			//waitTrg = 1;
-			//nTrg++;
-			//}
-		}
-	while(!finished);
-	//test_sequencer_state();
-	}
+//// WAIT FOR FILLED BANK
+//void WaitFlow(void){
+//	int ib, waitTrg, nTrg;
+//	waitTrg = 1;
+//	nTrg = 1;
+//	short ret,finished,spc_state,mod_state[MAX_BOARD];
+//	finished=0;
+//	do{
+//		spc_state=0;
+//		for (ib=0;ib<P.Num.Board;ib++){
+//			ret=SPC_test_state(ib,&mod_state[ib]);
+//			if(ret<0) ErrHandler(ERR_SPC,ret,"WaitFlow:SPC_test_state");
+//			spc_state |= mod_state[ib];
+//			}
+//	    finished = ((spc_state & SPC_ARMED) == 0);
+//		//if(((spc_state & SPC_WAIT_TRG) == SPC_WAIT_TRG) && waitTrg){ // not sure this works correctly
+//			//printf("SPC waiting for trigger\n");
+//			//waitTrg = 0;
+//			//}
+//		//if((spc_state & SPC_WAIT_TRG) == 0 /*&& !waitTrg*/){
+//			//printf("TRIGGER RECEIVED %d\n", nTrg);
+//			//waitTrg = 1;
+//			//nTrg++;
+//			//}
+//		}
+//	while(!finished);
+//	//test_sequencer_state();
+//	}
 
-// CHECK TRIGGER
-void CheckTriggerFlow(void){
-	int ib;
-	short ret,ver,spc_state,mod_state[MAX_BOARD];
-	do{
-		spc_state=0;
-		for (ib=0;ib<P.Num.Board;ib++){
-			ret=SPC_test_state(ib,&mod_state[ib]);
-			if(ret<0) ErrHandler(ERR_SPC,ret,"CheckTrigger:SPC_test_state");
-			spc_state |= mod_state[ib];
-			}
-	    //ver = ((spc_state & SPC_WAIT_TRG) == 0);
-		if((spc_state & SPC_WAIT_TRG) == 1) printf("SPC waiting for trigger\n");
-		}
-	while(!ver);
-	}
-	
-	
-// TRANSFER BANK TO BUFFER
-void GetFlow(void){
-	int ib;
-	short ret,state;
-	P.Spc.Overflow=FALSE;
-	for (ib=0;ib<P.Num.Board;ib++){
-		
-		ret=SPC_test_state(ib,&state);
-		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_test_state");
-		P.Spc.Overflow|=(state & SPC_OVERFLOW);
-		ret=SPC_read_data_page(ib,0,(int)(SPC_BANK_DIM/P.Chann.Num)-1,D.Bank[ib]);
-		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_read_data_page");
-		
-		SPC_fill_memory(ib,-1,-1,0); /*prova spc 2*/
-		ret=test_fill_state(); /*prova spc 2*/
-		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:test_fill_state"); /*prova spc 2*/
-		
-		ret = SPC_start_measurement(ib); /*prova spc 2*/
-		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_start_measurement"); /*prova spc 2*/
-		
-		//if((state & SPC_SEQ_GAP) == SPC_SEQ_GAP) SPC_start_measurement(ib);
+//// CHECK TRIGGER
+//void CheckTriggerFlow(void){
+//	int ib;
+//	short ret,ver,spc_state,mod_state[MAX_BOARD];
+//	do{
+//		spc_state=0;
+//		for (ib=0;ib<P.Num.Board;ib++){
+//			ret=SPC_test_state(ib,&mod_state[ib]);
+//			if(ret<0) ErrHandler(ERR_SPC,ret,"CheckTrigger:SPC_test_state");
+//			spc_state |= mod_state[ib];
+//			}
+//	    //ver = ((spc_state & SPC_WAIT_TRG) == 0);
+//		if((spc_state & SPC_WAIT_TRG) == 1) printf("SPC waiting for trigger\n");
+//		}
+//	while(!ver);
+//	}
+//	
+//	
+//// TRANSFER BANK TO BUFFER
+//void GetFlow(void){
+//	int ib;
+//	short ret,state;
+//	P.Spc.Overflow=FALSE;
+//	for (ib=0;ib<P.Num.Board;ib++){
+//		
+//		ret=SPC_test_state(ib,&state);
+//		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_test_state");
+//		P.Spc.Overflow|=(state & SPC_OVERFLOW);
+//		ret=SPC_read_data_page(ib,0,(int)(SPC_BANK_DIM/P.Chann.Num)-1,D.Bank[ib]);
+//		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_read_data_page");
+//		
+//		SPC_fill_memory(ib,-1,-1,0); /*prova spc 2*/
+//		ret=test_fill_state(); /*prova spc 2*/
+//		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:test_fill_state"); /*prova spc 2*/
+//		
+//		ret = SPC_start_measurement(ib); /*prova spc 2*/
+//		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_start_measurement"); /*prova spc 2*/
+//		
+//		//if((state & SPC_SEQ_GAP) == SPC_SEQ_GAP) SPC_start_measurement(ib);
 
-		}
-	P.Flow.Bank=P.Flow.Bank?0:1;
-	ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank);
-	if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_set_parameter:MEM_BANK");
-	
-	
-	P.Flow.EmptyBank=FALSE;
-	}
+//		}
+//	P.Flow.Bank=P.Flow.Bank?0:1;
+//	ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank);
+//	if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_set_parameter:MEM_BANK");
+//	
+//	
+//	P.Flow.EmptyBank=FALSE;
+//	}
 
-	
-/* COPY FLOW TO DATA */
-void CopyFlow(void){
-	// Initialise @StartFlow: Chan0,Slot0,EmptyBank=TRUE,FilledBuffer=FALSE;
-	//FILE * Supp; /**/
-	//Supp = fopen("support.txt","w"); /**/
-	//long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,P.Num.Page-P.Flow.Page0); // calc min num of slot(i.e. curves) either in Bank or in Frame
-	long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,(int)(SPC_BANK_DIM/P.Chann.Num));
-	for(int ib=0;ib<P.Num.Board;ib++)
-		for(int is=0;is<num_slot;is++){	// iterate over Slots (i.e. curves) both on det and buffer
-			long page=P.Filter.Page[P.Acq.Actual][ib][is+P.Flow.Page0]; // last [] is the page num
-			if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page);
-			P.Page[page].Acq=P.Acq.Actual;
-			for(int ic=0;ic<P.Chann.Num;ic++) {
-				D.Data[P.Frame.Actual][page][ic]=D.Bank[ib][ic+(P.Flow.Slot0+is)*P.Chann.Num];
-				//D.Data[P.Frame.Actual][page][ic]=10;
-				//fprintf(Supp,"%hu;",D.Data[P.Frame.Actual][page][ic]); /**/
-				//if(ic == P.Chann.Num-1) fprintf(Supp,"%hu\n",D.Data[P.Frame.Actual][ib][ic]); /**/
-				}
-			}
-	P.Flow.Slot0+=num_slot;
-	P.Flow.Page0+=num_slot;
-	if(P.Flow.Slot0==(int)(SPC_BANK_DIM/P.Chann.Num)){	  // reached end of Bank
-		P.Flow.Slot0=0;
-		P.Flow.EmptyBank=TRUE;
-		}
-	if(P.Flow.Page0==P.Num.Page){		// reached end of Frame (i.e. exit function and go to next Loop)
-		P.Flow.Page0=0;
-		P.Flow.FilledFrame=TRUE;
-		}
-	//fclose(Supp);
-	}
+//	
+///* COPY FLOW TO DATA */
+//void CopyFlow(void){
+//	// Initialise @StartFlow: Chan0,Slot0,EmptyBank=TRUE,FilledBuffer=FALSE;
+//	//FILE * Supp; /**/
+//	//Supp = fopen("support.txt","w"); /**/
+//	//long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,P.Num.Page-P.Flow.Page0); // calc min num of slot(i.e. curves) either in Bank or in Frame
+//	long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,(int)(SPC_BANK_DIM/P.Chann.Num));
+//	for(int ib=0;ib<P.Num.Board;ib++)
+//		for(int is=0;is<num_slot;is++){	// iterate over Slots (i.e. curves) both on det and buffer
+//			long page=P.Filter.Page[P.Acq.Actual][ib][is+P.Flow.Page0]; // last [] is the page num
+//			if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page);
+//			P.Page[page].Acq=P.Acq.Actual;
+//			for(int ic=0;ic<P.Chann.Num;ic++) {
+//				D.Data[P.Frame.Actual][page][ic]=D.Bank[ib][ic+(P.Flow.Slot0+is)*P.Chann.Num];
+//				//D.Data[P.Frame.Actual][page][ic]=10;
+//				//fprintf(Supp,"%hu;",D.Data[P.Frame.Actual][page][ic]); /**/
+//				//if(ic == P.Chann.Num-1) fprintf(Supp,"%hu\n",D.Data[P.Frame.Actual][ib][ic]); /**/
+//				}
+//			}
+//	P.Flow.Slot0+=num_slot;
+//	P.Flow.Page0+=num_slot;
+//	if(P.Flow.Slot0==(int)(SPC_BANK_DIM/P.Chann.Num)){	  // reached end of Bank
+//		P.Flow.Slot0=0;
+//		P.Flow.EmptyBank=TRUE;
+//		}
+//	if(P.Flow.Page0==P.Num.Page){		// reached end of Frame (i.e. exit function and go to next Loop)
+//		P.Flow.Page0=0;
+//		P.Flow.FilledFrame=TRUE;
+//		}
+//	//fclose(Supp);
+//	}
 
-/* START FLOW */
-void StartFlow(void){
-	short ret;
-	int ib;
-	InitFlow();
-	P.Flow.Bank=0;
-	P.Flow.EmptyBank=TRUE;
-	P.Flow.FilledFrame=FALSE;
-	P.Flow.Page0=0;
-	P.Flow.Slot0=0;
-	for (ib=0;ib<P.Num.Board;ib++){
-		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank); // fa la stessa cosa in initflow (a)
-		if(ret<0) ErrHandler(ERR_SPC,ret,"StartFlow:SPC_set_parameter:MEM_BANK");
-	    ret=SPC_start_measurement(ib);
-		if(ret<0) ErrHandler(ERR_SPC,ret,"StartFlow:SPC_start_measurement");
-		//test_sequencer_state();
-		}
-	}
+///* START FLOW */
+//void StartFlow(void){
+//	short ret;
+//	int ib;
+//	InitFlow();
+//	P.Flow.Bank=0;
+//	P.Flow.EmptyBank=TRUE;
+//	P.Flow.FilledFrame=FALSE;
+//	P.Flow.Page0=0;
+//	P.Flow.Slot0=0;
+//	for (ib=0;ib<P.Num.Board;ib++){
+//		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank); // fa la stessa cosa in initflow (a)
+//		if(ret<0) ErrHandler(ERR_SPC,ret,"StartFlow:SPC_set_parameter:MEM_BANK");
+//	    ret=SPC_start_measurement(ib);
+//		if(ret<0) ErrHandler(ERR_SPC,ret,"StartFlow:SPC_start_measurement");
+//		//test_sequencer_state();
+//		}
+//	}
 
-/* STOP FLOW */
-void StopFlow(void){
-	short ib,ret;
-	DmdTx_stopSequence(DmdTx.handle);
-	for (ib=0;ib<P.Num.Board;ib++){
-		ret = SPC_stop_measurement(ib); // sequencer is stopped -> reconstruction
-		if(ret<0) ErrHandler(ERR_SPC,ret,"StopFlow:SPC_stop_measurement");
-	}
-}
+///* STOP FLOW */
+//void StopFlow(void){
+//	short ib,ret;
+//	DmdTx_stopSequence(DmdTx.handle);
+//	for (ib=0;ib<P.Num.Board;ib++){
+//		ret = SPC_stop_measurement(ib); // sequencer is stopped -> reconstruction
+//		if(ret<0) ErrHandler(ERR_SPC,ret,"StopFlow:SPC_stop_measurement");
+//	}
+//}
 
-	
-// INITIALIZE CONTINUOUS FLOW
-void InitFlow(void){
-	int ib,ibb;
-	SPCdata spc_dat;
-	short mem_bank,ret;
-	for(ibb=0;ibb<P.Num.Board;ibb++){
-		ret=SPC_get_parameters(ibb,&spc_dat);
-		if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_get_parameters");
-		}
-	mem_bank=spc_dat.mem_bank;	  // NOTE: taken from last SPC module
-	ret=SPC_enable_sequencer(SPC_ALL,1); // 1 or 2 (1 -> SPC_ARMED untill all banks are full; 2 -> SPC_ARMED only for one bank (probelms in changing bank))
-	if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_enable_sequencer");
-	ret=SPC_set_parameter(SPC_ALL, TRIGGER, 0x302); // trigger each curve, trigger high
-	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:TRIGGER");
-	for(ib=0;ib<SPC_NUM_BANK;ib++){
-		SpcClear();
-		mem_bank=mem_bank?0:1;
-		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,mem_bank); // (a)
-		if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_parameter:MEM_BANK");
-		}
-	ret=SPC_set_page(SPC_ALL,0);
-	if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_page");
-	//test_sequencer_state();
-	}
+//	
+//// INITIALIZE CONTINUOUS FLOW
+//void InitFlow(void){
+//	int ib,ibb;
+//	SPCdata spc_dat;
+//	short mem_bank,ret;
+//	for(ibb=0;ibb<P.Num.Board;ibb++){
+//		ret=SPC_get_parameters(ibb,&spc_dat);
+//		if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_get_parameters");
+//		}
+//	mem_bank=spc_dat.mem_bank;	  // NOTE: taken from last SPC module
+//	ret=SPC_enable_sequencer(SPC_ALL,1); // 1 or 2 (1 -> SPC_ARMED untill all banks are full; 2 -> SPC_ARMED only for one bank (probelms in changing bank))
+//	if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_enable_sequencer");
+//	ret=SPC_set_parameter(SPC_ALL, TRIGGER, 0x302); // trigger each curve, trigger high
+//	if(ret<0) ErrHandler(ERR_SPC,ret,"InitBank:SPC_set_parameter:TRIGGER");
+//	for(ib=0;ib<SPC_NUM_BANK;ib++){
+//		SpcClear();
+//		mem_bank=mem_bank?0:1;
+//		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,mem_bank); // (a)
+//		if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_parameter:MEM_BANK");
+//		}
+//	ret=SPC_set_page(SPC_ALL,0);
+//	if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_page");
+//	//test_sequencer_state();
+//	}
 
 
 /* ########################   SWABIAN INSTRUMENTS FUNCTIONS   ####################### */
@@ -7619,500 +7619,524 @@ void GetMicro(int Com,long *Answer){
 	}
 
 
-// #### DMD TEXAS STEPPER ####
-	
-int offset(const int startPosition, const int lineWidth, const int previousPos ){
-	return startPosition*lineWidth + previousPos;
-}
+//// #### DMD TEXAS STEPPER ####
+// REMOVE ALL THIS WHEN DONE
+//void test_sequencer_state(void){}
+void SpcFlow(char Status){}
+void WaitFlow(void){}
+void CheckTriggerFlow(void){}
+void GetFlow(void){}
+void CopyFlow(void){}
+void StartFlow(void){}
+void StopFlow(void){}
+void InitFlow(void){}
 
-void writePatternsOnFile(const int nEl, unsigned char ***basis){
-    for(int f=0; f<nEl; f++){
-        char name[] = "b000.txt";
-        if (f<10){
-            name[3] += f;
-        }
-        else if(f<100){
-            name[2] += f/10;
-            name[3] += f-(f/10)*10;
-        }
-        else if(f<1000){
-            name[1] += f/100;
-            name[2] += f/10-(f/100)*10;
-            name[3] += f-(f/10)*10;
-        }
-        //printf("FileName %s\n", name);
-        FILE *tmpF = fopen(name, "w");
-        for(int j=0; j<HEIGHT; j++){
-            for(int i=0; i<WIDTH; i++){
-                if(i == WIDTH-1) fprintf(tmpF, "%d", basis[f][j][i]);
-                else fprintf(tmpF, "%d,", basis[f][j][i]);
-            }
-        fprintf(tmpF, "\n");
-        }
-        fclose(tmpF);
-    }
-}
+void SetupDmdTx(struct InfoDmd* info){}
+void InitDmdTx(char Step){}
+void CloseDmdTx(char Step){}
+void MoveDmdTx(char Step,long Goal,char Wait){}
+void WaitDmdTx(char Step,long Goal){}
+void TellPosDmdTx(char Step,long *Actual){}
+void StopDmdTx(char Step){}
+void DefineHomeDmdTx(char Step){}
 
-// questa funzione è qui perchè non inclusa nella dll di getbasis --> sistemato ora è inclusa
-//int DmdTx_minimum(const int a, const int b){
-//	if(a>b) return b;
-//	else return a;
+
+
+
+//// USE UNCOMMENT ALL
+
+//int offset(const int startPosition, const int lineWidth, const int previousPos ){
+//	return startPosition*lineWidth + previousPos;
 //}
 
-/* INITIALIZE DMDTX */
+//void writePatternsOnFile(const int nEl, unsigned char ***basis){
+//    for(int f=0; f<nEl; f++){
+//        char name[] = "b000.txt";
+//        if (f<10){
+//            name[3] += f;
+//        }
+//        else if(f<100){
+//            name[2] += f/10;
+//            name[3] += f-(f/10)*10;
+//        }
+//        else if(f<1000){
+//            name[1] += f/100;
+//            name[2] += f/10-(f/100)*10;
+//            name[3] += f-(f/10)*10;
+//        }
+//        //printf("FileName %s\n", name);
+//        FILE *tmpF = fopen(name, "w");
+//        for(int j=0; j<HEIGHT; j++){
+//            for(int i=0; i<WIDTH; i++){
+//                if(i == WIDTH-1) fprintf(tmpF, "%d", basis[f][j][i]);
+//                else fprintf(tmpF, "%d,", basis[f][j][i]);
+//            }
+//        fprintf(tmpF, "\n");
+//        }
+//        fclose(tmpF);
+//    }
+//}
+
+//// questa funzione è qui perchè non inclusa nella dll di getbasis --> sistemato ora è inclusa
+////int DmdTx_minimum(const int a, const int b){
+////	if(a>b) return b;
+////	else return a;
+////}
+
+///* INITIALIZE DMDTX */
 
 
-void SetupDmdTx(struct InfoDmd *info){
+//void SetupDmdTx(struct InfoDmd *info){
 
-	int ver;
-	int selectPx=0;
-	
-	info->previousPos = 0;
-	info->dark_time = 10000; // dark time [microsec] = dead time to better sync DMD and SPC measurement
+//	int ver;
+//	int selectPx=0;
+//	
+//	info->previousPos = 0;
+//	info->dark_time = 10000; // dark time [microsec] = dead time to better sync DMD and SPC measurement
 
-	// SETTING PARAMETERS 
-    // WIZARD procedure (the program asks every setting) 
-    printf("Choose mode:\n (0) Raster scan\n (1) Hadamard pattern\n (2) All mirrors\n (3) All closed\n (4) Notch filter\n (5) Hadamard Horizontal\n (6) Raster Horizontal\n (7) Add One Line (Horizontal)\n (8) Band Pass\n (9) Add One Line (Oblique)\n (10) Hadamard 2D\n (-1) Exit\n\n >>");
-    scanf("%d", &(info->RasterOrHadamard));
-    getchar();
-    info->startPosition = 0;
-	if(info->RasterOrHadamard==1 || info->RasterOrHadamard==0 || info->RasterOrHadamard==5 || info->RasterOrHadamard==6 || info->RasterOrHadamard==7 || info->RasterOrHadamard==9 || info->RasterOrHadamard==10){
-		if(info->RasterOrHadamard==0 || info->RasterOrHadamard==6 || info->RasterOrHadamard==7 || info->RasterOrHadamard==9 ){
-			printf("\n\n*** RASTER ***\n");
-			printf("Select dimension of lines: ");
-			scanf("%d", &(info->nBasis));
-			printf("Select number of measurements: ");
-            scanf("%d", &(info->nMeas));
-			printf("Select startPx: ");
-            scanf("%d", &(info->startPosition));
-		}
-		else{
-            printf("\n\n*** HADAMARD ***\n");
-            do{
-                printf("Select number of bases (MUST BE POWER OF 2): ");
-                scanf("%d", &(info->nBasis));
-                info->startPosition = 0;
-                for(int i=2; i<5000; i*=2){ // check if nBasis is a power of 2
-                    if (i==info->nBasis){
-                        ver = 1;
-                        break;
-                    }
-                }
-             } while(!ver);
-			printf("Do you want to use cake-cutting ordering (1=yes): ");
-			scanf("%d", &(info->csMode));
-            //if(info->csMode == 0) info->nMeas = info->nBasis; // in Hadamard mode we have 1 measure for each basis
-			printf("Select number of measurements: "); // if we use CS we can do nMeas < nBasis
-			scanf("%d", &(info->nMeas));
-            if(info->RasterOrHadamard == 10){
-                printf("Select zoom: ");
-                scanf("%d", &(info->zoom));
-                printf("Select X (center = 960): ");
-                scanf("%d", &(info->xC));
-                printf("Select Y (center = 540): ");
-                scanf("%d", &(info->yC));
-            }
-			else{
-				printf("Do you want to select startPx and endPx? if so press 1: "); // select active region of the DMD where to collect spectrum
-				scanf("%d", &(selectPx));
-				if (selectPx) {
-					printf("Select startPx: ");
-					scanf("%d", &(info->startPx));
-					printf("Select endPx: ");
-					scanf("%d", &(info->endPx));
-					if ((info->endPx - info->startPx) / info->nBasis < 1) {
-						printf("***ERROR: Range startPx - endPx is too short for nBasis!!"); // andrebbero contollate altre possibilità di errore (es. endPx>WIDTH+HEIGHT, endPx<startPx...)
-						return 1;
-					}
-				}
-				else {
-					info->startPx = 0;
-					if(info->RasterOrHadamard == 1) info->endPx = WIDTH + HEIGHT;
-					if (info->RasterOrHadamard == 5) info->endPx = WIDTH;
-				}
-			}
-		}
-	        info->sizeBatch = info->nMeas;
-			printf("Select exposure time in ms: ");
-			scanf("%d", &(info->exp));
-			info->exp *= 1000; // time is in microseconds
-			//printf("Do you want to be repeated? if so press 1: ");
-			//scanf("%d", &(info->repeat));
-			//if(info->repeat != 1) info->repeat = 0;
-			info->repeat = 1;
-			//printf("Do you want to use compression? if so press 1: "); // compression reduces the active part of the DMD to N central pixels
-			//scanf("%d", &(info->compress));
-			//if(info->compress != 1) info->compress = 0;
-			info->compress = 0;
-			getchar();
-			printf("\n");
-		}
-		else if(info->RasterOrHadamard == 2 ){
-			printf("\n\n*** ALL ONES ***\n");
-			info->nBasis = 24;
-			info->nMeas = 24;
-			info->sizeBatch = 24;
-			info->startPosition = 0;
-			printf("Select exposure time in ms: ");
-			scanf("%d", &(info->exp));
-			info->exp *= 1000; // time is in microseconds
-			info->repeat = 1;
-			info->compress = 0;
-		}
-		else if(info->RasterOrHadamard == 3 ){
-			printf("\n\n*** ALL ZEROS ***\n");
-			info->nBasis = 24;
-			info->nMeas = 24;
-			info->sizeBatch = 24;
-			info->startPosition = 0;
-			printf("Select exposure time in ms: ");
-			scanf("%d", &(info->exp));
-			info->exp *= 1000; // time is in microseconds
-			info->repeat = 1;
-			info->compress = 0;
-		}
-		else if(info->RasterOrHadamard == 4 || info->RasterOrHadamard == 8){
-			printf("\n\n*** FILTER ***\n");
-			printf("Select dimension of line (in pixels): ");
-			scanf("%d", &(info->nBasis));
-			printf("Select start of band:");  // number of line or wavelength?
-			scanf("%d", &(info->previousPos));
-			getchar();
-			info->nMeas = 24;
-			info->sizeBatch = 24;
-			printf("Select exposure time in ms: ");
-			scanf("%d", &(info->exp));
-			info->exp *= 1000; // time is in microseconds
-			info->repeat = 1;
-			info->compress = 0;
-		}
-	
-}
-
-
-void InitDmdTx(char Step){
-	char message[STRLEN],smessage[2*STRLEN];
-
-	sprintf(message,"Initializing DMD TEXAS Stepper #%d",Step+1);
-    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
-
-	// code here
-	// initDmd (hidapi init, getbasis and load basis on dmd)
-	
-	int numeroBasi = 256;
-	
-	/* //MANUAL SETUP
-	DmdTxInfo.RasterOrHadamard = 1; //info.RasterOrHadamard;
-	DmdTxInfo.nBasis = numeroBasi; //info.nBasis;
-	DmdTxInfo.nMeas = numeroBasi; //info.nMeas;
-	DmdTxInfo.startPosition = 0; //info.startPosition;
-	DmdTxInfo.exp = 4000; //info.exp; // us
-	DmdTxInfo.dark_time = 1000; //info.dark_time; // 1000 = 1ms -> check that spc does not miss the trigger
-	DmdTxInfo.repeat = 1; //info.repeat;
-	DmdTxInfo.compress = 0; //info.compress;
-	DmdTxInfo.sizeBatch = numeroBasi; //info.sizeBatch;
-	DmdTxInfo.previousPos = 0; //info.previousPos;
-	DmdTxInfo.zoom = 1; //info.zoom;
-	DmdTxInfo.xC = 960; //info.xC; //(960) centro del dmd
-	DmdTxInfo.yC = 540; //info.yC; //(540)
-	DmdTxInfo.csMode = 0; //cake-cutting
-	*/
-	
-	// Test initialization of structure
-	DmdTxPatt.bitsPackNum = NULL;
-	DmdTxPatt.bmpLoad = NULL;
-	//patt.configureLut = {'0','0','0','0','0','0'};
-	DmdTxPatt.defPatterns = NULL;
-	DmdTxPatt.exposure = NULL;
-	DmdTxPatt.nB = 0;
-	DmdTxPatt.nEl = 0;
-	DmdTxPatt.numOfBatches = 0;
-	DmdTxPatt.packNum = NULL;
-	DmdTxPatt.setBmp = NULL;
-	
-	DmdTx.pattern = NULL;
-	
-	// initialization of hidapi library and HID device
-	hid_init();
-	DmdTx.handle = hid_open(0x0451, 0xc900, NULL);
-	Sleep(2000); // dead time to be sure the device is connected
-	if (DmdTx.handle == NULL) {
-		// ErrHandler(DMD_TX,.,.);
-		sprintf(smessage,"Device = DMD_TX\nFunction = hid_open\nMessage = Unable to find device"); 
-		MessagePopup ("ERROR RETURN FUNCTION", smessage);
-		DmdTx.handle = NULL;
-		if(!DEBUG){
-            printf("Press any key to exit.\n");
-            getchar();
-            exit(1);
-		}
-	}
-	DmdTx_stopSequence(DmdTx.handle); // stop the demo pattern sequence
-	DmdTx_changeMode(DmdTx.handle, 3); // change to pattern-on-the-fly mode
-
-    // setup data needed --> assegnazione di variabile inutile: si potrebbe sosituire dove necessario DmdTxInfo.
-	int RasterOrHadamard = DmdTxInfo.RasterOrHadamard;
-	int nBasis = DmdTxInfo.nBasis;
-	int nMeas = DmdTxInfo.nMeas;
-	int startPosition = DmdTxInfo.startPosition;
-	int exp = DmdTxInfo.exp;
-	int dark_time = DmdTxInfo.dark_time;
-	int repeat = DmdTxInfo.repeat;
-	int compress = DmdTxInfo.compress;
-	int sizeBatch = DmdTxInfo.sizeBatch;
-	int previousPos = DmdTxInfo.previousPos;
-	int zoom = DmdTxInfo.zoom;
-	int xC = DmdTxInfo.xC; // long side
-	int yC = DmdTxInfo.yC; // short side
-	int csMode = DmdTxInfo.csMode;
-	int startPx = DmdTxInfo.startPx;
-	int endPx = DmdTxInfo.endPx;
-	
-	int offset_ = startPosition/nBasis; //offset(startPosition, nBasis, previousPos)/nBasis; // ??
-	int nSet = DmdTx_celing(nMeas, sizeBatch);
-	DmdTx.szPattern = nSet;
-	DmdTx.repeat = repeat;
-	int *exposure;
-	int *trigger_in;  // if 1 the DMD waits for an external trigger to change pattern
-	int *trigger_out; // if 1 the DMD sends a trigger signal when changes the pattern
-	unsigned char ***basis;
-	int totExposure = 0;
-
-	int i,j,k,q;
-	int nEl;
-	int *idx = NULL;
-	
-	// allocation of memory and insertion of basis data 
-	DmdTx.pattern = (struct DmdTx_Patterns *)malloc(nSet*sizeof(struct DmdTx_Patterns));
-	for (q=0; q<nSet; q++){
-		nEl = DmdTx_minimum(sizeBatch, nMeas-q*sizeBatch); // it's the number of images in the current batch
-		// allocate of memory
-		
-		DmdTx_allocatePattern(&(DmdTx.pattern[q]), nEl); 
-		//allocatePattern_dmd(&patt, nEl);
-		//dmd.pattern[q].nEl = nEl;
-		//dmd.pattern[q].defPatterns = (unsigned char(*)[12])malloc(nEl*sizeof(unsigned char[12]));
-		
-		exposure = (int *) malloc(nEl * sizeof(int));
-		trigger_in = (int *) malloc(nEl * sizeof(int));
-		trigger_out = (int *) malloc(nEl * sizeof(int));
-		basis = (unsigned char***)malloc(nEl*sizeof(unsigned char**));
-		for(i=0; i<nEl; i++){
-            basis[i] = (unsigned char**)malloc(HEIGHT*sizeof(unsigned char*));
-		}
-		for(i=0; i<nEl; i++){
-			for(j=0; j<HEIGHT; j++){
-                basis[i][j] = (unsigned char*)malloc(WIDTH*sizeof(unsigned char));
-			}
-		}
-		// initialize basis
-		for(i=0; i<nEl; i++){
-            for(j=0; j<HEIGHT; j++){
-                for(k=0; k<WIDTH; k++){
-                    basis[i][j][k] = 0;
-                }
-            }
-		}
-		// insert data into pattern
-		for (i=0; i<nEl; i++){
-			exposure[i] = exp;
-			trigger_out[i] = 1;
-			trigger_in[i] = 0;
-        }
-		int nB; // nB contiene le info su quante info vere ci sono, # di basi caricate (nB non assume lo stesso valore di nEl?)
-		if(nMeas > (q+1)*sizeBatch)
-			nB = sizeBatch;
-		else
-			nB = nMeas - q*sizeBatch;
-		idx = (int* )malloc((nB)*sizeof(int)); // index of the first element inside the batch
-		for(i=0; i<nB; i++)
-			idx[i] = q*sizeBatch + i + offset_;
-		DmdTx_getBasis(RasterOrHadamard, nBasis, idx, nB, compress, zoom, xC, yC, csMode, startPx, endPx, basis); // generation of pattern
-		free(idx);
-		
-		printf("\n");
-		for (k=0; k<nEl; k++){
-			for(i=0; i<WIDTH; i+=100)
-				printf("%d ", basis[k][0][i]);
-            printf("\n");
-		}
-		printf("\n");
-		
-		
-		// print bases on txt file
-		// if(DMD_SIMULATOR) writePatternsOnFile(nEl, basis);
-
-		DmdTx.pattern[q].nB = nB;
-		//patt.nB = nB;
-		int numberOfRepetition;
-		if(repeat)
-			numberOfRepetition = 0;
-		else
-			numberOfRepetition = nEl; // the number can be as large as 500!
-		
-		// Modifica
-		//int nBatches = celing_dmd(nEl, SIZE_PATTERN);
-		//dmd.pattern[q].numOfBatches = nBatches;
-		//dmd.pattern[q].bmpLoad = (unsigned char ***)malloc(nBatches*sizeof(unsigned char **));
-		//dmd.pattern[q].setBmp = (unsigned char (*)[6])malloc(nBatches*sizeof(unsigned char[6]));
-		//dmd.pattern[q].packNum = (int *)malloc(nBatches*sizeof(int *));
-		//dmd.pattern[q].bitsPackNum =(int **)malloc(nBatches*sizeof(int*));
-		//dmd.pattern[q].exposure = (int*)malloc(nEl*sizeof(int));
-		
-
-		DmdTx_defSequence(&(DmdTx.pattern[q]), basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl); // il penultimo o 1 o nEl1
-		//defSequence(&patt, basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl);
-		for(i=0; i<nEl; i++){
-			for(j=0; j<HEIGHT; j++)
-                free(basis[i][j]);
-            free(basis[i]);
-		}
-		free(basis);
-		free(exposure);
-		free(trigger_out);
-		free(trigger_in);
-	}
-	
-	// All data needed to move the DMD is generated by defSequence and saved in dmd.pattern
-	for(i=0; i<DmdTx.szPattern; i++){
-		DmdTx_stopSequence(DmdTx.handle);
-		printf("Uploading pattern (%d of %d)\n", i+1, DmdTx.szPattern);
-		totExposure = 0;
-
-		for(j=0; j<DmdTx.pattern[i].nEl; j++){
-			totExposure += DmdTx.pattern[i].exposure[j];
-			// define the pattern
-			printf("Uploading pattern definitions (%d of %d)\n", j+1, DmdTx.pattern[i].nEl);
-			DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x34, DmdTx.pattern[i].defPatterns[j], 12);
-			if(!DEBUG)
-                DmdTx_checkForErrors(DmdTx.handle);
-        }
-        // configure LUT
-        printf("Uploading LUT\n");
-		DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x31, DmdTx.pattern[i].configureLut, 6);
-		if(!DEBUG)
-            DmdTx_checkForErrors(DmdTx.handle);
-		// setBmp
-		for(k = DmdTx.pattern[i].numOfBatches-1; k>=0; k--){
-            printf("Uploading batch %d of %d\n", DmdTx.pattern[i].numOfBatches-k, DmdTx.pattern[i].numOfBatches);
-            DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x2a, DmdTx.pattern[i].setBmp[k], 6);
-			if(!DEBUG)
-                DmdTx_checkForErrors(DmdTx.handle);
-			// bmpLoad
-			for(j=0; j<DmdTx.pattern[i].packNum[k]; j++){
-				DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x11, 0x1a, 0x2b, DmdTx.pattern[i].bmpLoad[k][j], DmdTx.pattern[i].bitsPackNum[k][j]);
-			}
-			if(!DEBUG){
-                DmdTx_checkForErrors(DmdTx.handle);
-                //checkErrorMessage(dmd.handle); // TEST
-            }
-		}
-	}
-	
-	// After the pattern is loaded on the DMD we can free the local variables containing the pattern
-	// DA SISTEMARE: CVI NON RICONOSCE MALLOC FATTO NELLA DLL -> INSERIRE QUESTO FREE NELLA DLL
-	/*
-	for (q = 0; q < DmdTx.szPattern; q++){
-		free(DmdTx.pattern[q].defPatterns);  
-		for(k = 0; k<DmdTx.pattern[q].numOfBatches; k++){
-			for(i = 0; i<DmdTx.pattern[q].packNum[k]; i++){
-				free(DmdTx.pattern[q].bmpLoad[k][i]);
-			}
-			free(DmdTx.pattern[q].bmpLoad[k]);
-			free(DmdTx.pattern[q].bitsPackNum[k]);
-		}
-		free(DmdTx.pattern[q].bmpLoad);
-		free(DmdTx.pattern[q].bitsPackNum);
-		free(DmdTx.pattern[q].setBmp);
-		free(DmdTx.pattern[q].packNum);
-		free(DmdTx.pattern[q].exposure);
-	}
-	*/
-	DmdTx_deallocate(&DmdTx);
-	free(DmdTx.pattern);
-	
-	//DmdTx_startSequence(DmdTx.handle);
-	
-	
-	SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
-	}
+//	// SETTING PARAMETERS 
+//    // WIZARD procedure (the program asks every setting) 
+//    printf("Choose mode:\n (0) Raster scan\n (1) Hadamard pattern\n (2) All mirrors\n (3) All closed\n (4) Notch filter\n (5) Hadamard Horizontal\n (6) Raster Horizontal\n (7) Add One Line (Horizontal)\n (8) Band Pass\n (9) Add One Line (Oblique)\n (10) Hadamard 2D\n (-1) Exit\n\n >>");
+//    scanf("%d", &(info->RasterOrHadamard));
+//    getchar();
+//    info->startPosition = 0;
+//	if(info->RasterOrHadamard==1 || info->RasterOrHadamard==0 || info->RasterOrHadamard==5 || info->RasterOrHadamard==6 || info->RasterOrHadamard==7 || info->RasterOrHadamard==9 || info->RasterOrHadamard==10){
+//		if(info->RasterOrHadamard==0 || info->RasterOrHadamard==6 || info->RasterOrHadamard==7 || info->RasterOrHadamard==9 ){
+//			printf("\n\n*** RASTER ***\n");
+//			printf("Select dimension of lines: ");
+//			scanf("%d", &(info->nBasis));
+//			printf("Select number of measurements: ");
+//            scanf("%d", &(info->nMeas));
+//			printf("Select startPx: ");
+//            scanf("%d", &(info->startPosition));
+//		}
+//		else{
+//            printf("\n\n*** HADAMARD ***\n");
+//            do{
+//                printf("Select number of bases (MUST BE POWER OF 2): ");
+//                scanf("%d", &(info->nBasis));
+//                info->startPosition = 0;
+//                for(int i=2; i<5000; i*=2){ // check if nBasis is a power of 2
+//                    if (i==info->nBasis){
+//                        ver = 1;
+//                        break;
+//                    }
+//                }
+//             } while(!ver);
+//			printf("Do you want to use cake-cutting ordering (1=yes): ");
+//			scanf("%d", &(info->csMode));
+//            //if(info->csMode == 0) info->nMeas = info->nBasis; // in Hadamard mode we have 1 measure for each basis
+//			printf("Select number of measurements: "); // if we use CS we can do nMeas < nBasis
+//			scanf("%d", &(info->nMeas));
+//            if(info->RasterOrHadamard == 10){
+//                printf("Select zoom: ");
+//                scanf("%d", &(info->zoom));
+//                printf("Select X (center = 960): ");
+//                scanf("%d", &(info->xC));
+//                printf("Select Y (center = 540): ");
+//                scanf("%d", &(info->yC));
+//            }
+//			else{
+//				printf("Do you want to select startPx and endPx? if so press 1: "); // select active region of the DMD where to collect spectrum
+//				scanf("%d", &(selectPx));
+//				if (selectPx) {
+//					printf("Select startPx: ");
+//					scanf("%d", &(info->startPx));
+//					printf("Select endPx: ");
+//					scanf("%d", &(info->endPx));
+//					if ((info->endPx - info->startPx) / info->nBasis < 1) {
+//						printf("***ERROR: Range startPx - endPx is too short for nBasis!!"); // andrebbero contollate altre possibilità di errore (es. endPx>WIDTH+HEIGHT, endPx<startPx...)
+//						return 1;
+//					}
+//				}
+//				else {
+//					info->startPx = 0;
+//					if(info->RasterOrHadamard == 1) info->endPx = WIDTH + HEIGHT;
+//					if (info->RasterOrHadamard == 5) info->endPx = WIDTH;
+//				}
+//			}
+//		}
+//	        info->sizeBatch = info->nMeas;
+//			printf("Select exposure time in ms: ");
+//			scanf("%d", &(info->exp));
+//			info->exp *= 1000; // time is in microseconds
+//			//printf("Do you want to be repeated? if so press 1: ");
+//			//scanf("%d", &(info->repeat));
+//			//if(info->repeat != 1) info->repeat = 0;
+//			info->repeat = 1;
+//			//printf("Do you want to use compression? if so press 1: "); // compression reduces the active part of the DMD to N central pixels
+//			//scanf("%d", &(info->compress));
+//			//if(info->compress != 1) info->compress = 0;
+//			info->compress = 0;
+//			getchar();
+//			printf("\n");
+//		}
+//		else if(info->RasterOrHadamard == 2 ){
+//			printf("\n\n*** ALL ONES ***\n");
+//			info->nBasis = 24;
+//			info->nMeas = 24;
+//			info->sizeBatch = 24;
+//			info->startPosition = 0;
+//			printf("Select exposure time in ms: ");
+//			scanf("%d", &(info->exp));
+//			info->exp *= 1000; // time is in microseconds
+//			info->repeat = 1;
+//			info->compress = 0;
+//		}
+//		else if(info->RasterOrHadamard == 3 ){
+//			printf("\n\n*** ALL ZEROS ***\n");
+//			info->nBasis = 24;
+//			info->nMeas = 24;
+//			info->sizeBatch = 24;
+//			info->startPosition = 0;
+//			printf("Select exposure time in ms: ");
+//			scanf("%d", &(info->exp));
+//			info->exp *= 1000; // time is in microseconds
+//			info->repeat = 1;
+//			info->compress = 0;
+//		}
+//		else if(info->RasterOrHadamard == 4 || info->RasterOrHadamard == 8){
+//			printf("\n\n*** FILTER ***\n");
+//			printf("Select dimension of line (in pixels): ");
+//			scanf("%d", &(info->nBasis));
+//			printf("Select start of band:");  // number of line or wavelength?
+//			scanf("%d", &(info->previousPos));
+//			getchar();
+//			info->nMeas = 24;
+//			info->sizeBatch = 24;
+//			printf("Select exposure time in ms: ");
+//			scanf("%d", &(info->exp));
+//			info->exp *= 1000; // time is in microseconds
+//			info->repeat = 1;
+//			info->compress = 0;
+//		}
+//	
+//}
 
 
-/* CLOSE DMD TEXAS */
-void CloseDmdTx(char Step){
-	
-	// code here
-	// deallocate memory of dmd variables if used and hidapi close
-	// close communication with DMD
-	DmdTx_stopSequence(DmdTx.handle);
-	hid_close(DmdTx.handle);
-	hid_exit();
-	
-	}
+//void InitDmdTx(char Step){
+//	char message[STRLEN],smessage[2*STRLEN];
+
+//	sprintf(message,"Initializing DMD TEXAS Stepper #%d",Step+1);
+//    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+
+//	// code here
+//	// initDmd (hidapi init, getbasis and load basis on dmd)
+//	
+//	int numeroBasi = 256;
+//	
+//	/* //MANUAL SETUP
+//	DmdTxInfo.RasterOrHadamard = 1; //info.RasterOrHadamard;
+//	DmdTxInfo.nBasis = numeroBasi; //info.nBasis;
+//	DmdTxInfo.nMeas = numeroBasi; //info.nMeas;
+//	DmdTxInfo.startPosition = 0; //info.startPosition;
+//	DmdTxInfo.exp = 4000; //info.exp; // us
+//	DmdTxInfo.dark_time = 1000; //info.dark_time; // 1000 = 1ms -> check that spc does not miss the trigger
+//	DmdTxInfo.repeat = 1; //info.repeat;
+//	DmdTxInfo.compress = 0; //info.compress;
+//	DmdTxInfo.sizeBatch = numeroBasi; //info.sizeBatch;
+//	DmdTxInfo.previousPos = 0; //info.previousPos;
+//	DmdTxInfo.zoom = 1; //info.zoom;
+//	DmdTxInfo.xC = 960; //info.xC; //(960) centro del dmd
+//	DmdTxInfo.yC = 540; //info.yC; //(540)
+//	DmdTxInfo.csMode = 0; //cake-cutting
+//	*/
+//	
+//	// Test initialization of structure
+//	DmdTxPatt.bitsPackNum = NULL;
+//	DmdTxPatt.bmpLoad = NULL;
+//	//patt.configureLut = {'0','0','0','0','0','0'};
+//	DmdTxPatt.defPatterns = NULL;
+//	DmdTxPatt.exposure = NULL;
+//	DmdTxPatt.nB = 0;
+//	DmdTxPatt.nEl = 0;
+//	DmdTxPatt.numOfBatches = 0;
+//	DmdTxPatt.packNum = NULL;
+//	DmdTxPatt.setBmp = NULL;
+//	
+//	DmdTx.pattern = NULL;
+//	
+//	// initialization of hidapi library and HID device
+//	hid_init();
+//	DmdTx.handle = hid_open(0x0451, 0xc900, NULL);
+//	Sleep(2000); // dead time to be sure the device is connected
+//	if (DmdTx.handle == NULL) {
+//		// ErrHandler(DMD_TX,.,.);
+//		sprintf(smessage,"Device = DMD_TX\nFunction = hid_open\nMessage = Unable to find device"); 
+//		MessagePopup ("ERROR RETURN FUNCTION", smessage);
+//		DmdTx.handle = NULL;
+//		if(!DEBUG){
+//            printf("Press any key to exit.\n");
+//            getchar();
+//            exit(1);
+//		}
+//	}
+//	DmdTx_stopSequence(DmdTx.handle); // stop the demo pattern sequence
+//	DmdTx_changeMode(DmdTx.handle, 3); // change to pattern-on-the-fly mode
+
+//    // setup data needed --> assegnazione di variabile inutile: si potrebbe sosituire dove necessario DmdTxInfo.
+//	int RasterOrHadamard = DmdTxInfo.RasterOrHadamard;
+//	int nBasis = DmdTxInfo.nBasis;
+//	int nMeas = DmdTxInfo.nMeas;
+//	int startPosition = DmdTxInfo.startPosition;
+//	int exp = DmdTxInfo.exp;
+//	int dark_time = DmdTxInfo.dark_time;
+//	int repeat = DmdTxInfo.repeat;
+//	int compress = DmdTxInfo.compress;
+//	int sizeBatch = DmdTxInfo.sizeBatch;
+//	int previousPos = DmdTxInfo.previousPos;
+//	int zoom = DmdTxInfo.zoom;
+//	int xC = DmdTxInfo.xC; // long side
+//	int yC = DmdTxInfo.yC; // short side
+//	int csMode = DmdTxInfo.csMode;
+//	int startPx = DmdTxInfo.startPx;
+//	int endPx = DmdTxInfo.endPx;
+//	
+//	int offset_ = startPosition/nBasis; //offset(startPosition, nBasis, previousPos)/nBasis; // ??
+//	int nSet = DmdTx_celing(nMeas, sizeBatch);
+//	DmdTx.szPattern = nSet;
+//	DmdTx.repeat = repeat;
+//	int *exposure;
+//	int *trigger_in;  // if 1 the DMD waits for an external trigger to change pattern
+//	int *trigger_out; // if 1 the DMD sends a trigger signal when changes the pattern
+//	unsigned char ***basis;
+//	int totExposure = 0;
+
+//	int i,j,k,q;
+//	int nEl;
+//	int *idx = NULL;
+//	
+//	// allocation of memory and insertion of basis data 
+//	DmdTx.pattern = (struct DmdTx_Patterns *)malloc(nSet*sizeof(struct DmdTx_Patterns));
+//	for (q=0; q<nSet; q++){
+//		nEl = DmdTx_minimum(sizeBatch, nMeas-q*sizeBatch); // it's the number of images in the current batch
+//		// allocate of memory
+//		
+//		DmdTx_allocatePattern(&(DmdTx.pattern[q]), nEl); 
+//		//allocatePattern_dmd(&patt, nEl);
+//		//dmd.pattern[q].nEl = nEl;
+//		//dmd.pattern[q].defPatterns = (unsigned char(*)[12])malloc(nEl*sizeof(unsigned char[12]));
+//		
+//		exposure = (int *) malloc(nEl * sizeof(int));
+//		trigger_in = (int *) malloc(nEl * sizeof(int));
+//		trigger_out = (int *) malloc(nEl * sizeof(int));
+//		basis = (unsigned char***)malloc(nEl*sizeof(unsigned char**));
+//		for(i=0; i<nEl; i++){
+//            basis[i] = (unsigned char**)malloc(HEIGHT*sizeof(unsigned char*));
+//		}
+//		for(i=0; i<nEl; i++){
+//			for(j=0; j<HEIGHT; j++){
+//                basis[i][j] = (unsigned char*)malloc(WIDTH*sizeof(unsigned char));
+//			}
+//		}
+//		// initialize basis
+//		for(i=0; i<nEl; i++){
+//            for(j=0; j<HEIGHT; j++){
+//                for(k=0; k<WIDTH; k++){
+//                    basis[i][j][k] = 0;
+//                }
+//            }
+//		}
+//		// insert data into pattern
+//		for (i=0; i<nEl; i++){
+//			exposure[i] = exp;
+//			trigger_out[i] = 1;
+//			trigger_in[i] = 0;
+//        }
+//		int nB; // nB contiene le info su quante info vere ci sono, # di basi caricate (nB non assume lo stesso valore di nEl?)
+//		if(nMeas > (q+1)*sizeBatch)
+//			nB = sizeBatch;
+//		else
+//			nB = nMeas - q*sizeBatch;
+//		idx = (int* )malloc((nB)*sizeof(int)); // index of the first element inside the batch
+//		for(i=0; i<nB; i++)
+//			idx[i] = q*sizeBatch + i + offset_;
+//		DmdTx_getBasis(RasterOrHadamard, nBasis, idx, nB, compress, zoom, xC, yC, csMode, startPx, endPx, basis); // generation of pattern
+//		free(idx);
+//		
+//		printf("\n");
+//		for (k=0; k<nEl; k++){
+//			for(i=0; i<WIDTH; i+=100)
+//				printf("%d ", basis[k][0][i]);
+//            printf("\n");
+//		}
+//		printf("\n");
+//		
+//		
+//		// print bases on txt file
+//		// if(DMD_SIMULATOR) writePatternsOnFile(nEl, basis);
+
+//		DmdTx.pattern[q].nB = nB;
+//		//patt.nB = nB;
+//		int numberOfRepetition;
+//		if(repeat)
+//			numberOfRepetition = 0;
+//		else
+//			numberOfRepetition = nEl; // the number can be as large as 500!
+//		
+//		// Modifica
+//		//int nBatches = celing_dmd(nEl, SIZE_PATTERN);
+//		//dmd.pattern[q].numOfBatches = nBatches;
+//		//dmd.pattern[q].bmpLoad = (unsigned char ***)malloc(nBatches*sizeof(unsigned char **));
+//		//dmd.pattern[q].setBmp = (unsigned char (*)[6])malloc(nBatches*sizeof(unsigned char[6]));
+//		//dmd.pattern[q].packNum = (int *)malloc(nBatches*sizeof(int *));
+//		//dmd.pattern[q].bitsPackNum =(int **)malloc(nBatches*sizeof(int*));
+//		//dmd.pattern[q].exposure = (int*)malloc(nEl*sizeof(int));
+//		
+
+//		DmdTx_defSequence(&(DmdTx.pattern[q]), basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl); // il penultimo o 1 o nEl1
+//		//defSequence(&patt, basis, exposure, trigger_in, dark_time, trigger_out, numberOfRepetition, nEl);
+//		for(i=0; i<nEl; i++){
+//			for(j=0; j<HEIGHT; j++)
+//                free(basis[i][j]);
+//            free(basis[i]);
+//		}
+//		free(basis);
+//		free(exposure);
+//		free(trigger_out);
+//		free(trigger_in);
+//	}
+//	
+//	// All data needed to move the DMD is generated by defSequence and saved in dmd.pattern
+//	for(i=0; i<DmdTx.szPattern; i++){
+//		DmdTx_stopSequence(DmdTx.handle);
+//		printf("Uploading pattern (%d of %d)\n", i+1, DmdTx.szPattern);
+//		totExposure = 0;
+
+//		for(j=0; j<DmdTx.pattern[i].nEl; j++){
+//			totExposure += DmdTx.pattern[i].exposure[j];
+//			// define the pattern
+//			printf("Uploading pattern definitions (%d of %d)\n", j+1, DmdTx.pattern[i].nEl);
+//			DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x34, DmdTx.pattern[i].defPatterns[j], 12);
+//			if(!DEBUG)
+//                DmdTx_checkForErrors(DmdTx.handle);
+//        }
+//        // configure LUT
+//        printf("Uploading LUT\n");
+//		DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x31, DmdTx.pattern[i].configureLut, 6);
+//		if(!DEBUG)
+//            DmdTx_checkForErrors(DmdTx.handle);
+//		// setBmp
+//		for(k = DmdTx.pattern[i].numOfBatches-1; k>=0; k--){
+//            printf("Uploading batch %d of %d\n", DmdTx.pattern[i].numOfBatches-k, DmdTx.pattern[i].numOfBatches);
+//            DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x00, 0x1a, 0x2a, DmdTx.pattern[i].setBmp[k], 6);
+//			if(!DEBUG)
+//                DmdTx_checkForErrors(DmdTx.handle);
+//			// bmpLoad
+//			for(j=0; j<DmdTx.pattern[i].packNum[k]; j++){
+//				DmdTx_talkDMD_char(DmdTx.handle, 'w', 0x11, 0x1a, 0x2b, DmdTx.pattern[i].bmpLoad[k][j], DmdTx.pattern[i].bitsPackNum[k][j]);
+//			}
+//			if(!DEBUG){
+//                DmdTx_checkForErrors(DmdTx.handle);
+//                //checkErrorMessage(dmd.handle); // TEST
+//            }
+//		}
+//	}
+//	
+//	// After the pattern is loaded on the DMD we can free the local variables containing the pattern
+//	// DA SISTEMARE: CVI NON RICONOSCE MALLOC FATTO NELLA DLL -> INSERIRE QUESTO FREE NELLA DLL
+//	/*
+//	for (q = 0; q < DmdTx.szPattern; q++){
+//		free(DmdTx.pattern[q].defPatterns);  
+//		for(k = 0; k<DmdTx.pattern[q].numOfBatches; k++){
+//			for(i = 0; i<DmdTx.pattern[q].packNum[k]; i++){
+//				free(DmdTx.pattern[q].bmpLoad[k][i]);
+//			}
+//			free(DmdTx.pattern[q].bmpLoad[k]);
+//			free(DmdTx.pattern[q].bitsPackNum[k]);
+//		}
+//		free(DmdTx.pattern[q].bmpLoad);
+//		free(DmdTx.pattern[q].bitsPackNum);
+//		free(DmdTx.pattern[q].setBmp);
+//		free(DmdTx.pattern[q].packNum);
+//		free(DmdTx.pattern[q].exposure);
+//	}
+//	*/
+//	DmdTx_deallocate(&DmdTx);
+//	free(DmdTx.pattern);
+//	
+//	//DmdTx_startSequence(DmdTx.handle);
+//	
+//	
+//	SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
+//	}
 
 
-/* MOVE DMD TEXAS */
-void MoveDmdTx(char Step,long Goal,char Wait){
-
-	// code here
-	// startSequence
-	// startSequence(dmd.handle);
-	
-	// Dead time (ADJUST THE TIME BECFAUSE sleep is in s and Sleep is in ms)
-	/*
-	int tDead = 0; //0.5 s of dead time
-		int tSleep = totExposure/1e6-tDead + 1;
-		printf("totExposure = %d\n", totExposure);
-		if(totExposure/1e6-tDead<0)
-            tSleep = 0;
-		if(dmd.repeat){
-			printf(">> Press ENTER to continue . . .");
-            getchar();
-		}
-		else
-			Sleep(tSleep+1);
-        printf("\n");
-	*/
-	
-	if(Wait); // code here
-	}
+///* CLOSE DMD TEXAS */
+//void CloseDmdTx(char Step){
+//	
+//	// code here
+//	// deallocate memory of dmd variables if used and hidapi close
+//	// close communication with DMD
+//	DmdTx_stopSequence(DmdTx.handle);
+//	hid_close(DmdTx.handle);
+//	hid_exit();
+//	
+//	}
 
 
-/* WAIT END OF DMD TEXAS MOVEMENT */
-void WaitDmdTx(char Step,long Goal){
-	
-	// code here
-	// while waiting the measurement is running so this function is not needed (?)
-	
-} 
+///* MOVE DMD TEXAS */
+//void MoveDmdTx(char Step,long Goal,char Wait){
+
+//	// code here
+//	// startSequence
+//	// startSequence(dmd.handle);
+//	
+//	// Dead time (ADJUST THE TIME BECFAUSE sleep is in s and Sleep is in ms)
+//	/*
+//	int tDead = 0; //0.5 s of dead time
+//		int tSleep = totExposure/1e6-tDead + 1;
+//		printf("totExposure = %d\n", totExposure);
+//		if(totExposure/1e6-tDead<0)
+//            tSleep = 0;
+//		if(dmd.repeat){
+//			printf(">> Press ENTER to continue . . .");
+//            getchar();
+//		}
+//		else
+//			Sleep(tSleep+1);
+//        printf("\n");
+//	*/
+//	
+//	if(Wait); // code here
+//	}
 
 
-/* TELL POSITION DMD TEXAS */
-void TellPosDmdTx(char Step,long *Actual){
-	
-	// code here
-	// determine the position of the dmd (number of basis already measured) -> only virtual
-
-}
-
-
-/* STOP DMD TEXAS */
-void StopDmdTx(char Step){
-	
-	// code here
-	// same to close (stopSequence)
-	//stopSequence(dmd.handle);
-	
-	}
+///* WAIT END OF DMD TEXAS MOVEMENT */
+//void WaitDmdTx(char Step,long Goal){
+//	
+//	// code here
+//	// while waiting the measurement is running so this function is not needed (?)
+//	
+//} 
 
 
-/* DEFINE HOME DMD TEXAS */
-void DefineHomeDmdTx(char Step){
-	
-	// code here
-	// can be used to select a subset of bases?
-	
-    }
+///* TELL POSITION DMD TEXAS */
+//void TellPosDmdTx(char Step,long *Actual){
+//	
+//	// code here
+//	// determine the position of the dmd (number of basis already measured) -> only virtual
+
+//}
+
+
+///* STOP DMD TEXAS */
+//void StopDmdTx(char Step){
+//	
+//	// code here
+//	// same to close (stopSequence)
+//	//stopSequence(dmd.handle);
+//	
+//	}
+
+
+///* DEFINE HOME DMD TEXAS */
+//void DefineHomeDmdTx(char Step){
+//	
+//	// code here
+//	// can be used to select a subset of bases?
+//	
+//    }
 
 
 // #### ESP300 STEPPER ####
