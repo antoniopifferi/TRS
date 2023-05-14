@@ -181,6 +181,7 @@ void CreateFigPy(void){
 }
 
 void CloseFigPy(void){
+	if(!P.Flow.Flow) return;
 	
 	PyObject *pyModule;
 	PyObject *pyCloseFig;
@@ -729,7 +730,7 @@ void KernelGen(){
 						if(P.Action.SpcFlow) SpcFlow(P.Action.Status);
 						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
-						/**/ReconsPy();
+						if(P.Action.ReconsPy) ReconsPy();
 						if(P.Action.DisplayRoi) DisplayRoi();
 						if(P.Action.StopMamm) StopMammot();  
 						if(P.Action.DataSave) DataSave();	 
@@ -1045,6 +1046,7 @@ void DecideAction(void){
 		P.Action.SpcFlow=TRUE;
 		P.Action.StartFlow=TRUE;
 		P.Action.StopFlow=TRUE;
+		P.Action.ReconsPy=TRUE;
 		P.Action.SpcTime=FALSE;
 	    P.Action.SpcReset=FALSE; 
 		P.Action.WaitEnd=FALSE;
@@ -1053,8 +1055,11 @@ void DecideAction(void){
 		}
 	else{
 		P.Action.SpcFlow=FALSE;
-		P.Action.StartFlow=first[LOOP5];
-		P.Action.StopFlow=last[LOOP5];
+		//**DMD P.Action.StartFlow=first[LOOP5];
+		//**DMD P.Action.StopFlow=last[LOOP5];
+		P.Action.StartFlow=FALSE;
+		P.Action.StopFlow=FALSE;
+		P.Action.ReconsPy=FALSE;
 		}
 	
 	// ReadUIR
@@ -1210,8 +1215,10 @@ void CompleteParmS(void){
 	char *string;
     
 	// FLOW UIR - TO REPLACE AFTER
-	P.Flow.Flow=TRUE;
-	P.Flow.NumSlot=DmdTxInfo.nMeas;
+	//**DMD
+	// THIS HAS TO GO TO IN UIR
+	//P.Flow.Flow=TRUE;
+	//P.Flow.NumSlot=DmdTxInfo.nMeas;
 	
 	
    	// Presentation

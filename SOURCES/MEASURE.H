@@ -1305,6 +1305,7 @@ struct ActionS{
 	char SpcFlow;
 	char StartFlow;
 	char StopFlow;
+	char ReconsPy;
 	char SpcTime;			//EDO
 	char InitMamm;         //EDO
 	char StartMamm;			 //EDO

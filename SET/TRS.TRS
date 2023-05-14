@@ -49,13 +49,13 @@
 0	3	FileDir	c:\temp
 0	3	FileExt	DAT
 0	3	FilePrefix	BCDm
-0	1	FileTag	93
+0	1	FileTag	94
 0	0	FileType	1
 0	0	FileSave	1
-0	0	SpcType	4
+0	0	SpcType	7
 0	0	SpcScale	1
-0	2	SpcCalib	5000.000000
-0	2	SpcFactor	5000.000000
+0	2	SpcCalib	3.000000
+0	2	SpcFactor	3.000000
 0	0	SpcWait	4
 0	2	SpcTimeM	1.000000
 0	1	SpcCount	100000
@@ -75,10 +75,10 @@
 0	3	SpcIniFile_2	
 0	3	SpcIniFile_3	
 0	3	SpcIniFile_4	
-0	1	MeasPlot	120
-0	1	MeasStatus	120
-0	1	MeasRoi	120
-0	1	MeasMem	120
+0	1	MeasPlot	1
+0	1	MeasStatus	1
+0	1	MeasRoi	1
+0	1	MeasMem	1
 0	0	MeasClear	1
 0	0	MeasStop	1
 0	0	MeasAutorun	0
