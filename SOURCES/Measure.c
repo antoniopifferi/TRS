@@ -3917,6 +3917,175 @@ void WaitMharp(int Board) {
 	}
 
 
+// START HERE MH FLOW FUNCTIONS
+// Not added prototypes to measure.h for internal PQ functions
+	
+//Got PhotonT3
+//  NSync: Overflow-corrected arrival time in units of the sync period 
+//  DTime: Arrival time of photon after last Sync event in units of the chosen resolution (set by binning)
+//  Channel: 1..N where N is the numer of channels the device has
+void GotPhotonT3(uint64_t NSync, int Channel, int DTime)
+{
+  histogram[Channel][DTime]++; //histogramming
+}
+
+
+//Got MarkerT3
+//  NSync: Overflow-corrected arrival time in units of the sync period 
+//  Markers: Bitfield of arrived Markers, different markers can arrive at same time (same record)
+void GotMarkerT3(uint64_t NSync, int Markers)
+{
+}
+
+	
+
+	
+// HydraHarpV2 or TimeHarp260 or MultiHarp T3 record data
+void ProcessT3(unsigned int TTTRRecord)
+{
+  int ch, dt;
+  uint64_t truensync;
+  const int T3WRAPAROUND = 1024;
+
+  union {
+    unsigned allbits;
+    struct {
+      unsigned nsync    :10;  // numer of sync period
+      unsigned dtime    :15;  // delay from last sync in units of chosen resolution
+      unsigned channel  :6;
+      unsigned special  :1;
+    } bits;
+  } T3Rec;
+  
+  T3Rec.allbits = TTTRRecord;
+  
+  if(T3Rec.bits.special!=1) //regular input channel
+    {
+      truensync = oflcorrection + T3Rec.bits.nsync;
+      ch = T3Rec.bits.channel;
+      dt = T3Rec.bits.dtime;
+      //truensync indicates the number of the sync period this event was in
+      //the dtime unit depends on the chosen resolution (binning)
+      GotPhotonT3(truensync, ch, dt);
+    }
+  else //marker or some events
+  {
+    if(T3Rec.bits.channel==0x3F) //overflow
+    {
+       //number of overflows is stored in nsync
+       oflcorrection += (uint64_t)T3WRAPAROUND * T3Rec.bits.nsync;
+    }
+    if((T3Rec.bits.channel>=1)&&(T3Rec.bits.channel<=15)) //markers
+    {
+      truensync = oflcorrection + T3Rec.bits.nsync;
+      //the time unit depends on sync period
+      GotMarkerT3(truensync, T3Rec.bits.channel);
+    }
+  }
+}
+
+
+/* GetFlowMh */
+void GetFlow(void){
+
+int oflcorrection = 0;
+
+  while (1)
+  {
+    retcode = MH_GetFlags(dev[0], &flags);
+    if (retcode < 0)
+    {
+      MH_GetErrorString(Errorstring, retcode);
+      printf("\nMH_GetFlags error %d (%s). Aborted.\n", retcode, Errorstring);
+      goto ex;
+    }
+
+    if (flags & FLAG_FIFOFULL)
+    {
+      printf("\nFiFo Overrun!\n");
+      goto stoptttr;
+    }
+
+    retcode = MH_ReadFiFo(dev[0], buffer, &nRecords);   //may return less!  
+    if (retcode < 0)
+    {
+      MH_GetErrorString(Errorstring, retcode);
+      printf("\nMH_ReadFiFo error %d (%s). Aborted.\n", retcode, Errorstring);
+      goto stoptttr;
+    }
+
+    if (nRecords)
+    {
+      // Here we process the data. Note that the time this consumes prevents us
+      // from getting around the loop quickly for the next Fifo read.
+      // In a serious performance critical scenario you would write the data to
+      // a software queue and do the processing in another thread reading from 
+      // that queue.
+		for (i = 0; i < nRecords; i++)
+          ProcessT3(buffer[i]);
+
+    }
+    else
+    {
+      retcode = MH_CTCStatus(dev[0], &ctcstatus);
+      if (retcode < 0)
+      {
+        MH_GetErrorString(Errorstring, retcode);
+        printf("\nMH_CTCStatus error %d (%s). Aborted.\n", retcode, Errorstring);
+        goto ex;
+      }
+      if (ctcstatus)
+      {
+        stopretry++; //do a few more rounds as there might be some more in the FiFo
+        if(stopretry>5) 
+        {
+          printf("\nDone\n");
+          goto stoptttr;
+        }
+      }
+    }
+
+    //within this loop you can also read the count rates if needed.
+  }
+
+stoptttr:
+
+  retcode = MH_StopMeas(dev[0]);
+  if (retcode < 0)
+  {
+    MH_GetErrorString(Errorstring, retcode);
+    printf("\nMH_StopMeas error %d (%s). Aborted.\n", retcode, Errorstring);
+    goto ex;
+  }
+
+  for (i = 0; i < T3HISTBINS; i++)
+  {
+    for (j = 0; j < NumChannels; j++)
+	  fprintf(fpout,"%6u ", histogram[j][i]);
+    fprintf(fpout,"\n");
+  }
+
+ex:
+
+  for (i = 0; i < MAXDEVNUM; i++) //no harm to close all
+  {
+    MH_CloseDevice(i);
+  }
+  if (fpout)
+  {
+    fclose(fpout);
+  }
+
+  printf("\npress RETURN to exit");
+  getchar();
+
+  return 0;
+}
+
+
+	
+
+	
 /* ########################   TIMEHARP260 FUNCTIONS (TH260)  ####################### */
 
 /* INIT TH260 */	
