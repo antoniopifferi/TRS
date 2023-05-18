@@ -721,6 +721,10 @@
 #define MHARP_INPUT_EDGE			1 //you can change this
 #define MHARP_LENCODE			2 //  Note: HistLen=1024*(2^MHARP_LENCODE)
 #define MHARP_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
+#define T3HISTBINS 32768 //=2^15, dtime in T3 mode has 15 bits (w/o binning???)
+#define MHARP_T3 1 // 1=TRUE (operate in T3 only for measurements, not for oscilloscope)
+#define MH_SLEEPFORSYNCRATE 150 // After Init allow 150 ms for valid  count rate readings
+//#define MHARP_TTREADMAX // max dimension of the T3 buffer
 
 /* TH260 CONSTANTS */
 #define TH260_BINNING 	0 //you can change this
@@ -1688,6 +1692,13 @@ struct SwabS{
 	};
 
 
+struct MharpS{
+	int oflcorrection; // overflow correction. remember number of occured overflow in sync time
+	uint32_t *FifoBuffer; // pointer to the buffer of the FIFO thread
+	int SyncRate; // sync rate needed to control Tacq (expressed in terms of sync counts)
+	};
+
+
 struct SpcS {
 	char   Type;
 	char   Control;
@@ -1740,6 +1751,7 @@ struct SpcS {
 	struct LucaSpcS Luca[MAX_BOARD];
 	struct SwabS Swab[MAX_BOARD];
 	struct BcdS Bcd[MAX_BOARD];
+	struct MharpS Mharp[MAX_BOARD];
 	};
 
 struct AcqS{

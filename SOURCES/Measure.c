@@ -3852,7 +3852,13 @@ void InitMharp(int Board) {
 
 	// init time
 	P.Spc.TimeInit = TimerN();   // era Timer() 
-
+	
+	// init T3 mode
+	if(MHARP_T3){
+		P.Spc.Mharp[Board].FifoBuffer=(uint32_t*)calloc(TTREADMAX,sizeof(uint32_t)); // allocate memory for the FIFO USB Buffer
+  		Sleep(MH_SLEEPFORSYNCRATE); // After Init allow 150 ms for valid  count rate readings
+  		ret = MH_GetSyncRate(Board, &P.Spc.Mharp[Board].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // Do not delete. This is needed to control Tacq (expressed in terms of sync)
+		}
 	Passed();
 }
 
@@ -3862,6 +3868,7 @@ void CloseMharp(void) {
 	short ret;
 	for (int ib = 0; ib < P.Num.Board; ib++) {
 		ret = MH_CloseDevice(ib); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_CloseDevice");
+		if(MHARP_T3) free(P.Spc.Mharp[ib].FifoBuffer);
 		}
 	}
 
@@ -3904,7 +3911,7 @@ void StartMharp(int Board) {
 	//if ((P.Contest.Run == CONTEST_MEAS) && (P.Spc.Mharp.HwStart == TRUE))
 	//	ret = MH_SetMeasControl(Board, MEASCTRL_C1_START_CTC_STOP, 1, 1); // set HW start on rising edge
 	//else
-		ret = MH_SetMeasControl(Board, MEASCTRL_SINGLESHOT_CTC, 1, 1); // standard software start
+	ret = MH_SetMeasControl(Board, MEASCTRL_SINGLESHOT_CTC, 1, 1); // standard software start
 	if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");
 	ret = MH_StartMeas(MHARP_DEV0, P.Spc.TimeMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas");
 	}
@@ -3924,168 +3931,99 @@ void WaitMharp(int Board) {
 //  NSync: Overflow-corrected arrival time in units of the sync period 
 //  DTime: Arrival time of photon after last Sync event in units of the chosen resolution (set by binning)
 //  Channel: 1..N where N is the numer of channels the device has
-void GotPhotonT3(uint64_t NSync, int Channel, int DTime)
-{
-  histogram[Channel][DTime]++; //histogramming
+void GotPhotonT3(uint64_t NSync, int Channel, int DTime){
+  D.Buffer[MHARP_DEV0][DTime+Channel*P.Num.Det]++; //histogramming
 }
 
 
 //Got MarkerT3
 //  NSync: Overflow-corrected arrival time in units of the sync period 
 //  Markers: Bitfield of arrived Markers, different markers can arrive at same time (same record)
-void GotMarkerT3(uint64_t NSync, int Markers)
-{
-}
+void GotMarkerT3(uint64_t NSync, int Markers){
+	}
 
-	
-
-	
+		
 // HydraHarpV2 or TimeHarp260 or MultiHarp T3 record data
-void ProcessT3(unsigned int TTTRRecord)
-{
-  int ch, dt;
-  uint64_t truensync;
-  const int T3WRAPAROUND = 1024;
+void ProcessT3(unsigned int TTTRRecord){
+	int ch, dt;
+	uint64_t truensync;
+	const int T3WRAPAROUND = 1024;
 
-  union {
-    unsigned allbits;
-    struct {
-      unsigned nsync    :10;  // numer of sync period
-      unsigned dtime    :15;  // delay from last sync in units of chosen resolution
-      unsigned channel  :6;
-      unsigned special  :1;
-    } bits;
-  } T3Rec;
+	union {
+    	unsigned allbits;
+		struct {
+			unsigned nsync    :10;  // numer of sync period
+			unsigned dtime    :15;  // delay from last sync in units of chosen resolution
+			unsigned channel  :6;
+			unsigned special  :1;
+			} bits;
+		} T3Rec;
   
-  T3Rec.allbits = TTTRRecord;
-  
-  if(T3Rec.bits.special!=1) //regular input channel
-    {
-      truensync = oflcorrection + T3Rec.bits.nsync;
-      ch = T3Rec.bits.channel;
-      dt = T3Rec.bits.dtime;
-      //truensync indicates the number of the sync period this event was in
-      //the dtime unit depends on the chosen resolution (binning)
-      GotPhotonT3(truensync, ch, dt);
-    }
-  else //marker or some events
-  {
-    if(T3Rec.bits.channel==0x3F) //overflow
-    {
-       //number of overflows is stored in nsync
-       oflcorrection += (uint64_t)T3WRAPAROUND * T3Rec.bits.nsync;
-    }
-    if((T3Rec.bits.channel>=1)&&(T3Rec.bits.channel<=15)) //markers
-    {
-      truensync = oflcorrection + T3Rec.bits.nsync;
-      //the time unit depends on sync period
-      GotMarkerT3(truensync, T3Rec.bits.channel);
-    }
-  }
-}
+	T3Rec.allbits = TTTRRecord;
+
+	if(T3Rec.bits.special!=1){ //regular input channel
+		truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync;
+		ch = T3Rec.bits.channel;
+		dt = T3Rec.bits.dtime;
+    	//truensync indicates the number of the sync period this event was in
+    	//the dtime unit depends on the chosen resolution (binning)
+    	GotPhotonT3(truensync, ch, dt);
+    	}
+	else{ //marker or some events
+		if(T3Rec.bits.channel==0x3F){ //overflow
+    		//number of overflows is stored in nsync
+    		P.Spc.Mharp[MHARP_DEV0].oflcorrection += (uint64_t)T3WRAPAROUND * T3Rec.bits.nsync;
+    		}
+    	if((T3Rec.bits.channel>=1)&&(T3Rec.bits.channel<=15)){ //markers
+    		truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync;
+    		//the time unit depends on sync period
+    		GotMarkerT3(truensync, T3Rec.bits.channel);
+    		}
+  		}
+	}
 
 
 /* GetFlowMh */
-void GetFlow(void){
+void GetFlowMharp(int Board){
 
-int oflcorrection = 0;
+	int ctcstatus;
+	int Mode = MODE_T3; //This demo is only for T3! observe suitable Sync divider and Range!
+	int Binning = 4;    //you can change this, meaningful only in T3 mode
+	int flags;
+	int nRecords;
+	int stopretry = 0;
+	int ret;
+	P.Spc.Mharp[Board].oflcorrection = 0;
+	//int i,j;
 
-  while (1)
-  {
-    retcode = MH_GetFlags(dev[0], &flags);
-    if (retcode < 0)
-    {
-      MH_GetErrorString(Errorstring, retcode);
-      printf("\nMH_GetFlags error %d (%s). Aborted.\n", retcode, Errorstring);
-      goto ex;
-    }
+	//memset(histogram, 0, sizeof(histogram));
 
-    if (flags & FLAG_FIFOFULL)
-    {
-      printf("\nFiFo Overrun!\n");
-      goto stoptttr;
-    }
-
-    retcode = MH_ReadFiFo(dev[0], buffer, &nRecords);   //may return less!  
-    if (retcode < 0)
-    {
-      MH_GetErrorString(Errorstring, retcode);
-      printf("\nMH_ReadFiFo error %d (%s). Aborted.\n", retcode, Errorstring);
-      goto stoptttr;
-    }
-
-    if (nRecords)
-    {
-      // Here we process the data. Note that the time this consumes prevents us
-      // from getting around the loop quickly for the next Fifo read.
-      // In a serious performance critical scenario you would write the data to
-      // a software queue and do the processing in another thread reading from 
-      // that queue.
-		for (i = 0; i < nRecords; i++)
-          ProcessT3(buffer[i]);
-
-    }
-    else
-    {
-      retcode = MH_CTCStatus(dev[0], &ctcstatus);
-      if (retcode < 0)
-      {
-        MH_GetErrorString(Errorstring, retcode);
-        printf("\nMH_CTCStatus error %d (%s). Aborted.\n", retcode, Errorstring);
-        goto ex;
-      }
-      if (ctcstatus)
-      {
-        stopretry++; //do a few more rounds as there might be some more in the FiFo
-        if(stopretry>5) 
-        {
-          printf("\nDone\n");
-          goto stoptttr;
-        }
+ 	while(1){
+    	ret=MH_GetFlags(Board, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
+    	if(flags & FLAG_FIFOFULL) goto fullfifo;
+    	ret=MH_ReadFiFo(Board, P.Spc.Mharp[Board].FifoBuffer, &nRecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
+    	if (nRecords){
+			for (int iR = 0; iR < nRecords; iR++)
+          		ProcessT3(P.Spc.Mharp[Board].FifoBuffer[iR]);
+    			}
+    	else{
+    		ret = MH_CTCStatus(Board, &ctcstatus); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_CTCStatus");
+      		if (ctcstatus){
+				stopretry++; //do a few more rounds as there might be some more in the FiFo
+        		if(stopretry>5) goto stoptttr;
       }
     }
-
     //within this loop you can also read the count rates if needed.
   }
 
+fullfifo:
+	ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");
+
 stoptttr:
-
-  retcode = MH_StopMeas(dev[0]);
-  if (retcode < 0)
-  {
-    MH_GetErrorString(Errorstring, retcode);
-    printf("\nMH_StopMeas error %d (%s). Aborted.\n", retcode, Errorstring);
-    goto ex;
-  }
-
-  for (i = 0; i < T3HISTBINS; i++)
-  {
-    for (j = 0; j < NumChannels; j++)
-	  fprintf(fpout,"%6u ", histogram[j][i]);
-    fprintf(fpout,"\n");
-  }
-
-ex:
-
-  for (i = 0; i < MAXDEVNUM; i++) //no harm to close all
-  {
-    MH_CloseDevice(i);
-  }
-  if (fpout)
-  {
-    fclose(fpout);
-  }
-
-  printf("\npress RETURN to exit");
-  getchar();
-
-  return 0;
+	ret = MH_StopMeas(Board); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
 }
 
 
-	
-
-	
 /* ########################   TIMEHARP260 FUNCTIONS (TH260)  ####################### */
 
 /* INIT TH260 */	
