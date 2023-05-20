@@ -32,6 +32,7 @@ void ReadAll(void);
 
 int main (int argc, char *argv[])
 {   
+	CVIProfSetCurrentThreadProfiling (1); // PROFILER - To enable it set OPTIONS-BUILD-PROFILING-user functions
 	if (InitCVIRTE (0, argv, 0) == 0)	/* Needed if linking in external compiler; harmless otherwise */
 		return -1;	/* out of memory */
 	if ((hTrs = LoadPanel (0, PATH_UIR, TRS)) < 0) return -1;

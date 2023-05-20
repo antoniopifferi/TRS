@@ -3070,29 +3070,14 @@ void test_sequencer_state(void){
 /* Wait for Bank, transfer and copy data */
 void SpcFlow(char Status){
 	//TODO: Status? display something?
-
 	short ret,ib;
-	
 	DmdTx_startSequence(DmdTx.handle);
-	
 	do{
-		//if(P.Flow.EmptyBank){
-		//	WaitFlow();
-		//	GetFlow();
-		//	}
 		WaitFlow();
 		GetFlow();
-		//if(P.Flow.Page0<P.Flow.NumSlot){
-			// 2 banks filled, the measurement needs restart
-		//	for(ib=0;ib<P.Num.Board;ib++){	
-		//		ret = SPC_start_measurement(ib); /*prova spc 2*/
-		//		if(ret<0) ErrHandler(ERR_SPC,ret,"SpcFlow:SPC_start_measurement"); /*prova spc 2*/
-		//		}
-		//	}
 		CopyFlow();
 		}
 	while(!P.Flow.FilledFrame);
-	
 	}
 
 // WAIT FOR FILLED BANK
@@ -3110,18 +3095,8 @@ void WaitFlow(void){
 			spc_state |= mod_state[ib];
 			}
 	    finished = ((spc_state & SPC_ARMED) == 0);
-		//if(((spc_state & SPC_WAIT_TRG) == SPC_WAIT_TRG) && waitTrg){ // not sure this works correctly
-			//printf("SPC waiting for trigger\n");
-			//waitTrg = 0;
-			//}
-		//if((spc_state & SPC_WAIT_TRG) == 0 /*&& !waitTrg*/){
-			//printf("TRIGGER RECEIVED %d\n", nTrg);
-			//waitTrg = 1;
-			//nTrg++;
-			//}
 		}
 	while(!finished);
-	//test_sequencer_state();
 	}
 
 // CHECK TRIGGER
@@ -3135,7 +3110,6 @@ void CheckTriggerFlow(void){
 			if(ret<0) ErrHandler(ERR_SPC,ret,"CheckTrigger:SPC_test_state");
 			spc_state |= mod_state[ib];
 			}
-	    //ver = ((spc_state & SPC_WAIT_TRG) == 0);
 		if((spc_state & SPC_WAIT_TRG) == 1) printf("SPC waiting for trigger\n");
 		}
 	while(!ver);
@@ -3161,25 +3135,17 @@ void GetFlow(void){
 		
 		ret = SPC_start_measurement(ib); /*prova spc 2*/
 		if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_start_measurement"); /*prova spc 2*/
-		
-		//if((state & SPC_SEQ_GAP) == SPC_SEQ_GAP) SPC_start_measurement(ib);
-
 		}
 	P.Flow.Bank=P.Flow.Bank?0:1;
 	ret=SPC_set_parameter(SPC_ALL,MEM_BANK,P.Flow.Bank);
 	if(ret<0) ErrHandler(ERR_SPC,ret,"GetFlow:SPC_set_parameter:MEM_BANK");
-	
-	
+		
 	P.Flow.EmptyBank=FALSE;
 	}
 
 	
 /* COPY FLOW TO DATA */
 void CopyFlow(void){
-	// Initialise @StartFlow: Chan0,Slot0,EmptyBank=TRUE,FilledBuffer=FALSE;
-	//FILE * Supp; /**/
-	//Supp = fopen("support.txt","w"); /**/
-	//long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,P.Num.Page-P.Flow.Page0); // calc min num of slot(i.e. curves) either in Bank or in Frame
 	long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,(int)(SPC_BANK_DIM/P.Chann.Num));
 	for(int ib=0;ib<P.Num.Board;ib++)
 		for(int is=0;is<num_slot;is++){	// iterate over Slots (i.e. curves) both on det and buffer
@@ -3188,9 +3154,6 @@ void CopyFlow(void){
 			P.Page[page].Acq=P.Acq.Actual;
 			for(int ic=0;ic<P.Chann.Num;ic++) {
 				D.Data[P.Frame.Actual][page][ic]=D.Bank[ib][ic+(P.Flow.Slot0+is)*P.Chann.Num];
-				//D.Data[P.Frame.Actual][page][ic]=10;
-				//fprintf(Supp,"%hu;",D.Data[P.Frame.Actual][page][ic]); /**/
-				//if(ic == P.Chann.Num-1) fprintf(Supp,"%hu\n",D.Data[P.Frame.Actual][ib][ic]); /**/
 				}
 			}
 	P.Flow.Slot0+=num_slot;
@@ -3203,7 +3166,6 @@ void CopyFlow(void){
 		P.Flow.Page0=0;
 		P.Flow.FilledFrame=TRUE;
 		}
-	//fclose(Supp);
 	}
 
 /* START FLOW */
@@ -3221,7 +3183,6 @@ void StartFlow(void){
 		if(ret<0) ErrHandler(ERR_SPC,ret,"StartFlow:SPC_set_parameter:MEM_BANK");
 	    ret=SPC_start_measurement(ib);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"StartFlow:SPC_start_measurement");
-		//test_sequencer_state();
 		}
 	}
 
@@ -3258,7 +3219,6 @@ void InitFlow(void){
 		}
 	ret=SPC_set_page(SPC_ALL,0);
 	if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_page");
-	//test_sequencer_state();
 	}
 
 
