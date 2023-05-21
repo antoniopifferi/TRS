@@ -16,6 +16,7 @@
 #include "trs.h" 
 #include "measure.h"
 
+
 void AddTab(int Class,int Type,int Panel,int Control,char *Label,int Row,int Col,void *Addr);
 void CreateTable(void);
 
@@ -30,8 +31,14 @@ void ReadAll(void);
 
 /* MAIN */
 
-int main (int argc, char *argv[])
-{   
+int main (int argc, char *argv[]){   
+	
+	/* #####################    TODO UIR  ########################### */
+	// Place here any temporary assignment to be placed in UIR
+	P.Flow.Flow=1; // general Variable to enable Flow measurements
+	DmdTx.ReconsPy=1; // do online reconstruction when using Dmd?
+	
+	/* #####################    START UIR  ########################### */
 	CVIProfSetCurrentThreadProfiling (1); // PROFILER - To enable it set OPTIONS-BUILD-PROFILING-user functions
 	if (InitCVIRTE (0, argv, 0) == 0)	/* Needed if linking in external compiler; harmless otherwise */
 		return -1;	/* out of memory */

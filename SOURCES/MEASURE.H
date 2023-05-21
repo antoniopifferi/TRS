@@ -712,7 +712,6 @@
 #define MHARP_SYNC_OFFSET	0 
 #define MHARP_INPUT_OFFSET	0 
 #define MHARP_HIST_OFFSET	0 
-//#define MHARP_TACQ		1000 //Measurement time in millisec, you can change this
 #define MHARP_SYNC_DIVIDER	2 //Note: you must reduce SYNC rate to <75 MHz 
 //#define MHARP_SYNC_CFDZEROCROSS	10 //you can change this
 #define MHARP_SYNC_LEVEL		-200 //you can change this
@@ -722,9 +721,7 @@
 #define MHARP_LENCODE			2 //  Note: HistLen=1024*(2^MHARP_LENCODE)
 #define MHARP_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 #define T3HISTBINS 32768 //=2^15, dtime in T3 mode has 15 bits (w/o binning???)
-#define MHARP_T3 1 // 1=TRUE (operate in T3 only for measurements, not for oscilloscope)
 #define MH_SLEEPFORSYNCRATE 150 // After Init allow 150 ms for valid  count rate readings
-//#define MHARP_TTREADMAX // max dimension of the T3 buffer
 
 /* TH260 CONSTANTS */
 #define TH260_BINNING 	0 //you can change this
@@ -1047,11 +1044,12 @@ struct DmdTx_Patterns{
 };
 
 /** This structure contains data of the patterns for the dmd */
-struct DMD{
+struct Dmd{
 	hid_device *handle; // pointer to the hid device
 	struct DmdTx_Patterns *pattern; // structure containing the pattern for the DMD (see in dmd.h)
 	int szPattern;
 	int repeat;
+	char ReconsPy;
 };
 
 /** This structure contains the parameters to set the measurements (type of pattern and duration) */
@@ -2060,6 +2058,8 @@ struct FlowS {
 	int EmptyBank;
 	int FilledFrame;
 	int Bank;
+	int Spcm;
+	int Mharp;
 	};
 
 struct ParmS {
@@ -2126,6 +2126,7 @@ struct DataS {
 	T_DATA **Bank;		// D.Bank[P.Num.Board][SPC_BANK_DIM] 
 	T_DATA *Curve;		// D.Curve[P.Num.Chann] 
 	T_DATA *Last;		// D.Last[P.Num.Chann]
+	uint32_t **MharpBuffer;		// D.MharpBuffer[P.Num.Board][TTREADMAX] 
 	SC1000_TYPE ***BufferTDC;
 	};
 
@@ -2225,9 +2226,10 @@ double *BufferTDC;
 double *BufferTDC2;
 
 /* DMD_TX GLOBAL VARIABLES */
-struct DMD DmdTx;
+struct Dmd DmdTx;
 struct InfoDmd DmdTxInfo;
 struct DmdTx_Patterns DmdTxPatt;
+
 
 /* #####################    MEASUREMENT FUNCTIONS   ########################### */
 void InitVariable(void);
@@ -2304,6 +2306,12 @@ void InitDemo(void);
 void CloseDemo(void);
 void GetDataDemo(void);
 
+/* ########################   FLOW FUNCTIONS   ######### */
+void SpcFlow(char Status);
+void StartFlow(void);
+void StopFlow(void);
+
+
 /* ########################   SPC300 SPC FUNCTIONS   ####################### */
 void InitSpc300(void);
 void GetDataSpc300(void);
@@ -2313,14 +2321,14 @@ void CloseSpcm(void);
 void ClearSpcm(void);
 
 void test_sequencer_state(void);
-void SpcFlow(char Status);
-void WaitFlow(void);
-void CheckTriggerFlow(void);
-void GetFlow(void);
-void CopyFlow(void);
-void StartFlow(void);
-void StopFlow(void);
-void InitFlow(void);
+void SpcFlowSpcm(void);
+void WaitFlowSpcm(void);
+void CheckTriggerFlowSpcm(void);
+void GetFlowSpcm(void);
+void CopyFlowSpcm(void);
+void StartFlowSpcm(void);
+void StopFlowSpcm(void);
+void InitFlowSpcm(void);
 
 
 /* ########################   HYDRA HARP FUNCTIONS   ####################### */
@@ -2337,6 +2345,9 @@ void GetDataMharp(void);
 void ClearMharp(void);
 void StartMharp(int Board);
 void WaitMharp(int Board);
+void SpcFlowMharp(void);
+void StartFlowMharp(void);
+void StopFlowMharp(void);
 
 /* ########################   TH260 HARP FUNCTIONS   ####################### */
 void InitTH260(int Board);

@@ -31,6 +31,7 @@
 // SWAB (Swabian TDC)
 // DMD+PYTHON
 // MULTIHARP
+// Generic CONTINUOUS FLOW
 
 /* ########################   HELP   ################################## */
 // Board = Physical TCSPC Board
@@ -181,7 +182,7 @@ void CreateFigPy(void){
 }
 
 void CloseFigPy(void){
-	if(!P.Flow.Flow) return;
+	if(!DmdTx.ReconsPy) return;
 	
 	PyObject *pyModule;
 	PyObject *pyCloseFig;
@@ -1046,7 +1047,7 @@ void DecideAction(void){
 		P.Action.SpcFlow=TRUE;
 		P.Action.StartFlow=TRUE;
 		P.Action.StopFlow=TRUE;
-		P.Action.ReconsPy=TRUE;
+		P.Action.ReconsPy=DmdTx.ReconsPy;
 		P.Action.SpcTime=FALSE;
 	    P.Action.SpcReset=FALSE; 
 		P.Action.WaitEnd=FALSE;
@@ -1184,7 +1185,10 @@ void InitMem(void){
 	if(P.Contest.Run!=CONTEST_MEAS){ Passed(); return;}
 	
 	if(P.Moxy.Moxy) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
-	if(P.Flow.Flow) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
+	if(P.Flow.Spcm) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
+	if(P.Flow.Mharp)
+		for(int ib=0;ib<P.Num.Board;ib++)
+			D.MharpBuffer[ib]=(uint32_t*)calloc(TTREADMAX,sizeof(uint32_t)); // allocate memory for the FIFO USB Buffer
 	if(P.Info.SubHeader) D.Sub=SAlloc2D(P.Frame.Num,P.Num.Page);
 	D.Data=DAlloc3D(P.Frame.Num,P.Num.Page,P.Chann.Num);
 	
@@ -1199,8 +1203,11 @@ void CloseMem(void){
 	if(P.Spc.Subtract) DFree1D(D.Last); 
 	if(P.Contest.Run!=CONTEST_MEAS) return;
 	if(P.Moxy.Moxy) DFree2D(D.Bank,P.Num.Board); 
-	if(P.Flow.Flow) DFree2D(D.Bank,P.Num.Board); 
+	if(P.Flow.Spcm) DFree2D(D.Bank,P.Num.Board); 
 	if(P.Info.SubHeader) SFree2D(D.Sub,P.Frame.Num);
+	if(P.Flow.Mharp)
+		for(int ib=0;ib<P.Num.Board;ib++)
+			free(D.MharpBuffer);
 	DFree3D(D.Data,P.Frame.Num,P.Num.Page); 
 }
 
@@ -1214,13 +1221,6 @@ void CompleteParmS(void){
 	int fiber,page;
 	char *string;
     
-	// FLOW UIR - TO REPLACE AFTER
-	//**DMD
-	// THIS HAS TO GO TO IN UIR
-	//P.Flow.Flow=TRUE;
-	//P.Flow.NumSlot=DmdTxInfo.nMeas;
-	
-	
    	// Presentation
    	if (P.Presentation.Flag == TRUE) {
    		ips=0;  
@@ -1509,9 +1509,8 @@ void CompleteParmS(void){
 			
 	// NumPage  NOTE: THIS IS REPLICATED UNDER FILTER. HERE YOU NEED TO CALC PAGE NUM
 	page=0;
-	if((!P.Layout.Layout)&&(!P.Flow.Flow)) P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
-	if(P.Flow.Flow) P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
-	if(P.Layout.Layout){
+	if(!P.Layout.Layout) P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det; // also for P.Flow.Flow
+	else{ // for P.Layout.Layout
 		for(ir=0;ir<MAX_ROW_PROT;ir++){
 			string = P.TProt.Fibers[ir];
 			strcat(string,",");
@@ -1616,7 +1615,11 @@ void CompleteParmS(void){
 			P.Trim[it].FileTrim=(strlen(P.Trim[it].FName)>0);
 			}
 		}
- 	
+	
+	// Flow
+	P.Flow.Spcm=P.Flow.Flow&&((P.Spc.Type==SPC130)||(P.Spc.Type==SPC630));
+	P.Flow.Mharp=P.Flow.Flow&&(P.Spc.Type==SPC_MHARP);
+	if(P.Flow.Spcm) P.Flow.NumSlot=DmdTxInfo.nMeas;
 	}
 
 
@@ -1921,7 +1924,7 @@ void InitFilter(void){
 
 	// NOTE: part of this procedure is set in the CompleteParm to calculate P.Num.Page
 	int page=0;
-	if((!P.Layout.Layout)&&(!P.Flow.Flow)){
+	if((!P.Layout.Layout)&&(!P.Flow.Spcm)){
 		P.Num.Page=P.Acq.Frame*P.Num.Board*P.Num.Det;
 		for(ia=0;ia<P.Acq.Frame;ia++)
 			for(ib=0;ib<P.Num.Board;ib++)
@@ -1933,7 +1936,7 @@ void InitFilter(void){
 					P.Page[page].Board=ib; 
 					}
 		}
-	if(P.Flow.Flow){ // Flow (e.g. DMD under continuous flow) store all SLOTS (i.e. curves, or basis) in 3rd []
+	if(P.Flow.Spcm){ // Flow (e.g. DMD under continuous flow) store all SLOTS (i.e. curves, or basis) in 3rd []
 		P.Num.Page=P.Acq.Frame*P.Num.Board*P.Flow.NumSlot*P.Num.Det;
 		for(ia=0;ia<P.Acq.Frame;ia++)
 			for(ib=0;ib<P.Num.Board;ib++)
@@ -2199,13 +2202,6 @@ void DisplayStatus(void){
 void DisplayPlot(void){
 	if(P.Graph.Type==GRAPH_PLOT) GraphPlot();
 	if(P.Graph.Type==GRAPH_ROI) GraphRoi();
-	
-	// TEST PY
-	//InitPython();
-	//ReconsPy();
-	//TestPython();
-	//ClosePython();
-	// END TEST PY
 	}
 
 /* SET DISPLAY PLOT */
@@ -2891,6 +2887,42 @@ P.Acq.Actual++;
 }
 
 
+/* ########################   FLOW FUNCTIONS   ####################### */
+
+/* START FLOW */
+void StartFlow(void){
+	switch(P.Spc.Type){
+		case SPC630:   
+		case SPC130: StartFlowSpcm();break;
+		case SPC_MHARP: StartFlowMharp(); break;
+		default:;
+		}
+	}
+	
+/* EXECUTE FLOW */
+void SpcFlow(char Status){
+	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, ON);
+	switch(P.Spc.Type){
+		case SPC630:   
+		case SPC130: SpcFlowSpcm();break;
+		case SPC_MHARP: SpcFlowMharp(); break;
+		default:;
+		}
+	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, OFF);
+	}
+
+/* STOP FLOW */
+void StopFlow(void){
+	switch(P.Spc.Type){
+		case SPC630:   
+		case SPC130: StopFlowSpcm();break;
+		case SPC_MHARP: StopFlowMharp(); break;
+		default:;
+		}
+	}
+
+
+
 /* ########################   SPC300 SPC FUNCTIONS   ####################### */
 
 
@@ -2997,7 +3029,7 @@ void InitSpcm(int Board){
 /* CLOSE SPCM */	
 void CloseSpcm(void){
 	short ret;
-	if(P.Moxy.Moxy || P.Flow.Flow){
+	if(P.Moxy.Moxy || P.Flow.Spcm){
 		ret=SPC_enable_sequencer(SPC_ALL,FALSE);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_enable_sequencer");
 		SPC_set_parameter(SPC_ALL, TRIGGER, 0); // no trigger
@@ -3026,7 +3058,7 @@ void GetDataSpcm(void){
 /* CLEAR SPCM */	
 void ClearSpcm(void){
 	short ret;
-	if(P.Moxy.Moxy || P.Flow.Flow) ret=SPC_fill_memory(-1,-1,-1,0); 
+	if(P.Moxy.Moxy || P.Flow.Spcm) ret=SPC_fill_memory(-1,-1,-1,0); 
 	else ret=SPC_fill_memory(-1,-1,0,0); 
 	if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_fill_memory");
 	ret=test_fill_state();
@@ -3068,20 +3100,20 @@ void test_sequencer_state(void){
 	
 	
 /* Wait for Bank, transfer and copy data */
-void SpcFlow(char Status){
+void SpcFlowSpcm(void){
 	//TODO: Status? display something?
 	short ret,ib;
 	DmdTx_startSequence(DmdTx.handle);
 	do{
-		WaitFlow();
-		GetFlow();
-		CopyFlow();
+		WaitFlowSpcm();
+		GetFlowSpcm();
+		CopyFlowSpcm();
 		}
 	while(!P.Flow.FilledFrame);
 	}
 
 // WAIT FOR FILLED BANK
-void WaitFlow(void){
+void WaitFlowSpcm(void){
 	int ib, waitTrg, nTrg;
 	waitTrg = 1;
 	nTrg = 1;
@@ -3100,7 +3132,7 @@ void WaitFlow(void){
 	}
 
 // CHECK TRIGGER
-void CheckTriggerFlow(void){
+void CheckTriggerFlowSpcm(void){
 	int ib;
 	short ret,ver,spc_state,mod_state[MAX_BOARD];
 	do{
@@ -3117,7 +3149,7 @@ void CheckTriggerFlow(void){
 	
 	
 // TRANSFER BANK TO BUFFER
-void GetFlow(void){
+void GetFlowSpcm(void){
 	int ib;
 	short ret,state;
 	P.Spc.Overflow=FALSE;
@@ -3145,7 +3177,7 @@ void GetFlow(void){
 
 	
 /* COPY FLOW TO DATA */
-void CopyFlow(void){
+void CopyFlowSpcm(void){
 	long num_slot=min(P.Flow.NumSlot-P.Flow.Slot0,(int)(SPC_BANK_DIM/P.Chann.Num));
 	for(int ib=0;ib<P.Num.Board;ib++)
 		for(int is=0;is<num_slot;is++){	// iterate over Slots (i.e. curves) both on det and buffer
@@ -3169,10 +3201,10 @@ void CopyFlow(void){
 	}
 
 /* START FLOW */
-void StartFlow(void){
+void StartFlowSpcm(void){
 	short ret;
 	int ib;
-	InitFlow();
+	InitFlowSpcm();
 	P.Flow.Bank=0;
 	P.Flow.EmptyBank=TRUE;
 	P.Flow.FilledFrame=FALSE;
@@ -3187,7 +3219,7 @@ void StartFlow(void){
 	}
 
 /* STOP FLOW */
-void StopFlow(void){
+void StopFlowSpcm(void){
 	short ib,ret;
 	DmdTx_stopSequence(DmdTx.handle);
 	for (ib=0;ib<P.Num.Board;ib++){
@@ -3198,7 +3230,7 @@ void StopFlow(void){
 
 	
 // INITIALIZE CONTINUOUS FLOW
-void InitFlow(void){
+void InitFlowSpcm(void){
 	int ib,ibb;
 	SPCdata spc_dat;
 	short mem_bank,ret;
@@ -3214,11 +3246,9 @@ void InitFlow(void){
 	for(ib=0;ib<SPC_NUM_BANK;ib++){
 		SpcClear();
 		mem_bank=mem_bank?0:1;
-		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,mem_bank); // (a)
-		if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_parameter:MEM_BANK");
+		ret=SPC_set_parameter(SPC_ALL,MEM_BANK,mem_bank); if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_parameter:MEM_BANK");
 		}
-	ret=SPC_set_page(SPC_ALL,0);
-	if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_page");
+	ret=SPC_set_page(SPC_ALL,0); if(ret<0) ErrHandler(ERR_SPC,ret,"InitFlow:SPC_set_page");
 	}
 
 
@@ -3814,8 +3844,7 @@ void InitMharp(int Board) {
 	P.Spc.TimeInit = TimerN();   // era Timer() 
 	
 	// init T3 mode
-	if(MHARP_T3){
-		P.Spc.Mharp[Board].FifoBuffer=(uint32_t*)calloc(TTREADMAX,sizeof(uint32_t)); // allocate memory for the FIFO USB Buffer
+	if(P.Flow.Mharp){
   		Sleep(MH_SLEEPFORSYNCRATE); // After Init allow 150 ms for valid  count rate readings
   		ret = MH_GetSyncRate(Board, &P.Spc.Mharp[Board].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // Do not delete. This is needed to control Tacq (expressed in terms of sync)
 		}
@@ -3828,7 +3857,7 @@ void CloseMharp(void) {
 	short ret;
 	for (int ib = 0; ib < P.Num.Board; ib++) {
 		ret = MH_CloseDevice(ib); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_CloseDevice");
-		if(MHARP_T3) free(P.Spc.Mharp[ib].FifoBuffer);
+		if(P.Flow.Mharp) free(P.Spc.Mharp[ib].FifoBuffer);
 		}
 	}
 
@@ -3943,8 +3972,14 @@ void ProcessT3(unsigned int TTTRRecord){
 	}
 
 
+void StartFlowMharp(void){
+	}
+
+void StopFlowMharp(void){
+	}
+
 /* GetFlowMh */
-void GetFlowMharp(int Board){
+void SpcFlowMharp(void){
 
 	int ctcstatus;
 	int Mode = MODE_T3; //This demo is only for T3! observe suitable Sync divider and Range!
@@ -3953,21 +3988,21 @@ void GetFlowMharp(int Board){
 	int nRecords;
 	int stopretry = 0;
 	int ret;
-	P.Spc.Mharp[Board].oflcorrection = 0;
+	P.Spc.Mharp[MHARP_DEV0].oflcorrection = 0;
 	//int i,j;
 
 	//memset(histogram, 0, sizeof(histogram));
 
  	while(1){
-    	ret=MH_GetFlags(Board, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
-    	if(flags & FLAG_FIFOFULL) goto fullfifo;
-    	ret=MH_ReadFiFo(Board, P.Spc.Mharp[Board].FifoBuffer, &nRecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
+    	ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
+    	if(flags & FLAG_FIFOFULL) goto fifofull;
+    	ret=MH_ReadFiFo(MHARP_DEV0, D.MharpBuffer[MHARP_DEV0], &nRecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
     	if (nRecords){
-			for (int iR = 0; iR < nRecords; iR++)
-          		ProcessT3(P.Spc.Mharp[Board].FifoBuffer[iR]);
+			for (int ir = 0; ir < nRecords; ir++)
+          		ProcessT3(D.MharpBuffer[MHARP_DEV0][ir]);
     			}
     	else{
-    		ret = MH_CTCStatus(Board, &ctcstatus); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_CTCStatus");
+    		ret = MH_CTCStatus(MHARP_DEV0, &ctcstatus); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_CTCStatus");
       		if (ctcstatus){
 				stopretry++; //do a few more rounds as there might be some more in the FiFo
         		if(stopretry>5) goto stoptttr;
@@ -3976,11 +4011,11 @@ void GetFlowMharp(int Board){
     //within this loop you can also read the count rates if needed.
   }
 
-fullfifo:
+fifofull:
 	ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");
 
 stoptttr:
-	ret = MH_StopMeas(Board); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
+	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
 }
 
 
