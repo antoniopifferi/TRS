@@ -728,6 +728,7 @@ void KernelGen(){
 		    		    //if(P.Action.StopAdc) StopAdc();		 // mi da errore...Andrea F
 						if(P.Action.StopOma) StopOma();
 						if(P.Action.SpcOut) SpcOut(P.Action.Status);
+						if((P.Action.SpcFlow)&&P.Flow.Spcm) DmdTx_startSequence(DmdTx.handle); // TODO: fix this when you construct DMD class
 						if(P.Action.SpcFlow) SpcFlow(P.Action.Status);
 						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
@@ -1620,6 +1621,7 @@ void CompleteParmS(void){
 	P.Flow.Spcm=P.Flow.Flow&&((P.Spc.Type==SPC130)||(P.Spc.Type==SPC630));
 	P.Flow.Mharp=P.Flow.Flow&&(P.Spc.Type==SPC_MHARP);
 	if(P.Flow.Spcm) P.Flow.NumSlot=DmdTxInfo.nMeas;
+	if(P.Flow.Mharp) P.Flow.NumSlot=1;
 	}
 
 
@@ -2902,11 +2904,10 @@ void StartFlow(void){
 /* EXECUTE FLOW */
 void SpcFlow(char Status){
 	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, ON);
-	switch(P.Spc.Type){
-		case SPC630:   
-		case SPC130: SpcFlowSpcm();break;
-		case SPC_MHARP: SpcFlowMharp(); break;
-		default:;
+	while(!P.Flow.FilledFrame){
+		WaitFlowSpcm();
+		GetFlowSpcm();
+		CopyFlowSpcm();
 		}
 	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, OFF);
 	}
@@ -3843,11 +3844,6 @@ void InitMharp(int Board) {
 	// init time
 	P.Spc.TimeInit = TimerN();   // era Timer() 
 	
-	// init T3 mode
-	if(P.Flow.Mharp){
-  		Sleep(MH_SLEEPFORSYNCRATE); // After Init allow 150 ms for valid  count rate readings
-  		ret = MH_GetSyncRate(Board, &P.Spc.Mharp[Board].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // Do not delete. This is needed to control Tacq (expressed in terms of sync)
-		}
 	Passed();
 }
 
@@ -3916,22 +3912,6 @@ void WaitMharp(int Board) {
 // START HERE MH FLOW FUNCTIONS
 // Not added prototypes to measure.h for internal PQ functions
 	
-//Got PhotonT3
-//  NSync: Overflow-corrected arrival time in units of the sync period 
-//  DTime: Arrival time of photon after last Sync event in units of the chosen resolution (set by binning)
-//  Channel: 1..N where N is the numer of channels the device has
-void GotPhotonT3(uint64_t NSync, int Channel, int DTime){
-  D.Buffer[MHARP_DEV0][DTime+Channel*P.Num.Det]++; //histogramming
-}
-
-
-//Got MarkerT3
-//  NSync: Overflow-corrected arrival time in units of the sync period 
-//  Markers: Bitfield of arrived Markers, different markers can arrive at same time (same record)
-void GotMarkerT3(uint64_t NSync, int Markers){
-	}
-
-		
 // HydraHarpV2 or TimeHarp260 or MultiHarp T3 record data
 void ProcessT3(unsigned int TTTRRecord){
 	int ch, dt;
@@ -3951,72 +3931,97 @@ void ProcessT3(unsigned int TTTRRecord){
 	T3Rec.allbits = TTTRRecord;
 
 	if(T3Rec.bits.special!=1){ //regular input channel
-		truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync;
-		ch = T3Rec.bits.channel;
-		dt = T3Rec.bits.dtime;
-    	//truensync indicates the number of the sync period this event was in
-    	//the dtime unit depends on the chosen resolution (binning)
-    	GotPhotonT3(truensync, ch, dt);
+		truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync; //truensync indicates the number of the sync period. dtime unit depends on the chosen resolution (binning)
+		ch = T3Rec.bits.channel; // channel=Detector
+		dt = T3Rec.bits.dtime; // bin=channel in TRS meaning
+    	D.Buffer[MHARP_DEV0][dt+ch*P.Num.Det]++; //Histogramming: add one photon
+		double elapsed_time=(truensync-P.Spc.Mharp[MHARP_DEV0].Sync0)/(double)(P.Spc.Mharp[MHARP_DEV0].SyncRate); // time (s) since Start (Sync0)
+		if(elapsed_time>P.Spc.Mharp[MHARP_DEV0].PassedTacq*P.Spc.TimeM){ //completed Tacq=P.Spc.TimeM
+			P.Spc.Mharp[MHARP_DEV0].EndTacq=TRUE;
+			P.Spc.Mharp[MHARP_DEV0].PassedTacq++; // this start from 0 and go on up to the end of meas.
+			}
     	}
 	else{ //marker or some events
-		if(T3Rec.bits.channel==0x3F){ //overflow
-    		//number of overflows is stored in nsync
+		if(T3Rec.bits.channel==0x3F){ //overflow //number of overflows is stored in nsync
     		P.Spc.Mharp[MHARP_DEV0].oflcorrection += (uint64_t)T3WRAPAROUND * T3Rec.bits.nsync;
     		}
     	if((T3Rec.bits.channel>=1)&&(T3Rec.bits.channel<=15)){ //markers
-    		truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync;
-    		//the time unit depends on sync period
-    		GotMarkerT3(truensync, T3Rec.bits.channel);
+    		truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync; //the time unit depends on sync period
+			// INSERT HERE GOT MARKER
+    		//GotMarkerT3(truensync, T3Rec.bits.channel);
     		}
   		}
 	}
 
 
 void StartFlowMharp(void){
+	short ret;
+	int ib;
+
+	// Clear Buffer and initialise all variables
+	memset(D.Buffer,0,sizeof(T_DATA)*P.Num.Page);
+	P.Flow.FilledFrame=FALSE;
+	P.Spc.Mharp[MHARP_DEV0].Sync0=0;
+	P.Spc.Mharp[MHARP_DEV0].EndTacq=TRUE;
+	P.Spc.Mharp[MHARP_DEV0].PassedTacq=0; // this start from 0 and go on up to the end of meas.
+	P.Spc.Mharp[MHARP_DEV0].oflcorrection = 0; // no ovfl in sync
+	P.Spc.Mharp[MHARP_DEV0].NextFifo=TRUE;
+
+	// init T3 mode and set Sync
+	ret = MH_Initialize(MHARP_DEV0, MODE_T3, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
+ 	ret = MH_SetMeasControl(MHARP_DEV0, MEASCTRL_SINGLESHOT_CTC, 1, 1); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");  // standard software start
+	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
+ 	Sleep(MH_SLEEPFORSYNCRATE); // After Init allow 150 ms for valid  count rate readings
+  	ret = MH_GetSyncRate(MHARP_DEV0, &P.Spc.Mharp[MHARP_DEV0].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // Do not delete. This is needed to control Tacq (expressed in terms of sync)
+	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas"); // here measure is stopped to clear all memeory
+	
+	// start measure
+	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
 	}
 
 void StopFlowMharp(void){
+	short ret;
+	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
 	}
 
-/* GetFlowMh */
-void SpcFlowMharp(void){
 
-	int ctcstatus;
-	int Mode = MODE_T3; //This demo is only for T3! observe suitable Sync divider and Range!
-	int Binning = 4;    //you can change this, meaningful only in T3 mode
+void CopyFlowMharp(void){
+	int page0=0; // just 1 page
+	for(int ib=0;ib<P.Num.Board;ib++){
+		while(P.Spc.Mharp[ib].ActualRecord<P.Spc.Mharp[ib].NumRecords){	// iterate over records in the FIFO Buffer
+			ProcessT3(D.MharpBuffer[ib][P.Spc.Mharp[ib].ActualRecord++]); // Decipher the record and add to Histogramming
+			if(P.Spc.Mharp[ib].EndTacq){ // Completed Tacq
+				long page=P.Filter.Page[P.Acq.Actual][ib][page0]; // last [] is the page num
+				if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page0);
+				P.Page[page0].Acq=P.Acq.Actual;
+				for(int ic=0;ic<P.Chann.Num;ic++)
+					for(int id=0;ic<P.Num.Det;id++)
+						D.Data[P.Frame.Actual][page0][ic]=D.Buffer[ib][ic+id*P.Chann.Num];
+				memset(D.Buffer,0,sizeof(T_DATA)*P.Num.Page);
+				P.Flow.FilledFrame=TRUE; // Completed 1 Frame, go to next loop
+				}
+			}
+		// here exit while, and therefore FIFO Buffer is empty
+		P.Spc.Mharp[ib].ActualRecord=0;
+		P.Spc.Mharp[ib].NextFifo=TRUE;
+		}
+	}
+
+
+/* WaitFlowMharp */
+void WaitFlowMharp(void){
+	// do nothing for the moment since FIFO has always something
+	}
+
+/* Get FIFO MHarp */
+int GetFlowMharp(void){
 	int flags;
-	int nRecords;
-	int stopretry = 0;
 	int ret;
-	P.Spc.Mharp[MHARP_DEV0].oflcorrection = 0;
-	//int i,j;
-
-	//memset(histogram, 0, sizeof(histogram));
-
- 	while(1){
-    	ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
-    	if(flags & FLAG_FIFOFULL) goto fifofull;
-    	ret=MH_ReadFiFo(MHARP_DEV0, D.MharpBuffer[MHARP_DEV0], &nRecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
-    	if (nRecords){
-			for (int ir = 0; ir < nRecords; ir++)
-          		ProcessT3(D.MharpBuffer[MHARP_DEV0][ir]);
-    			}
-    	else{
-    		ret = MH_CTCStatus(MHARP_DEV0, &ctcstatus); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_CTCStatus");
-      		if (ctcstatus){
-				stopretry++; //do a few more rounds as there might be some more in the FiFo
-        		if(stopretry>5) goto stoptttr;
-      }
-    }
-    //within this loop you can also read the count rates if needed.
-  }
-
-fifofull:
-	ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");
-
-stoptttr:
-	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
-}
+	if(!P.Spc.Mharp[MHARP_DEV0].NextFifo) return;
+	ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
+    if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");
+    ret=MH_ReadFiFo(MHARP_DEV0, D.MharpBuffer[MHARP_DEV0],&P.Spc.Mharp[MHARP_DEV0].NumRecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
+	}
 
 
 /* ########################   TIMEHARP260 FUNCTIONS (TH260)  ####################### */

@@ -1694,8 +1694,13 @@ struct MharpS{
 	int oflcorrection; // overflow correction. remember number of occured overflow in sync time
 	uint32_t *FifoBuffer; // pointer to the buffer of the FIFO thread
 	int SyncRate; // sync rate needed to control Tacq (expressed in terms of sync counts)
+	int Sync0; // initial sync value (number of elapsed syncs)
+	int PassedTacq; // number of acquisitions up to now since board was started
+	int EndTacq; // reached Tacq
+	int NumRecords; // number of records in FIFO
+	int ActualRecord; // position of the actual record in the processed FifoBuffer
+	int NextFifo; // FIFO Buffer is all processed, goto fill the next one
 	};
-
 
 struct SpcS {
 	char   Type;
@@ -2123,7 +2128,7 @@ struct DataS {
 	T_DATA ***Data;		// D.Data[P.Frame.Num][P.Num.Page][P.Num.Chann] 
 	T_DATA **Osc;		// D.Osc[P.Num.Board*P.Num.Det][P.Num.Chann] 
 	T_DATA **Buffer;	// D.Buffer[P.Num.Board][P.Num.Det*P.Num.Chann] 
-	T_DATA **Bank;		// D.Bank[P.Num.Board][SPC_BANK_DIM] 
+	T_DATA **Bank;		// D.Bank[P.Num.Board][SPC_BANK_DIM] or D.Bank[P.Num.Board][MAX FIFO MHARP] // not a problem: there is a calloc later
 	T_DATA *Curve;		// D.Curve[P.Num.Chann] 
 	T_DATA *Last;		// D.Last[P.Num.Chann]
 	uint32_t **MharpBuffer;		// D.MharpBuffer[P.Num.Board][TTREADMAX] 
