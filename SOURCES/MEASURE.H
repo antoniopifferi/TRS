@@ -1692,7 +1692,7 @@ struct SwabS{
 
 struct MharpS{
 	int oflcorrection; // overflow correction. remember number of occured overflow in sync time
-	uint32_t *FifoBuffer; // pointer to the buffer of the FIFO thread
+//	uint32_t *FifoBuffer; // pointer to the buffer of the FIFO thread
 	int SyncRate; // sync rate needed to control Tacq (expressed in terms of sync counts)
 	int Sync0; // initial sync value (number of elapsed syncs)
 	int PassedTacq; // number of acquisitions up to now since board was started
@@ -2353,6 +2353,10 @@ void WaitMharp(int Board);
 void SpcFlowMharp(void);
 void StartFlowMharp(void);
 void StopFlowMharp(void);
+void WaitFlowMharp(void);
+void GetFlowMharp(void);
+void CopyFlowMharp(void);
+
 
 /* ########################   TH260 HARP FUNCTIONS   ####################### */
 void InitTH260(int Board);
@@ -2789,6 +2793,7 @@ void pyErrHandler(char* Function, char* serror);
 /* ########################   MEMORY FUNCTIONS   ########################### */
 T_DATA *DAlloc1D(int Num1);
 T_DATA **DAlloc2D(int Num1, int Num2);
+uint32_t **DAlloc2D_uint32(int Num1, int Num2);
 T_DATA ***DAlloc3D(int Num1, int Num2, int Num3);
 SC1000_TYPE ***DAlloc3D_SC1000(int Num1, int Num2, int Num3);
 T_SUB **SAlloc2D(int Num1, int Num2);

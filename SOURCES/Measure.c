@@ -1187,9 +1187,7 @@ void InitMem(void){
 	
 	if(P.Moxy.Moxy) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Flow.Spcm) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
-	if(P.Flow.Mharp)
-		for(int ib=0;ib<P.Num.Board;ib++)
-			D.MharpBuffer[ib]=(uint32_t*)calloc(TTREADMAX,sizeof(uint32_t)); // allocate memory for the FIFO USB Buffer
+	if(P.Flow.Mharp) D.MharpBuffer=DAlloc2D_uint32(P.Num.Board,TTREADMAX); // allocate memory for the FIFO USB Buffer
 	if(P.Info.SubHeader) D.Sub=SAlloc2D(P.Frame.Num,P.Num.Page);
 	D.Data=DAlloc3D(P.Frame.Num,P.Num.Page,P.Chann.Num);
 	
@@ -2901,13 +2899,43 @@ void StartFlow(void){
 		}
 	}
 	
+/* START FLOW */
+void WaitFlow(void){
+	switch(P.Spc.Type){
+		case SPC630:   
+		case SPC130: WaitFlowSpcm();break;
+		case SPC_MHARP: WaitFlowMharp(); break;
+		default:;
+		}
+	}
+	
+/* START FLOW */
+void GetFlow(void){
+	switch(P.Spc.Type){
+		case SPC630:   
+		case SPC130: GetFlowSpcm();break;
+		case SPC_MHARP: GetFlowMharp(); break;
+		default:;
+		}
+	}
+	
+/* START FLOW */
+void CopyFlow(void){
+	switch(P.Spc.Type){
+		case SPC630:   
+		case SPC130: CopyFlowSpcm();break;
+		case SPC_MHARP: CopyFlowMharp(); break;
+		default:;
+		}
+	}
+	
 /* EXECUTE FLOW */
 void SpcFlow(char Status){
 	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, ON);
 	while(!P.Flow.FilledFrame){
-		WaitFlowSpcm();
-		GetFlowSpcm();
-		CopyFlowSpcm();
+		WaitFlow();
+		GetFlow();
+		CopyFlow();
 		}
 	if(Status) SetCtrlVal (hDisplay, DISPLAY_MEASURE, OFF);
 	}
@@ -3832,7 +3860,6 @@ void InitMharp(int Board) {
 		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
 		}
 	ret = MH_SetHistoLen(Board, MHARP_LENCODE, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
-//	ret = MH_SetHistoLen(Board, MAXLENCODE, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
 	ret = MH_SetBinning(Board, MHARP_BINNING); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
 	ret = MH_SetOffset(Board, MHARP_HIST_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
 
@@ -3853,7 +3880,7 @@ void CloseMharp(void) {
 	short ret;
 	for (int ib = 0; ib < P.Num.Board; ib++) {
 		ret = MH_CloseDevice(ib); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_CloseDevice");
-		if(P.Flow.Mharp) free(P.Spc.Mharp[ib].FifoBuffer);
+		//if(P.Flow.Mharp) free(P.Spc.Mharp[ib].FifoBuffer);
 		}
 	}
 
@@ -3918,16 +3945,18 @@ void ProcessT3(unsigned int TTTRRecord){
 	uint64_t truensync;
 	const int T3WRAPAROUND = 1024;
 
-	union {
-    	unsigned allbits;
+	union T3RecU{
+    	unsigned int allbits;
 		struct {
 			unsigned nsync    :10;  // numer of sync period
 			unsigned dtime    :15;  // delay from last sync in units of chosen resolution
 			unsigned channel  :6;
 			unsigned special  :1;
 			} bits;
-		} T3Rec;
+		};
   
+	union T3RecU T3Rec;
+	
 	T3Rec.allbits = TTTRRecord;
 
 	if(T3Rec.bits.special!=1){ //regular input channel
@@ -3956,7 +3985,9 @@ void ProcessT3(unsigned int TTTRRecord){
 
 void StartFlowMharp(void){
 	short ret;
-	int ib;
+	int Board=MHARP_DEV0;
+	int HistLen;
+
 
 	// Clear Buffer and initialise all variables
 	memset(D.Buffer,0,sizeof(T_DATA)*P.Num.Page);
@@ -3970,6 +4001,29 @@ void StartFlowMharp(void){
 	// init T3 mode and set Sync
 	ret = MH_Initialize(MHARP_DEV0, MODE_T3, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
  	ret = MH_SetMeasControl(MHARP_DEV0, MEASCTRL_SINGLESHOT_CTC, 1, 1); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");  // standard software start
+	
+	
+	
+	
+	
+	// set ini parameters
+	ret = MH_SetSyncDiv(Board, MHARP_SYNC_DIVIDER); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncDiv");
+	ret = MH_SetSyncEdgeTrg(Board, MHARP_SYNC_LEVEL, MHARP_SYNC_EDGE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
+	ret = MH_SetSyncChannelOffset(Board, MHARP_SYNC_OFFSET);  if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncChannelOffset"); // add cable to SYNC
+	for (int id = 0; id < P.Num.Det; id++){
+		ret = MH_SetInputEdgeTrg(Board, id, MHARP_INPUT_LEVEL, MHARP_INPUT_EDGE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
+		ret = MH_SetInputChannelOffset(Board, id, MHARP_INPUT_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
+		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
+		}
+	//ret = MH_SetHistoLen(Board, MHARP_LENCODE, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
+	ret = MH_SetBinning(Board, MHARP_BINNING); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
+	ret = MH_SetOffset(Board, MHARP_HIST_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
+	
+	
+	
+	
+	
+	
 	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
  	Sleep(MH_SLEEPFORSYNCRATE); // After Init allow 150 ms for valid  count rate readings
   	ret = MH_GetSyncRate(MHARP_DEV0, &P.Spc.Mharp[MHARP_DEV0].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // Do not delete. This is needed to control Tacq (expressed in terms of sync)
@@ -4014,7 +4068,7 @@ void WaitFlowMharp(void){
 	}
 
 /* Get FIFO MHarp */
-int GetFlowMharp(void){
+void GetFlowMharp(void){
 	int flags;
 	int ret;
 	if(!P.Spc.Mharp[MHARP_DEV0].NextFifo) return;
@@ -10737,6 +10791,19 @@ T_DATA **DAlloc2D(int Num1, int Num2){
 	if(!d) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 1");
 	for(i1=0;i1<Num1;i1++){
 		d[i1]=(T_DATA*)calloc(Num2,sizeof(T_DATA));
+		if(!d[i1]) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 2");
+		}
+	return d;
+	}
+
+// Allocate 2D Array of uint32
+uint32_t **DAlloc2D_uint32(int Num1, int Num2){
+	int i1;
+	uint32_t **d;
+	d=(uint32_t**)calloc(Num1,sizeof(uint32_t*));
+	if(!d) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 1");
+	for(i1=0;i1<Num1;i1++){
+		d[i1]=(uint32_t*)calloc(Num2,sizeof(uint32_t));
 		if(!d[i1]) ErrHandler(ERR_MEM,0,"Allocation Failure of 2D Data, Stage 2");
 		}
 	return d;
