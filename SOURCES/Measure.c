@@ -732,7 +732,7 @@ void KernelGen(){
 						if(P.Action.SpcFlow) SpcFlow(P.Action.Status);
 						if(P.Action.CheckMamm) CheckMammot(); 						
 						if(P.Action.DisplayPlot) DisplayPlot();
-						if(P.Action.ReconsPy) ReconsPy();
+						//TODO if(P.Action.ReconsPy) ReconsPy();
 						if(P.Action.DisplayRoi) DisplayRoi();
 						if(P.Action.StopMamm) StopMammot();  
 						if(P.Action.DataSave) DataSave();	 
@@ -3945,7 +3945,7 @@ void ProcessT3(unsigned int TTTRRecord){
 	uint64_t truensync;
 	const int T3WRAPAROUND = 1024;
 
-	union T3RecU{
+	union {
     	unsigned int allbits;
 		struct {
 			unsigned nsync    :10;  // numer of sync period
@@ -3953,10 +3953,15 @@ void ProcessT3(unsigned int TTTRRecord){
 			unsigned channel  :6;
 			unsigned special  :1;
 			} bits;
-		};
+		} T3Rec;
   
-	union T3RecU T3Rec;
-	
+	T3Rec.allbits = 0; // you need to initialize this first
+	T3Rec.bits.nsync = 0; // you need to initialize this first
+	T3Rec.bits.dtime = 0; // you need to initialize this first
+	T3Rec.bits.channel = 0; // you need to initialize this first
+	T3Rec.bits.special = 0; // you need to initialize this first
+//		T3Rec.allbits = TTTRRecord;
+
 	T3Rec.allbits = TTTRRecord;
 
 	if(T3Rec.bits.special!=1){ //regular input channel
@@ -4049,7 +4054,7 @@ void CopyFlowMharp(void){
 				if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page0);
 				P.Page[page0].Acq=P.Acq.Actual;
 				for(int ic=0;ic<P.Chann.Num;ic++)
-					for(int id=0;ic<P.Num.Det;id++)
+					for(int id=0;id<P.Num.Det;id++)
 						D.Data[P.Frame.Actual][page0][ic]=D.Buffer[ib][ic+id*P.Chann.Num];
 				memset(D.Buffer,0,sizeof(T_DATA)*P.Num.Page);
 				P.Flow.FilledFrame=TRUE; // Completed 1 Frame, go to next loop
