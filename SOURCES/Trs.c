@@ -59,6 +59,7 @@ int main (int argc, char *argv[]){
 	if ((hLuca = LoadPanel (hTrs, PATH_UIR, LUCA)) < 0) return -1;
 	if ((hSwab = LoadPanel (hTrs, PATH_UIR, SWAB)) < 0) return -1;
 	if ((hBcd = LoadPanel (hTrs, PATH_UIR, BCD)) < 0) return -1;
+	if ((hMharp = LoadPanel (hTrs, PATH_UIR, MHARP)) < 0) return -1;
 	
 	CreateTable();
 	
@@ -238,6 +239,7 @@ void CVICALLBACK ShowPanel (int menuBar, int menuItem, void *callbackData,
 		case MENU_DEVICE_LUCA:	  DisplayPanel (hLuca); break;
 		case MENU_DEVICE_SWAB:	  DisplayPanel (hSwab); break;
 		case MENU_DEVICE_BCD:	  DisplayPanel (hBcd); break;
+		case MENU_DEVICE_MHARP:	  DisplayPanel (hMharp); break;
 		}
 	}
 
@@ -266,6 +268,7 @@ void InitPanel(void){
 	hPanel[LUCA]=hLuca;
 	hPanel[SWAB]=hSwab;
 	hPanel[BCD]=hBcd;
+	hPanel[MHARP]=hMharp;
 	LoadSet(FILESET,NEG);
 	ReadAll();
 	CompleteParmS();
@@ -413,7 +416,8 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,PARM,PARM_FILE_TYPE,"FileType",0,0,&P.File.Type); 
 	AddTab(CE,TCHAR,PARM,PARM_FILE_SAVE,"FileSave",0,0,&P.File.Save); 
 
-	// 19+4
+	// 19+5
+	AddTab(CE,TCHAR,PARM,PARM_SPC_TYPE,"FlowFlow",0,0,&P.Flow.Flow);
 	AddTab(CE,TCHAR,PARM,PARM_SPC_TYPE,"SpcType",0,0,&P.Spc.Type);
 	AddTab(CE,TCHAR,PARM,PARM_SPC_SCALE,"SpcScale",0,0,&P.Spc.Scale);
 	AddTab(CE,TDOUBLE,PARM,PARM_SPC_CALIB,"SpcCalib",0,0,&P.Spc.Calib);

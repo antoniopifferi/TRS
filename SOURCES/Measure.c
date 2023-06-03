@@ -3833,40 +3833,56 @@ void InitMharp(int Board) {
 	double resolution;
 	int binsteps;
 	char LIB_Version[8];
+	struct MharpS mh=P.Spc.Mharp[Board]; 
 
 	sprintf(message, "Initializing MharpHarp, Module #%d, ...", Board);
 	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
 
-	// initialize
+	// initialize Device
 	ret=MH_GetLibraryVersion(LIB_Version); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetLibraryVersion");
 	sprintf(message, "Lib Version=%s, ...", LIB_Version);
 	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
-
 	ret = MH_OpenDevice(Board, HW_Serial); // Check for Serial Number of Device = 0 (NOTE: Many MharpHarp Devices can be controlled)
 	if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_OpenDevice");
 	else {
 		sprintf(message, "...Serial Number = %s", HW_Serial);
 		SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
 		}
-	ret = MH_Initialize(Board, MODE_HIST, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
-
+		
+	// initialize specific operation mode
+	if(!P.Flow.Flow){ // initialize standard HIST Mode
+		ret = MH_Initialize(Board, MODE_HIST, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
+		ret = MH_SetHistoLen(Board, mh.LenCode, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
+		ret = MH_SetOffset(Board, mh.HistOffset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
+		}
+	else{ // initialize T3 mode for flow
+		ret = MH_Initialize(Board, MODE_T3, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
+		}
+	
+	// initialize Start Mode (you ALWAYS need this for the get sync rate and standard oscilloscope. Ovveride later on in case (e.g. marker)
+ 	ret = MH_SetMeasControl(MHARP_DEV0, MEASCTRL_SINGLESHOT_CTC, 1, 1); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");  // standard software start
+		
 	// set ini parameters
-	ret = MH_SetSyncDiv(Board, MHARP_SYNC_DIVIDER); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncDiv");
-	ret = MH_SetSyncEdgeTrg(Board, MHARP_SYNC_LEVEL, MHARP_SYNC_EDGE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
-	ret = MH_SetSyncChannelOffset(Board, MHARP_SYNC_OFFSET);  if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncChannelOffset"); // add cable to SYNC
+	ret = MH_SetSyncDiv(Board, mh.SyncDivider); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncDiv");
+	ret = MH_SetSyncEdgeTrg(Board, mh.SyncLevel, mh.SyncEdge); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
+	ret = MH_SetSyncChannelOffset(Board, mh.SyncOffset);  if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncChannelOffset"); // add cable to SYNC
 	for (int id = 0; id < P.Num.Det; id++){
-		ret = MH_SetInputEdgeTrg(Board, id, MHARP_INPUT_LEVEL, MHARP_INPUT_EDGE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
-		ret = MH_SetInputChannelOffset(Board, id, MHARP_INPUT_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
+		ret = MH_SetInputEdgeTrg(Board, id, mh.InputLevel, mh.InputEdge); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
+		ret = MH_SetInputChannelOffset(Board, id, mh.InputOffset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
 		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
 		}
-	ret = MH_SetHistoLen(Board, MHARP_LENCODE, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
-	ret = MH_SetBinning(Board, MHARP_BINNING); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
-	ret = MH_SetOffset(Board, MHARP_HIST_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
-
+	ret = MH_SetBinning(Board, mh.Binning); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
+	
 	// get temporal scale
 	ret = MH_GetResolution(Board, &resolution); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetResolution");
 	P.Spc.Calib = 1000 * resolution;
 	P.Spc.Factor = P.Spc.Calib * P.Spc.Scale;
+	
+	// get sync rate
+	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
+ 	Sleep(MH_SLEEPFORSYNCRATE); // After Init allow 150 ms for valid  count rate readings
+  	ret = MH_GetSyncRate(MHARP_DEV0, &P.Spc.Mharp[Board].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // &P. needed here. This is needed to control Tacq (expressed in terms of sync)
+	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas"); // here measure is stopped to clear all memeory
 
 	// init time
 	P.Spc.TimeInit = TimerN();   // era Timer() 
@@ -3993,7 +4009,6 @@ void StartFlowMharp(void){
 	int Board=MHARP_DEV0;
 	int HistLen;
 
-
 	// Clear Buffer and initialise all variables
 	memset(D.Buffer,0,sizeof(T_DATA)*P.Num.Page);
 	P.Flow.FilledFrame=FALSE;
@@ -4003,37 +4018,6 @@ void StartFlowMharp(void){
 	P.Spc.Mharp[MHARP_DEV0].oflcorrection = 0; // no ovfl in sync
 	P.Spc.Mharp[MHARP_DEV0].NextFifo=TRUE;
 
-	// init T3 mode and set Sync
-	ret = MH_Initialize(MHARP_DEV0, MODE_T3, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
- 	ret = MH_SetMeasControl(MHARP_DEV0, MEASCTRL_SINGLESHOT_CTC, 1, 1); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");  // standard software start
-	
-	
-	
-	
-	
-	// set ini parameters
-	ret = MH_SetSyncDiv(Board, MHARP_SYNC_DIVIDER); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncDiv");
-	ret = MH_SetSyncEdgeTrg(Board, MHARP_SYNC_LEVEL, MHARP_SYNC_EDGE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
-	ret = MH_SetSyncChannelOffset(Board, MHARP_SYNC_OFFSET);  if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncChannelOffset"); // add cable to SYNC
-	for (int id = 0; id < P.Num.Det; id++){
-		ret = MH_SetInputEdgeTrg(Board, id, MHARP_INPUT_LEVEL, MHARP_INPUT_EDGE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
-		ret = MH_SetInputChannelOffset(Board, id, MHARP_INPUT_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
-		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
-		}
-	//ret = MH_SetHistoLen(Board, MHARP_LENCODE, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
-	ret = MH_SetBinning(Board, MHARP_BINNING); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
-	ret = MH_SetOffset(Board, MHARP_HIST_OFFSET); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
-	
-	
-	
-	
-	
-	
-	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
- 	Sleep(MH_SLEEPFORSYNCRATE); // After Init allow 150 ms for valid  count rate readings
-  	ret = MH_GetSyncRate(MHARP_DEV0, &P.Spc.Mharp[MHARP_DEV0].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // Do not delete. This is needed to control Tacq (expressed in terms of sync)
-	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas"); // here measure is stopped to clear all memeory
-	
 	// start measure
 	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
 	}

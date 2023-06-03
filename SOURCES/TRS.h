@@ -315,13 +315,18 @@
 #define  MAMM_TAKE_REF_MEAS               51      /* control type: binary, callback function: Setting */
 #define  MAMM_NEG_PER_VAR_COUNTS          52      /* control type: numeric, callback function: Setting */
 
-#define  MOXY                             9       /* callback function: ClosePanel */
+#define  MHARP                            9
+#define  MHARP_aaa                        2       /* control type: numeric, callback function: Setting */
+#define  MHARP_TITLE_2                    3       /* control type: textMsg, callback function: (none) */
+#define  MHARP_TITLE                      4       /* control type: textMsg, callback function: (none) */
+
+#define  MOXY                             10      /* callback function: ClosePanel */
 #define  MOXY_TITLE                       2       /* control type: textMsg, callback function: (none) */
 #define  MOXY_DISP_DIV                    3       /* control type: numeric, callback function: Setting */
 #define  MOXY_EXT_TRIG                    4       /* control type: ring, callback function: Setting */
 #define  MOXY_PRES_EDGE                   5       /* control type: ring, callback function: Setting */
 
-#define  NIRS                             10
+#define  NIRS                             11
 #define  NIRS_TITLE                       2       /* control type: textMsg, callback function: (none) */
 #define  NIRS_LASERS                      3       /* control type: textButton, callback function: NirsLasersCbk */
 #define  NIRS_BOX                         4       /* control type: textButton, callback function: NirsBoxCbk */
@@ -329,7 +334,7 @@
 #define  NIRS_FREQ                        6       /* control type: numeric, callback function: Setting */
 #define  NIRS_LAMBDA                      7       /* control type: ring, callback function: Setting */
 
-#define  PARM                             11      /* callback function: ClosePanel */
+#define  PARM                             12      /* callback function: ClosePanel */
 #define  PARM_LOOP_HOME_1                 2       /* control type: numeric, callback function: Setting */
 #define  PARM_LOOP_HOME_2                 3       /* control type: numeric, callback function: Setting */
 #define  PARM_LOOP_HOME_3                 4       /* control type: numeric, callback function: Setting */
@@ -396,69 +401,70 @@
 #define  PARM_SC1000_LAST                 65      /* control type: numeric, callback function: Setting */
 #define  PARM_SC_SEL_REP_NUM              66      /* control type: numeric, callback function: Setting */
 #define  PARM_TIME_BASE                   67      /* control type: ring, callback function: Setting */
-#define  PARM_READ_UIR                    68      /* control type: binary, callback function: Setting */
-#define  PARM_CHANN_FIRST                 69      /* control type: numeric, callback function: Setting */
-#define  PARM_CHANN_LAST                  70      /* control type: numeric, callback function: Setting */
-#define  PARM_CHANN_NUM                   71      /* control type: numeric, callback function: (none) */
-#define  PARM_INFO_KIND                   72      /* control type: ring, callback function: Setting */
-#define  PARM_INFO_APPL                   73      /* control type: ring, callback function: Setting */
-#define  PARM_INFO_GEOM                   74      /* control type: ring, callback function: Setting */
-#define  PARM_JUMP_LOOP                   75      /* control type: ring, callback function: Setting */
-#define  PARM_JUMP_BOARD                  76      /* control type: ring, callback function: Setting */
-#define  PARM_JUMP_MAX                    77      /* control type: numeric, callback function: Setting */
-#define  PARM_OSCILL_TIME                 78      /* control type: numeric, callback function: Setting */
-#define  PARM_POWER_STEP                  79      /* control type: ring, callback function: Setting */
-#define  PARM_SYNC_SYNC                   80      /* control type: binary, callback function: Setting */
-#define  PARM_SYNC_TYPE                   81      /* control type: ring, callback function: Setting */
-#define  PARM_SYNC_COM                    82      /* control type: numeric, callback function: Setting */
-#define  PARM_SYNC_LOOP                   83      /* control type: ring, callback function: Setting */
-#define  PARM_SYNC_PATTERN                84      /* control type: ring, callback function: Setting */
-#define  PARM_SYNC_DIR                    85      /* control type: ring, callback function: Setting */
-#define  PARM_SYNC_WIDTH                  86      /* control type: numeric, callback function: Setting */
-#define  PARM_SYNC_BAUD                   87      /* control type: ring, callback function: Setting */
-#define  PARM_FILE_DIR                    88      /* control type: string, callback function: Setting */
-#define  PARM_FILE_EXT                    89      /* control type: string, callback function: Setting */
-#define  PARM_FILE_PREFIX                 90      /* control type: string, callback function: Setting */
-#define  PARM_FILE_TAG                    91      /* control type: numeric, callback function: Setting */
-#define  PARM_FILE_TYPE                   92      /* control type: ring, callback function: Setting */
-#define  PARM_INFO_MONITOR                93      /* control type: binary, callback function: Setting */
-#define  PARM_INFO_SUBHEADER              94      /* control type: binary, callback function: Setting */
-#define  PARM_LAYOUT                      95      /* control type: binary, callback function: Setting */
-#define  PARM_FLAGPRESENT                 96      /* control type: binary, callback function: Setting */
-#define  PARM_OMA_LOOP                    97      /* control type: ring, callback function: Setting */
-#define  PARM_OPHIR_LOOP                  98      /* control type: ring, callback function: Setting */
-#define  PARM_MEAS_STATUS                 99      /* control type: numeric, callback function: Setting */
-#define  PARM_MEAS_DISPLAY                100     /* control type: numeric, callback function: Setting */
-#define  PARM_MEAS_MEM                    101     /* control type: numeric, callback function: Setting */
-#define  PARM_MEAS_ROI                    102     /* control type: numeric, callback function: Setting */
-#define  PARM_FILE_SAVE                   103     /* control type: binary, callback function: Setting */
-#define  PARM_MEAS_CLEAR                  104     /* control type: binary, callback function: Setting */
-#define  PARM_MEAS_STOP                   105     /* control type: binary, callback function: Setting */
-#define  PARM_MEAS_SKIPOSCILL             106     /* control type: binary, callback function: Setting */
-#define  PARM_MEAS_AUTORUN                107     /* control type: binary, callback function: Setting */
-#define  PARM_CONST_RHO                   108     /* control type: numeric, callback function: Setting */
-#define  PARM_CONST_THICK                 109     /* control type: numeric, callback function: Setting */
-#define  PARM_CONST_N                     110     /* control type: numeric, callback function: Setting */
-#define  PARM_TEXTMSG_5                   111     /* control type: textMsg, callback function: (none) */
-#define  PARM_TEXTMSG_4                   112     /* control type: textMsg, callback function: (none) */
-#define  PARM_TEXTMSG_3                   113     /* control type: textMsg, callback function: (none) */
-#define  PARM_TEXTMSG_2                   114     /* control type: textMsg, callback function: (none) */
-#define  PARM_TIME_BASE_TEXT              115     /* control type: textMsg, callback function: (none) */
-#define  PARM_TITLE                       116     /* control type: textMsg, callback function: (none) */
-#define  PARM_LOOP_TITLE                  117     /* control type: textMsg, callback function: (none) */
-#define  PARM_TEXTMSG_1                   118     /* control type: textMsg, callback function: (none) */
-#define  PARM_TEXTMSG                     119     /* control type: textMsg, callback function: (none) */
-#define  PARM_MEAS_TITLE                  120     /* control type: textMsg, callback function: (none) */
-#define  PARM_POWER_TITLE                 121     /* control type: textMsg, callback function: (none) */
-#define  PARM_SYNC_TITLE                  122     /* control type: textMsg, callback function: (none) */
-#define  PARM_OSCILL_TITLE                123     /* control type: textMsg, callback function: (none) */
-#define  PARM_FILE_TITLE                  124     /* control type: textMsg, callback function: (none) */
-#define  PARM_JUMP_TITLE                  125     /* control type: textMsg, callback function: (none) */
-#define  PARM_INFO_TITLE                  126     /* control type: textMsg, callback function: (none) */
-#define  PARM_CHANN_TITLE                 127     /* control type: textMsg, callback function: (none) */
-#define  PARM_SPC_TITLE                   128     /* control type: textMsg, callback function: (none) */
+#define  PARM_FLOW_FLOW                   68      /* control type: binary, callback function: Setting */
+#define  PARM_READ_UIR                    69      /* control type: binary, callback function: Setting */
+#define  PARM_CHANN_FIRST                 70      /* control type: numeric, callback function: Setting */
+#define  PARM_CHANN_LAST                  71      /* control type: numeric, callback function: Setting */
+#define  PARM_CHANN_NUM                   72      /* control type: numeric, callback function: (none) */
+#define  PARM_INFO_KIND                   73      /* control type: ring, callback function: Setting */
+#define  PARM_INFO_APPL                   74      /* control type: ring, callback function: Setting */
+#define  PARM_INFO_GEOM                   75      /* control type: ring, callback function: Setting */
+#define  PARM_JUMP_LOOP                   76      /* control type: ring, callback function: Setting */
+#define  PARM_JUMP_BOARD                  77      /* control type: ring, callback function: Setting */
+#define  PARM_JUMP_MAX                    78      /* control type: numeric, callback function: Setting */
+#define  PARM_OSCILL_TIME                 79      /* control type: numeric, callback function: Setting */
+#define  PARM_POWER_STEP                  80      /* control type: ring, callback function: Setting */
+#define  PARM_SYNC_SYNC                   81      /* control type: binary, callback function: Setting */
+#define  PARM_SYNC_TYPE                   82      /* control type: ring, callback function: Setting */
+#define  PARM_SYNC_COM                    83      /* control type: numeric, callback function: Setting */
+#define  PARM_SYNC_LOOP                   84      /* control type: ring, callback function: Setting */
+#define  PARM_SYNC_PATTERN                85      /* control type: ring, callback function: Setting */
+#define  PARM_SYNC_DIR                    86      /* control type: ring, callback function: Setting */
+#define  PARM_SYNC_WIDTH                  87      /* control type: numeric, callback function: Setting */
+#define  PARM_SYNC_BAUD                   88      /* control type: ring, callback function: Setting */
+#define  PARM_FILE_DIR                    89      /* control type: string, callback function: Setting */
+#define  PARM_FILE_EXT                    90      /* control type: string, callback function: Setting */
+#define  PARM_FILE_PREFIX                 91      /* control type: string, callback function: Setting */
+#define  PARM_FILE_TAG                    92      /* control type: numeric, callback function: Setting */
+#define  PARM_FILE_TYPE                   93      /* control type: ring, callback function: Setting */
+#define  PARM_INFO_MONITOR                94      /* control type: binary, callback function: Setting */
+#define  PARM_INFO_SUBHEADER              95      /* control type: binary, callback function: Setting */
+#define  PARM_LAYOUT                      96      /* control type: binary, callback function: Setting */
+#define  PARM_FLAGPRESENT                 97      /* control type: binary, callback function: Setting */
+#define  PARM_OMA_LOOP                    98      /* control type: ring, callback function: Setting */
+#define  PARM_OPHIR_LOOP                  99      /* control type: ring, callback function: Setting */
+#define  PARM_MEAS_STATUS                 100     /* control type: numeric, callback function: Setting */
+#define  PARM_MEAS_DISPLAY                101     /* control type: numeric, callback function: Setting */
+#define  PARM_MEAS_MEM                    102     /* control type: numeric, callback function: Setting */
+#define  PARM_MEAS_ROI                    103     /* control type: numeric, callback function: Setting */
+#define  PARM_FILE_SAVE                   104     /* control type: binary, callback function: Setting */
+#define  PARM_MEAS_CLEAR                  105     /* control type: binary, callback function: Setting */
+#define  PARM_MEAS_STOP                   106     /* control type: binary, callback function: Setting */
+#define  PARM_MEAS_SKIPOSCILL             107     /* control type: binary, callback function: Setting */
+#define  PARM_MEAS_AUTORUN                108     /* control type: binary, callback function: Setting */
+#define  PARM_CONST_RHO                   109     /* control type: numeric, callback function: Setting */
+#define  PARM_CONST_THICK                 110     /* control type: numeric, callback function: Setting */
+#define  PARM_CONST_N                     111     /* control type: numeric, callback function: Setting */
+#define  PARM_TEXTMSG_5                   112     /* control type: textMsg, callback function: (none) */
+#define  PARM_TEXTMSG_4                   113     /* control type: textMsg, callback function: (none) */
+#define  PARM_TEXTMSG_3                   114     /* control type: textMsg, callback function: (none) */
+#define  PARM_TEXTMSG_2                   115     /* control type: textMsg, callback function: (none) */
+#define  PARM_TIME_BASE_TEXT              116     /* control type: textMsg, callback function: (none) */
+#define  PARM_TITLE                       117     /* control type: textMsg, callback function: (none) */
+#define  PARM_LOOP_TITLE                  118     /* control type: textMsg, callback function: (none) */
+#define  PARM_TEXTMSG_1                   119     /* control type: textMsg, callback function: (none) */
+#define  PARM_TEXTMSG                     120     /* control type: textMsg, callback function: (none) */
+#define  PARM_MEAS_TITLE                  121     /* control type: textMsg, callback function: (none) */
+#define  PARM_POWER_TITLE                 122     /* control type: textMsg, callback function: (none) */
+#define  PARM_SYNC_TITLE                  123     /* control type: textMsg, callback function: (none) */
+#define  PARM_OSCILL_TITLE                124     /* control type: textMsg, callback function: (none) */
+#define  PARM_FILE_TITLE                  125     /* control type: textMsg, callback function: (none) */
+#define  PARM_JUMP_TITLE                  126     /* control type: textMsg, callback function: (none) */
+#define  PARM_INFO_TITLE                  127     /* control type: textMsg, callback function: (none) */
+#define  PARM_CHANN_TITLE                 128     /* control type: textMsg, callback function: (none) */
+#define  PARM_SPC_TITLE                   129     /* control type: textMsg, callback function: (none) */
 
-#define  PRESENT                          12      /* callback function: ClosePanel */
+#define  PRESENT                          13      /* callback function: ClosePanel */
 #define  PRESENT_TBLOCK_DEF               2       /* control type: table, callback function: Setting */
 #define  PRESENT_TBLOCK_SEQUENCE          3       /* control type: table, callback function: Setting */
 #define  PRESENT_ALIGN                    4       /* control type: radioButton, callback function: Setting */
@@ -472,7 +478,7 @@
 #define  PRESENT_PRES_INIT_FILETEXT       12      /* control type: textMsg, callback function: (none) */
 #define  PRESENT_PRES_INIT_FILETEXT_2     13      /* control type: textMsg, callback function: (none) */
 
-#define  STEP                             13      /* callback function: ClosePanel */
+#define  STEP                             14      /* callback function: ClosePanel */
 #define  STEP_TEXTMSG_1                   2       /* control type: textMsg, callback function: (none) */
 #define  STEP_TEXTMSG_2                   3       /* control type: textMsg, callback function: (none) */
 #define  STEP_TEXTMSG_3                   4       /* control type: textMsg, callback function: (none) */
@@ -673,7 +679,7 @@
 #define  STEP_SORT_11                     199     /* control type: binary, callback function: Setting */
 #define  STEP_TITLE                       200     /* control type: textMsg, callback function: (none) */
 
-#define  SWAB                             14
+#define  SWAB                             15
 #define  SWAB_DETTYPE_1                   2       /* control type: ring, callback function: Setting */
 #define  SWAB_DETTYPE_2                   3       /* control type: ring, callback function: Setting */
 #define  SWAB_DETTYPE_3                   4       /* control type: ring, callback function: Setting */
@@ -715,7 +721,7 @@
 #define  SWAB_FREQDIV                     40      /* control type: numeric, callback function: Setting */
 #define  SWAB_STRING                      41      /* control type: string, callback function: (none) */
 
-#define  SWITCH                           15      /* callback function: ClosePanel */
+#define  SWITCH                           16      /* callback function: ClosePanel */
 #define  SWITCH_TEXTMSG_1                 2       /* control type: textMsg, callback function: (none) */
 #define  SWITCH_TEXTMSG_2                 3       /* control type: textMsg, callback function: (none) */
 #define  SWITCH_TEXTMSG_3                 4       /* control type: textMsg, callback function: (none) */
@@ -828,7 +834,7 @@
 #define  SWITCH_FNAME_10                  111     /* control type: string, callback function: Setting */
 #define  SWITCH_TITLE                     112     /* control type: textMsg, callback function: (none) */
 
-#define  TRIM                             16      /* callback function: ClosePanel */
+#define  TRIM                             17      /* callback function: ClosePanel */
 #define  TRIM_STEP_1                      2       /* control type: ring, callback function: Setting */
 #define  TRIM_STEP_2                      3       /* control type: ring, callback function: Setting */
 #define  TRIM_STEP_3                      4       /* control type: ring, callback function: Setting */
@@ -1041,7 +1047,7 @@
 #define  TRIM_TEXTMSG_10                  211     /* control type: textMsg, callback function: (none) */
 #define  TRIM_TITLE                       212     /* control type: textMsg, callback function: (none) */
 
-#define  TRS                              17      /* callback function: ClosePanel */
+#define  TRS                              18      /* callback function: ClosePanel */
 
 
      /* Control Arrays: */
@@ -1072,54 +1078,57 @@
 #define  MENU_FILE_SAVE_LUCA              19      /* callback function: SaveSetting */
 #define  MENU_FILE_SAVE_SWAB              20      /* callback function: SaveSetting */
 #define  MENU_FILE_SAVE_BCD               21      /* callback function: SaveSetting */
-#define  MENU_FILE_SAVE_GEOMETRY          22      /* callback function: SaveSetting */
-#define  MENU_FILE_LOAD                   23
-#define  MENU_FILE_LOAD_SUBMENU           24
-#define  MENU_FILE_LOAD_ALL               25      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_SEPARATOR_4       26
-#define  MENU_FILE_LOAD_DISPLAY           27      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_DOSTEP            28      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LABEL             29      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LAYOUT            30      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_MAMM              31      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_PARM              32      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_PRESENT           33      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_MOXY              34      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_TRIM              35      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_STEP              36      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_SWITCH            37      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_NIRS              38      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_LUCA              39      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_SWAB              40      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_BCD               41      /* callback function: LoadSetting */
-#define  MENU_FILE_LOAD_GEOMETRY          42      /* callback function: LoadSetting */
-#define  MENU_FILE_SEPARATOR              43
-#define  MENU_FILE_PRINT                  44      /* callback function: Print */
-#define  MENU_FILE_SEPARATOR_2            45
-#define  MENU_FILE_QUIT                   46      /* callback function: Quit */
-#define  MENU_WINDOW                      47
-#define  MENU_WINDOW_PARM                 48      /* callback function: ShowPanel */
-#define  MENU_WINDOW_DISPLAY              49      /* callback function: ShowPanel */
-#define  MENU_WINDOW_TRIM                 50      /* callback function: ShowPanel */
-#define  MENU_WINDOW_STEP                 51      /* callback function: ShowPanel */
-#define  MENU_WINDOW_SWITCH               52      /* callback function: ShowPanel */
-#define  MENU_WINDOW_GEOMETRY             53      /* callback function: ShowPanel */
-#define  MENU_WINDOW_LAYOUT               54      /* callback function: ShowPanel */
-#define  MENU_WINDOW_PRESENT              55      /* callback function: ShowPanel */
-#define  MENU_WINDOW_LABEL                56      /* callback function: ShowPanel */
-#define  MENU_WINDOW_DO_STEP              57      /* callback function: ShowPanel */
-#define  MENU_DEVICE                      58
-#define  MENU_DEVICE_MOXY                 59      /* callback function: ShowPanel */
-#define  MENU_DEVICE_MAMM                 60      /* callback function: ShowPanel */
-#define  MENU_DEVICE_NIRS                 61      /* callback function: ShowPanel */
-#define  MENU_DEVICE_LUCA                 62      /* callback function: ShowPanel */
-#define  MENU_DEVICE_SWAB                 63      /* callback function: ShowPanel */
-#define  MENU_DEVICE_BCD                  64      /* callback function: ShowPanel */
-#define  MENU_RUN                         65
-#define  MENU_RUN_MEASURE                 66      /* callback function: Measure */
-#define  MENU_RUN_OSCILLOSCOPE            67      /* callback function: RunOscilloscope */
-#define  MENU_HELP                        68
-#define  MENU_HELP_ABOUT                  69      /* callback function: About */
+#define  MENU_FILE_SAVE_MHARP             22      /* callback function: SaveSetting */
+#define  MENU_FILE_SAVE_GEOMETRY          23      /* callback function: SaveSetting */
+#define  MENU_FILE_LOAD                   24
+#define  MENU_FILE_LOAD_SUBMENU           25
+#define  MENU_FILE_LOAD_ALL               26      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SEPARATOR_4       27
+#define  MENU_FILE_LOAD_DISPLAY           28      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_DOSTEP            29      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LABEL             30      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LAYOUT            31      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_MAMM              32      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_PARM              33      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_PRESENT           34      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_MOXY              35      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_TRIM              36      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_STEP              37      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SWITCH            38      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_NIRS              39      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_LUCA              40      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_SWAB              41      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_BCD               42      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_MHARP             43      /* callback function: LoadSetting */
+#define  MENU_FILE_LOAD_GEOMETRY          44      /* callback function: LoadSetting */
+#define  MENU_FILE_SEPARATOR              45
+#define  MENU_FILE_PRINT                  46      /* callback function: Print */
+#define  MENU_FILE_SEPARATOR_2            47
+#define  MENU_FILE_QUIT                   48      /* callback function: Quit */
+#define  MENU_WINDOW                      49
+#define  MENU_WINDOW_PARM                 50      /* callback function: ShowPanel */
+#define  MENU_WINDOW_DISPLAY              51      /* callback function: ShowPanel */
+#define  MENU_WINDOW_TRIM                 52      /* callback function: ShowPanel */
+#define  MENU_WINDOW_STEP                 53      /* callback function: ShowPanel */
+#define  MENU_WINDOW_SWITCH               54      /* callback function: ShowPanel */
+#define  MENU_WINDOW_GEOMETRY             55      /* callback function: ShowPanel */
+#define  MENU_WINDOW_LAYOUT               56      /* callback function: ShowPanel */
+#define  MENU_WINDOW_PRESENT              57      /* callback function: ShowPanel */
+#define  MENU_WINDOW_LABEL                58      /* callback function: ShowPanel */
+#define  MENU_WINDOW_DO_STEP              59      /* callback function: ShowPanel */
+#define  MENU_DEVICE                      60
+#define  MENU_DEVICE_MOXY                 61      /* callback function: ShowPanel */
+#define  MENU_DEVICE_MAMM                 62      /* callback function: ShowPanel */
+#define  MENU_DEVICE_NIRS                 63      /* callback function: ShowPanel */
+#define  MENU_DEVICE_LUCA                 64      /* callback function: ShowPanel */
+#define  MENU_DEVICE_SWAB                 65      /* callback function: ShowPanel */
+#define  MENU_DEVICE_BCD                  66      /* callback function: ShowPanel */
+#define  MENU_DEVICE_MHARP                67      /* callback function: ShowPanel */
+#define  MENU_RUN                         68
+#define  MENU_RUN_MEASURE                 69      /* callback function: Measure */
+#define  MENU_RUN_OSCILLOSCOPE            70      /* callback function: RunOscilloscope */
+#define  MENU_HELP                        71
+#define  MENU_HELP_ABOUT                  72      /* callback function: About */
 
 
      /* Callback Prototypes: */

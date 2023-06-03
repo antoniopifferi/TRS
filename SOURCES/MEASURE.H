@@ -86,7 +86,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1224
+#define MAX_TABLE		1225
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -96,7 +96,7 @@
 #define CT				1
 #define MAX_TTABLE		13
 #define STRLEN_TTABLE	20
-#define MAX_PANEL		17
+#define MAX_PANEL		18
 
 /* FILE CONSTANTS AND ENVIRONMENT SETTINGS */  
 #define EXTASCII      ".TXT"
@@ -572,7 +572,7 @@
 #define NIDAQmx      7
 #define SILENA		 2
 #define SPC300		 3
-#define HYDRA	     16  //4
+#define HYDRA	     4
 #define SPC630       5
 #define SPC130       6
 #define TEST		 7
@@ -584,7 +584,7 @@
 #define SPC_LUCA		 13
 #define SPC_SWAB		 14
 #define SPC_BCD			 15
-#define SPC_MHARP		 4   //16
+#define SPC_MHARP		 16
 
 #define WAIT_DELAY	 0
 #define WAIT_TIME	 1
@@ -708,17 +708,17 @@
 #define SEC_2_MILLISEC	1000 // conversion factor for second to millisecond
 
 /* MHARP CONSTANTS */
-#define MHARP_BINNING 	0 //you can change this
-#define MHARP_SYNC_OFFSET	0 
-#define MHARP_INPUT_OFFSET	0 
-#define MHARP_HIST_OFFSET	0 
-#define MHARP_SYNC_DIVIDER	2 //Note: you must reduce SYNC rate to <75 MHz 
+//#define MHARP_BINNING 	0 //you can change this
+//#define MHARP_SYNC_OFFSET	0 
+//#define MHARP_INPUT_OFFSET	0 
+//#define MHARP_HIST_OFFSET	0 
+//#define MHARP_SYNC_DIVIDER	2 //Note: you must reduce SYNC rate to <75 MHz 
 //#define MHARP_SYNC_CFDZEROCROSS	10 //you can change this
-#define MHARP_SYNC_LEVEL		-200 //you can change this
-#define MHARP_SYNC_EDGE			0 //you can change this
-#define MHARP_INPUT_LEVEL			200 //you can change this
-#define MHARP_INPUT_EDGE			1 //you can change this
-#define MHARP_LENCODE			2 //  Note: HistLen=1024*(2^MHARP_LENCODE)
+//#define MHARP_SYNC_LEVEL		-200 //you can change this
+//#define MHARP_SYNC_EDGE			0 //you can change this
+//#define MHARP_INPUT_LEVEL			200 //you can change this
+//#define MHARP_INPUT_EDGE			1 //you can change this
+//#define MHARP_LENCODE			2 //  Note: HistLen=1024*(2^MHARP_LENCODE)
 #define MHARP_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 #define T3HISTBINS 32768 //=2^15, dtime in T3 mode has 15 bits (w/o binning???)
 #define MH_SLEEPFORSYNCRATE 150 // After Init allow 150 ms for valid  count rate readings
@@ -1691,8 +1691,8 @@ struct SwabS{
 
 
 struct MharpS{
+	int Mode; // MHARP_MODE_HIST=standard histogramming, MHARP_MODE_T3=continuous flow using T3 (time-tags)  
 	int oflcorrection; // overflow correction. remember number of occured overflow in sync time
-//	uint32_t *FifoBuffer; // pointer to the buffer of the FIFO thread
 	int SyncRate; // sync rate needed to control Tacq (expressed in terms of sync counts)
 	int Sync0; // initial sync value (number of elapsed syncs)
 	int PassedTacq; // number of acquisitions up to now since board was started
@@ -1700,6 +1700,16 @@ struct MharpS{
 	int NumRecords; // number of records in FIFO
 	int ActualRecord; // position of the actual record in the processed FifoBuffer
 	int NextFifo; // FIFO Buffer is all processed, goto fill the next one
+	int Binning; // binning of the acquisition bins (i.e. channels in old TRS)
+	int SyncDivider; // to be used to reduce sync rate to max 75MHz, otherwise use 1
+	int LenCode; // Power of 2 of the HystLen (=P.Chann.Num)
+	int HistOffset; // shift of the histogram (ns) (maybe useful in few cases to discard part of the histogram)
+	int SyncOffset; // offset of the sync (ps)
+	int SyncLevel; // threshold for the sync (mV)
+	int SyncEdge; // 0=falling, 1=rising
+	int InputOffset; // offset of the signal (ps)
+	int InputLevel; // threshold for the signal (mV)
+	int InputEdge; // 0=falling, 1=rising
 	};
 
 struct SpcS {
@@ -2177,6 +2187,7 @@ int hNirs;
 int hLuca;
 int hSwab;
 int hBcd;
+int hMharp;
 int hMamm;
 int hSave;
 int hLabel;
