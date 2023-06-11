@@ -35,8 +35,19 @@ int main (int argc, char *argv[]){
 	
 	/* #####################    TODO UIR  ########################### */
 	// Place here any temporary assignment to be placed in UIR
-	P.Flow.Flow=1; // general Variable to enable Flow measurements
-	DmdTx.ReconsPy=1; // do online reconstruction when using Dmd?
+	DmdTx.ReconsPy=0; // do online reconstruction when using Dmd?
+	
+	P.Spc.Mharp[MHARP_DEV0].Binning=MHARP_BINNING;
+	P.Spc.Mharp[MHARP_DEV0].SyncOffset=MHARP_SYNC_OFFSET; 
+	P.Spc.Mharp[MHARP_DEV0].InputOffset=MHARP_INPUT_OFFSET; 
+	P.Spc.Mharp[MHARP_DEV0].HistOffset=MHARP_HIST_OFFSET; 
+	P.Spc.Mharp[MHARP_DEV0].SyncDivider=MHARP_SYNC_DIVIDER; 
+	P.Spc.Mharp[MHARP_DEV0].SyncLevel=MHARP_SYNC_LEVEL;
+	P.Spc.Mharp[MHARP_DEV0].SyncEdge=MHARP_SYNC_EDGE;
+	P.Spc.Mharp[MHARP_DEV0].InputLevel=MHARP_INPUT_LEVEL;
+	P.Spc.Mharp[MHARP_DEV0].InputEdge=MHARP_INPUT_EDGE;
+	P.Spc.Mharp[MHARP_DEV0].LenCode=MHARP_LENCODE;
+
 	
 	/* #####################    START UIR  ########################### */
 	CVIProfSetCurrentThreadProfiling (1); // PROFILER - To enable it set OPTIONS-BUILD-PROFILING-user functions
@@ -417,7 +428,7 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,PARM,PARM_FILE_SAVE,"FileSave",0,0,&P.File.Save); 
 
 	// 19+5
-	AddTab(CE,TCHAR,PARM,PARM_SPC_TYPE,"FlowFlow",0,0,&P.Flow.Flow);
+	AddTab(CE,TCHAR,PARM,PARM_FLOW_FLOW,"FlowFlow",0,0,&P.Flow.Flow);
 	AddTab(CE,TCHAR,PARM,PARM_SPC_TYPE,"SpcType",0,0,&P.Spc.Type);
 	AddTab(CE,TCHAR,PARM,PARM_SPC_SCALE,"SpcScale",0,0,&P.Spc.Scale);
 	AddTab(CE,TDOUBLE,PARM,PARM_SPC_CALIB,"SpcCalib",0,0,&P.Spc.Calib);

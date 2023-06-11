@@ -580,20 +580,8 @@ void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
 		//TODO1 if(PyArray_API==NULL) import_array(); // Python: Init Numpy
 		//TODO1 CreateFigPy(); // Python
 		
-		//int ***test;
-		//int i2, i1;
-		//test=DAlloc3D(1,5,6);
-		/*
-		test=(int***)calloc(1,sizeof(int**));
-		for(i1=0;i1<1;i1++){
-			test[i1]=(int**)calloc(5,sizeof(int*));
-			for(i2=0;i2<5;i2++){
-				test[i1][i2]=(int*)calloc(6,sizeof(int));
-				}
-			}
-		*/
-		//ReconsPy_new(test);
-		//TestPython();
+		//??? //ReconsPy_new(test);
+		//??? //TestPython();
 		
 		for(isw=0;isw<MAX_SWITCH;isw++)
 			if(P.Switch[isw].Switch){
@@ -1046,7 +1034,7 @@ void DecideAction(void){
 	// Continuous Flow
 	if(P.Flow.Flow){
 		P.Action.SpcFlow=TRUE;
-		P.Action.StartFlow=TRUE;
+		P.Action.StartFlow=first5;
 		P.Action.StopFlow=TRUE;
 		P.Action.ReconsPy=DmdTx.ReconsPy;
 		P.Action.SpcTime=FALSE;
@@ -1179,12 +1167,13 @@ void CloseMeasure(void){
 void InitMem(void){
 	SetCtrlVal (hDisplay, DISPLAY_MESSAGE, "Initializing Memory ... ");
 	
+	// For all
 	D.Osc=DAlloc2D(P.Num.Board*P.Num.Det,P.Chann.Num); 
 	D.Buffer=DAlloc2D(P.Num.Board,P.Num.Det*P.Chann.Num); 
 	if(P.Spc.Subtract) D.Last=DAlloc1D(P.Chann.Num); 
 	
+	// Just for Meas
 	if(P.Contest.Run!=CONTEST_MEAS){ Passed(); return;}
-	
 	if(P.Moxy.Moxy) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Flow.Spcm) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Flow.Mharp) D.MharpBuffer=DAlloc2D_uint32(P.Num.Board,TTREADMAX); // allocate memory for the FIFO USB Buffer
@@ -1203,10 +1192,8 @@ void CloseMem(void){
 	if(P.Contest.Run!=CONTEST_MEAS) return;
 	if(P.Moxy.Moxy) DFree2D(D.Bank,P.Num.Board); 
 	if(P.Flow.Spcm) DFree2D(D.Bank,P.Num.Board); 
+	if(P.Flow.Mharp) DFree2D_uint32(D.MharpBuffer,P.Num.Board); 
 	if(P.Info.SubHeader) SFree2D(D.Sub,P.Frame.Num);
-	if(P.Flow.Mharp)
-		for(int ib=0;ib<P.Num.Board;ib++)
-			free(D.MharpBuffer);
 	DFree3D(D.Data,P.Frame.Num,P.Num.Page); 
 }
 
@@ -3834,23 +3821,24 @@ void InitMharp(int Board) {
 	int binsteps;
 	char LIB_Version[8];
 	struct MharpS mh=P.Spc.Mharp[Board]; 
+	int isflow=FALSE;// You need this for the time being
 
-	sprintf(message, "Initializing MharpHarp, Module #%d, ...", Board);
+	sprintf(message, "\nInitializing MharpHarp, Module #%d, ...", Board);
 	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
 
 	// initialize Device
 	ret=MH_GetLibraryVersion(LIB_Version); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetLibraryVersion");
-	sprintf(message, "Lib Version=%s, ...", LIB_Version);
+	sprintf(message, "\nLib Version=%s, ...", LIB_Version);
 	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
 	ret = MH_OpenDevice(Board, HW_Serial); // Check for Serial Number of Device = 0 (NOTE: Many MharpHarp Devices can be controlled)
 	if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_OpenDevice");
 	else {
-		sprintf(message, "...Serial Number = %s", HW_Serial);
+		sprintf(message, "\n...Serial Number = %s", HW_Serial);
 		SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
 		}
 		
 	// initialize specific operation mode
-	if(!P.Flow.Flow){ // initialize standard HIST Mode
+	if(!isflow){ // initialize standard HIST Mode
 		ret = MH_Initialize(Board, MODE_HIST, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
 		ret = MH_SetHistoLen(Board, mh.LenCode, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
 		ret = MH_SetOffset(Board, mh.HistOffset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
@@ -3875,7 +3863,7 @@ void InitMharp(int Board) {
 	
 	// get temporal scale
 	ret = MH_GetResolution(Board, &resolution); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetResolution");
-	P.Spc.Calib = 1000 * resolution;
+	P.Spc.Calib = resolution;
 	P.Spc.Factor = P.Spc.Calib * P.Spc.Scale;
 	
 	// get sync rate
@@ -3913,7 +3901,7 @@ void GetDataMharp(void) {
 	//short state;
 	int ib;
 	int ic;
-	unsigned int DataMharp[1024 * 16];
+	unsigned int DataMharp[1024 * 16]; // TODO CHECK
 	int ret = 0;
 
 	P.Spc.Overflow = FALSE;
@@ -3985,8 +3973,8 @@ void ProcessT3(unsigned int TTTRRecord){
 		ch = T3Rec.bits.channel; // channel=Detector
 		dt = T3Rec.bits.dtime; // bin=channel in TRS meaning
     	D.Buffer[MHARP_DEV0][dt+ch*P.Num.Det]++; //Histogramming: add one photon
-		double elapsed_time=(truensync-P.Spc.Mharp[MHARP_DEV0].Sync0)/(double)(P.Spc.Mharp[MHARP_DEV0].SyncRate); // time (s) since Start (Sync0)
-		if(elapsed_time>P.Spc.Mharp[MHARP_DEV0].PassedTacq*P.Spc.TimeM){ //completed Tacq=P.Spc.TimeM
+		double elapsed_time=(truensync-P.Spc.Mharp[MHARP_DEV0].Sync0)/(double)(P.Spc.Mharp[MHARP_DEV0].SyncRate); // time (s) since Start (Sync0)	
+		if(elapsed_time>(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1)*P.Spc.TimeM){ //completed Tacq=P.Spc.TimeM NOTE +1 since check end
 			P.Spc.Mharp[MHARP_DEV0].EndTacq=TRUE;
 			P.Spc.Mharp[MHARP_DEV0].PassedTacq++; // this start from 0 and go on up to the end of meas.
 			}
@@ -4010,13 +3998,75 @@ void StartFlowMharp(void){
 	int HistLen;
 
 	// Clear Buffer and initialise all variables
-	memset(D.Buffer,0,sizeof(T_DATA)*P.Num.Page);
+	memset(D.Buffer[Board],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
 	P.Flow.FilledFrame=FALSE;
-	P.Spc.Mharp[MHARP_DEV0].Sync0=0;
-	P.Spc.Mharp[MHARP_DEV0].EndTacq=TRUE;
-	P.Spc.Mharp[MHARP_DEV0].PassedTacq=0; // this start from 0 and go on up to the end of meas.
-	P.Spc.Mharp[MHARP_DEV0].oflcorrection = 0; // no ovfl in sync
-	P.Spc.Mharp[MHARP_DEV0].NextFifo=TRUE;
+	P.Spc.Mharp[Board].Sync0=0;
+	P.Spc.Mharp[Board].EndTacq=FALSE;
+	P.Spc.Mharp[Board].PassedTacq=0; // this start from 0 and go on up to the end of meas.
+	P.Spc.Mharp[Board].oflcorrection = 0; // no ovfl in sync
+	P.Spc.Mharp[Board].NextFifo=TRUE;
+	P.Spc.Mharp[Board].ActualRecord=0;
+	
+	// INIT
+	char message[STRLEN];
+	char HW_Serial[8];
+	double resolution;
+	int binsteps;
+	char LIB_Version[8];
+	struct MharpS mh=P.Spc.Mharp[Board]; 
+	int isflow=TRUE;// You need this for the time being
+
+	sprintf(message, "\nInitializing MharpHarp, Module #%d, ...", Board);
+	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+
+	// initialize Device
+	/**/ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas"); // here measure is stopped to clear all memeory
+	/**/MH_CloseDevice(MHARP_DEV0);
+
+	ret=MH_GetLibraryVersion(LIB_Version); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetLibraryVersion");
+	sprintf(message, "\nLib Version=%s, ...", LIB_Version);
+	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+	ret = MH_OpenDevice(Board, HW_Serial); // Check for Serial Number of Device = 0 (NOTE: Many MharpHarp Devices can be controlled)
+	if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_OpenDevice");
+	else {
+		sprintf(message, "\n...Serial Number = %s\n", HW_Serial);
+		SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+		}
+		
+	// initialize specific operation mode
+	if(!isflow){ // initialize standard HIST Mode
+		ret = MH_Initialize(Board, MODE_HIST, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
+		ret = MH_SetHistoLen(Board, mh.LenCode, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
+		ret = MH_SetOffset(Board, mh.HistOffset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
+		}
+	else{ // initialize T3 mode for flow
+		ret = MH_Initialize(Board, MODE_T3, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
+		}
+	
+	// initialize Start Mode (you ALWAYS need this for the get sync rate and standard oscilloscope. Ovveride later on in case (e.g. marker)
+ 	ret = MH_SetMeasControl(MHARP_DEV0, MEASCTRL_SINGLESHOT_CTC, 1, 1); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");  // standard software start
+		
+	// set ini parameters
+	ret = MH_SetSyncDiv(Board, mh.SyncDivider); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncDiv");
+	ret = MH_SetSyncEdgeTrg(Board, mh.SyncLevel, mh.SyncEdge); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
+	ret = MH_SetSyncChannelOffset(Board, mh.SyncOffset);  if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncChannelOffset"); // add cable to SYNC
+	for (int id = 0; id < P.Num.Det; id++){
+		ret = MH_SetInputEdgeTrg(Board, id, mh.InputLevel, mh.InputEdge); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
+		ret = MH_SetInputChannelOffset(Board, id, mh.InputOffset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
+		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
+		}
+	ret = MH_SetBinning(Board, mh.Binning); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
+	
+	// get temporal scale
+	ret = MH_GetResolution(Board, &resolution); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetResolution");
+	P.Spc.Calib = resolution;
+	P.Spc.Factor = P.Spc.Calib * P.Spc.Scale;
+	
+	// get sync rate
+	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
+ 	Sleep(MH_SLEEPFORSYNCRATE); // After Init allow 150 ms for valid  count rate readings
+  	ret = MH_GetSyncRate(MHARP_DEV0, &P.Spc.Mharp[Board].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // &P. needed here. This is needed to control Tacq (expressed in terms of sync)
+	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas"); // here measure is stopped to clear all memeory
 
 	// start measure
 	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
@@ -4031,8 +4081,9 @@ void StopFlowMharp(void){
 void CopyFlowMharp(void){
 	int page0=0; // just 1 page
 	for(int ib=0;ib<P.Num.Board;ib++){
-		while(P.Spc.Mharp[ib].ActualRecord<P.Spc.Mharp[ib].NumRecords){	// iterate over records in the FIFO Buffer
-			ProcessT3(D.MharpBuffer[ib][P.Spc.Mharp[ib].ActualRecord++]); // Decipher the record and add to Histogramming
+		//while(P.Spc.Mharp[ib].ActualRecord<P.Spc.Mharp[ib].NumRecords){	// iterate over records in the FIFO Buffer
+		for(ir=P.Spc.Mharp[ib].ActualRecord;ir<P.Spc.Mharp[ib].NumRecords;ir++){	// iterate over records in the FIFO Buffer
+			ProcessT3(D.MharpBuffer[ib][ir]); // Decipher the record and add to Histogramming
 			if(P.Spc.Mharp[ib].EndTacq){ // Completed Tacq
 				long page=P.Filter.Page[P.Acq.Actual][ib][page0]; // last [] is the page num
 				if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page0);
@@ -4040,11 +4091,13 @@ void CopyFlowMharp(void){
 				for(int ic=0;ic<P.Chann.Num;ic++)
 					for(int id=0;id<P.Num.Det;id++)
 						D.Data[P.Frame.Actual][page0][ic]=D.Buffer[ib][ic+id*P.Chann.Num];
-				memset(D.Buffer,0,sizeof(T_DATA)*P.Num.Page);
+				memset(D.Buffer[ib],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
 				P.Flow.FilledFrame=TRUE; // Completed 1 Frame, go to next loop
+				P.Spc.Mharp[ib].ActualRecord=ir; // keep track of last read record
+				return; // exit the whole function
 				}
 			}
-		// here exit while, and therefore FIFO Buffer is empty
+		// here completed for loop, and therefore FIFO Buffer is empty
 		P.Spc.Mharp[ib].ActualRecord=0;
 		P.Spc.Mharp[ib].NextFifo=TRUE;
 		}
@@ -4060,10 +4113,14 @@ void WaitFlowMharp(void){
 void GetFlowMharp(void){
 	int flags;
 	int ret;
+	int numrecords=0;
 	if(!P.Spc.Mharp[MHARP_DEV0].NextFifo) return;
 	ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
-    if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");
-    ret=MH_ReadFiFo(MHARP_DEV0, D.MharpBuffer[MHARP_DEV0],&P.Spc.Mharp[MHARP_DEV0].NumRecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
+    if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");	
+	while(numrecords==0){
+    	ret=MH_ReadFiFo(MHARP_DEV0,D.MharpBuffer[MHARP_DEV0],&numrecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
+		}
+	P.Spc.Mharp[MHARP_DEV0].NumRecords=numrecords;
 	}
 
 
@@ -10880,6 +10937,14 @@ void doubleFree1D(double *D){
 
 // Free 2D Array of T_DATA
 void DFree2D(T_DATA **D, int Num1){
+	int i1;
+	for(i1=Num1-1;i1>=0;i1--)
+		free((char*) (D[i1]));
+	free((char*) (D));
+	}
+
+// Free 2D Array of uint32
+void DFree2D_uint32(uint32_t **D, int Num1){
 	int i1;
 	for(i1=Num1-1;i1>=0;i1--)
 		free((char*) (D[i1]));

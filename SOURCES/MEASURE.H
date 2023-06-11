@@ -708,17 +708,16 @@
 #define SEC_2_MILLISEC	1000 // conversion factor for second to millisecond
 
 /* MHARP CONSTANTS */
-//#define MHARP_BINNING 	0 //you can change this
-//#define MHARP_SYNC_OFFSET	0 
-//#define MHARP_INPUT_OFFSET	0 
-//#define MHARP_HIST_OFFSET	0 
-//#define MHARP_SYNC_DIVIDER	2 //Note: you must reduce SYNC rate to <75 MHz 
-//#define MHARP_SYNC_CFDZEROCROSS	10 //you can change this
-//#define MHARP_SYNC_LEVEL		-200 //you can change this
-//#define MHARP_SYNC_EDGE			0 //you can change this
-//#define MHARP_INPUT_LEVEL			200 //you can change this
-//#define MHARP_INPUT_EDGE			1 //you can change this
-//#define MHARP_LENCODE			2 //  Note: HistLen=1024*(2^MHARP_LENCODE)
+#define MHARP_BINNING 	0 //you can change this
+#define MHARP_SYNC_OFFSET	0 
+#define MHARP_INPUT_OFFSET	0 
+#define MHARP_HIST_OFFSET	0 
+#define MHARP_SYNC_DIVIDER	1 //Note: you must reduce SYNC rate to <75 MHz 
+#define MHARP_SYNC_LEVEL		-100 //you can change this // ERA -200
+#define MHARP_SYNC_EDGE			0 //you can change this
+#define MHARP_INPUT_LEVEL			-100 //you can change this // ERA 100
+#define MHARP_INPUT_EDGE			0 //you can change this // ERA 1
+#define MHARP_LENCODE			2 //  Note: HistLen=1024*(2^MHARP_LENCODE)
 #define MHARP_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 #define T3HISTBINS 32768 //=2^15, dtime in T3 mode has 15 bits (w/o binning???)
 #define MH_SLEEPFORSYNCRATE 150 // After Init allow 150 ms for valid  count rate readings
@@ -2066,7 +2065,7 @@ struct PresentationS {
 	};
 
 struct FlowS {
-	int Flow;
+	char Flow;
 	int Slot0;
 	int NumSlot;
 	int Page0;
@@ -2813,6 +2812,7 @@ double *doubleAlloc1D(int Num1);
 double ***doubleAlloc3D(int Num1, int Num2, int Num3);
 void DFree1D(T_DATA *D);
 void DFree2D(T_DATA **D, int Num1);
+void DFree2D_uint32(uint32_t **D, int Num1);
 void DFree3D(T_DATA ***D, int Num1, int Num2);
 void DFree3D_SC1000(SC1000_TYPE ***D, int Num1, int Num2);
 void SFree2D(T_SUB **D, int Num1);
