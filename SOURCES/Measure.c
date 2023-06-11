@@ -447,7 +447,7 @@ int TestPython(){
     printf("Result of call2: %ld\n", PyLong_AsLong(pRes3));
 
     // per disallocare la memoria dei pyObject... (comunque Py_Finalize() disalloca automaticamente tutto)
-	// tolte perch� se chiamate in ripetizione la variabile va tenuta
+	// tolte perch? se chiamate in ripetizione la variabile va tenuta
     //Py_DECREF(pModule);
     //Py_DECREF(pFunc);
     //Py_DECREF(pArgs);
@@ -701,7 +701,7 @@ void KernelGen(){
 						if(P.Action.InitMamm) {if(P.Command.Abort) break; InitMammot();}	   
 						if(P.Action.StartMamm) StartMammot();
 						if(P.Action.WaitChrono) WaitChrono();
-						if(P.Action.StartAdc) {StartAdc(); P.Time.Start=clock();}		 // se � attivo ADC e power
+						if(P.Action.StartAdc) {StartAdc(); P.Time.Start=clock();}		 // se ? attivo ADC e power
 			    		if(P.Action.StartSync) StartSync();
 	                    if(P.Action.SpcReset) 
 							SpcReset(P.Action.Status,P.Meas.Clear,P.Meas.Stop);
@@ -712,7 +712,7 @@ void KernelGen(){
 						if(P.Action.WaitEnd) WaitEnd(P.Spc.TimeM,P.Wait.Pos,P.Wait.Type,P.Wait.Step);
 						if(P.Action.StopSync) StopSync();
 						if(P.Action.SpcStop) SpcStop(P.Action.Status);
-						if(P.Action.WaitAdc) {P.Time.Stop=clock();WaitAdc();}		 // se � attivo ADC e power
+						if(P.Action.WaitAdc) {P.Time.Stop=clock();WaitAdc();}		 // se ? attivo ADC e power
 		    		    //if(P.Action.StopAdc) StopAdc();		 // mi da errore...Andrea F
 						if(P.Action.StopOma) StopOma();
 						if(P.Action.SpcOut) SpcOut(P.Action.Status);
@@ -3559,8 +3559,7 @@ void GetSwabElapsedTime(double *Elapsed_Time){
 	*Elapsed_Time=elapsed_time/(1.0*SWAB_S2PS);
 	}
 	
-	
-/* START FILE WRITER SWAB */	
+/*	START FILE WRITER SWAB */	
 void StartFileSwab(void){
 	int ret;
 	int is_running;
@@ -3580,10 +3579,9 @@ void StartFileSwab(void){
 		SW->isFwRunning=TRUE;
 		}
 	}
-	
+
 	
 /* ########################   BCD FUNCTIONS ALSO STEP GATE AND PIX  ####################### */
-
 
 /* INIT BCD FOR ALL FUNCTIONS */	
 void InitBcd(int Board){
@@ -6709,7 +6707,7 @@ int CVICALLBACK ClientTCPCB (unsigned handle, int event, int error,
             		break;
             	}
             	
-            /*ricezione conferma della modalit� col nomefile automatico*/	
+            /*ricezione conferma della modalit? col nomefile automatico*/	
             	if(strcmp (receiveBuf, "YES!")==0){
             		P.Oma.FileYes=1;
             		break;
@@ -7901,7 +7899,7 @@ void writePatternsOnFile(const int nEl, unsigned char ***basis){
     }
 }
 
-// questa funzione � qui perch� non inclusa nella dll di getbasis --> sistemato ora � inclusa
+// questa funzione ? qui perch? non inclusa nella dll di getbasis --> sistemato ora ? inclusa
 //int DmdTx_minimum(const int a, const int b){
 //	if(a>b) return b;
 //	else return a;
@@ -7969,7 +7967,7 @@ void SetupDmdTx(struct InfoDmd *info){
 					printf("Select endPx: ");
 					scanf("%d", &(info->endPx));
 					if ((info->endPx - info->startPx) / info->nBasis < 1) {
-						printf("***ERROR: Range startPx - endPx is too short for nBasis!!"); // andrebbero contollate altre possibilit� di errore (es. endPx>WIDTH+HEIGHT, endPx<startPx...)
+						printf("***ERROR: Range startPx - endPx is too short for nBasis!!"); // andrebbero contollate altre possibilit? di errore (es. endPx>WIDTH+HEIGHT, endPx<startPx...)
 						return 1;
 					}
 				}
@@ -8727,8 +8725,8 @@ void InitPi(char Step){
 void ClosePi(){
 	
 	if (MCRS_close()!=0)
-		SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PI: CLOSE DEVICE ERROR\n");	   //Chiude la COM aperta prima. Potrebbe creare conflitti se ci fossero pi�
-					 //driver PI su COM differenti. In tal caso conviene sfruttare la possibilit�
+		SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PI: CLOSE DEVICE ERROR\n");	   //Chiude la COM aperta prima. Potrebbe creare conflitti se ci fossero pi?
+					 //driver PI su COM differenti. In tal caso conviene sfruttare la possibilit?
 					 //di collegare i dispositivi in cascata e comandarli da un'unica COM.
 	}
 
@@ -11284,12 +11282,12 @@ void FindTop(void){
 	P.Mamm.Idx[Y].Last = (P.Mamm.Shrink[Y]?P.Mamm.Idx[Y].Top[MAMM_VIS]:P.Mamm.Idx[Y].Num-1);
 	
 //	Find Top NIR
-//	Indietreggia di una quantit� fissa
+//	Indietreggia di una quantit? fissa
 	if(P.Mamm.BackTopNIR>0) {
 		P.Mamm.Idx[Y].Top[MAMM_NIR] = P.Mamm.Idx[Y].Top[MAMM_NIR]-P.Mamm.BackTopNIR;
 		MoveStep(&stepy->Actual,stepy->Start[P.Mamm.Idx[Y].Top[MAMM_NIR]], P.Mamm.Step[Y],WAIT_TRUE, status);
 		}
-//	Indietreggia finch� conteggi VIS > RateLow
+//	Indietreggia finch? conteggi VIS > RateLow
 	do {
 		P.Mamm.Idx[Y].Top[MAMM_NIR]--;
 		MoveStep(&stepy->Actual,stepy->Start[P.Mamm.Idx[Y].Top[MAMM_NIR]], P.Mamm.Step[Y],WAIT_TRUE, status);	
@@ -11543,7 +11541,7 @@ void StartMammot(void){
 		for(ip=0; ip<P.Num.Page;ip++)
 			CompileSub(P.Ram.Actual, ifr, ip);
 	
-	float AcqTime = min((P.Frame.Last-P.Frame.First)+(P.Mamm.ExtraFrame.Num)/abs(P.Loop[P.Mamm.Loop[X]].Delta),P.Frame.Num)*P.Spc.TimeM; //controllare  //20 � in mm
+	float AcqTime = min((P.Frame.Last-P.Frame.First)+(P.Mamm.ExtraFrame.Num)/abs(P.Loop[P.Mamm.Loop[X]].Delta),P.Frame.Num)*P.Spc.TimeM; //controllare  //20 ? in mm
 	if(!P.Spc.Started)
 		for(ib=0;ib<P.Num.Board;ib++)
 			P.Spc.ScAcqTime=StartSC1000(ib,AcqTime);
