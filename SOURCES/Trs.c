@@ -37,18 +37,6 @@ int main (int argc, char *argv[]){
 	// Place here any temporary assignment to be placed in UIR
 	DmdTx.ReconsPy=0; // do online reconstruction when using Dmd?
 	
-	P.Spc.Mharp[MHARP_DEV0].Binning=MHARP_BINNING;
-	P.Spc.Mharp[MHARP_DEV0].SyncOffset=MHARP_SYNC_OFFSET; 
-	P.Spc.Mharp[MHARP_DEV0].InputOffset=MHARP_INPUT_OFFSET; 
-	P.Spc.Mharp[MHARP_DEV0].HistOffset=MHARP_HIST_OFFSET; 
-	P.Spc.Mharp[MHARP_DEV0].SyncDivider=MHARP_SYNC_DIVIDER; 
-	P.Spc.Mharp[MHARP_DEV0].SyncLevel=MHARP_SYNC_LEVEL;
-	P.Spc.Mharp[MHARP_DEV0].SyncEdge=MHARP_SYNC_EDGE;
-	P.Spc.Mharp[MHARP_DEV0].InputLevel=MHARP_INPUT_LEVEL;
-	P.Spc.Mharp[MHARP_DEV0].InputEdge=MHARP_INPUT_EDGE;
-	P.Spc.Mharp[MHARP_DEV0].LenCode=MHARP_LENCODE;
-
-	
 	/* #####################    START UIR  ########################### */
 	CVIProfSetCurrentThreadProfiling (1); // PROFILER - To enable it set OPTIONS-BUILD-PROFILING-user functions
 	if (InitCVIRTE (0, argv, 0) == 0)	/* Needed if linking in external compiler; harmless otherwise */
@@ -717,6 +705,19 @@ void CreateTable(void){
 	AddTab(CE,TSTRING,SWAB,SWAB_FNAMEVIRT,"SwabFNameVirt",0,0,P.Spc.Swab[0].FNameVirt);
 	AddTab(CE,TINT,SWAB,SWAB_FREQDIV,"SwabFreqDiv",0,0,&P.Spc.Swab[0].FreqDiv);
 	AddTab(CE,TINT,SWAB,SWAB_FREQMULT,"SwabFreqMult",0,0,&P.Spc.Swab[0].FreqMult);
+
+	// MHARP PANEL
+	// 3*2+4
+	AddTab(CE,TINT,MHARP,MHARP_BINNING,"MharpBinning",0,0,&P.Spc.Mharp[0].Binning);
+	AddTab(CE,TINT,MHARP,MHARP_OFFSET,"MharpOffset",0,0,&P.Spc.Mharp[0].Offset);
+	AddTab(CE,TINT,MHARP,MHARP_SYNC_DIVIDER,"MharpSyncDivider",0,0,&P.Spc.Mharp[0].SyncDivider);
+	AddTab(CE,TINT,MHARP,MHARP_SYNC_OFFSET,"MharpSyncOffset",0,0,&P.Spc.Mharp[0].SyncOffset);
+	AddTab(CE,TINT,MHARP,MHARP_SYNC_LEVEL,"MharpSyncLevel",0,0,&P.Spc.Mharp[0].SyncLevel);
+	AddTab(CE,TINT,MHARP,MHARP_SYNC_EDGE,"MharpSyncEdge",0,0,&P.Spc.Mharp[0].SyncEdge);
+	AddTab(CE,TINT,MHARP,MHARP_INPUT_OFFSET,"MharpInputOffset",0,0,&P.Spc.Mharp[0].InputOffset);
+	AddTab(CE,TINT,MHARP,MHARP_INPUT_LEVEL,"MharpInputLevel",0,0,&P.Spc.Mharp[0].InputLevel);
+	AddTab(CE,TINT,MHARP,MHARP_INPUT_EDGE,"MharpInputEdge",0,0,&P.Spc.Mharp[0].InputEdge);
+	AddTab(CE,TINT,MHARP,MHARP_SAVE_TAGS,"MharpSaveTags",0,0,&P.Spc.Mharp[0].SaveTags);
 
 	// BCD PANEL
 	// 6+3+2=11	
