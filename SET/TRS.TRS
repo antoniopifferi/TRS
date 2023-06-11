@@ -1207,6 +1207,16 @@
 0	3	SwabFNameVirt	
 0	1	SwabFreqDiv	10
 0	1	SwabFreqMult	10
+0	1	MharpBinning	0
+0	1	MharpOffset	0
+0	1	MharpSyncDivider	1
+0	1	MharpSyncOffset	0
+0	1	MharpSyncLevel	-100
+0	1	MharpSyncEdge	0
+0	1	MharpInputOffset	0
+0	1	MharpInputLevel	-100
+0	1	MharpInputEdge	0
+0	1	MharpSaveTags	0
 0	2	BcdVddCore	1.850000
 0	2	BcdVdddCore	5.000000
 0	2	BcdVddCk	1.900000

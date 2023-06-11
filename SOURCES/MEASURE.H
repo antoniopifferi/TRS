@@ -86,7 +86,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1225
+#define MAX_TABLE		1235
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -708,19 +708,11 @@
 #define SEC_2_MILLISEC	1000 // conversion factor for second to millisecond
 
 /* MHARP CONSTANTS */
-#define MHARP_BINNING 	0 //you can change this
-#define MHARP_SYNC_OFFSET	0 
-#define MHARP_INPUT_OFFSET	0 
-#define MHARP_HIST_OFFSET	0 
-#define MHARP_SYNC_DIVIDER	1 //Note: you must reduce SYNC rate to <75 MHz 
-#define MHARP_SYNC_LEVEL		-100 //you can change this // ERA -200
-#define MHARP_SYNC_EDGE			0 //you can change this
-#define MHARP_INPUT_LEVEL			-100 //you can change this // ERA 100
-#define MHARP_INPUT_EDGE			0 //you can change this // ERA 1
-#define MHARP_LENCODE			2 //  Note: HistLen=1024*(2^MHARP_LENCODE)
 #define MHARP_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 #define T3HISTBINS 32768 //=2^15, dtime in T3 mode has 15 bits (w/o binning???)
 #define MH_SLEEPFORSYNCRATE 150 // After Init allow 150 ms for valid  count rate readings
+#define MH_FILEEXT		"mhbin" // file extension for MultiHarp Time Tags
+
 
 /* TH260 CONSTANTS */
 #define TH260_BINNING 	0 //you can change this
@@ -1702,13 +1694,16 @@ struct MharpS{
 	int Binning; // binning of the acquisition bins (i.e. channels in old TRS)
 	int SyncDivider; // to be used to reduce sync rate to max 75MHz, otherwise use 1
 	int LenCode; // Power of 2 of the HystLen (=P.Chann.Num)
-	int HistOffset; // shift of the histogram (ns) (maybe useful in few cases to discard part of the histogram)
+	int Offset; // shift of the histogram (ns) (maybe useful in few cases to discard part of the histogram)
 	int SyncOffset; // offset of the sync (ps)
 	int SyncLevel; // threshold for the sync (mV)
 	int SyncEdge; // 0=falling, 1=rising
 	int InputOffset; // offset of the signal (ps)
 	int InputLevel; // threshold for the signal (mV)
 	int InputEdge; // 0=falling, 1=rising
+	int SaveTags; // save file with time-tags. Format=Flow of TimeTags as retrieved with ReadFifo
+	char PathTags[PATHLEN]; // pathlength of the TAGS file
+	FILE *FileTags; // pointer to the TAGS FILE
 	};
 
 struct SpcS {
@@ -2366,7 +2361,7 @@ void StopFlowMharp(void);
 void WaitFlowMharp(void);
 void GetFlowMharp(void);
 void CopyFlowMharp(void);
-
+int InitFileMharpTags(void);
 
 /* ########################   TH260 HARP FUNCTIONS   ####################### */
 void InitTH260(int Board);

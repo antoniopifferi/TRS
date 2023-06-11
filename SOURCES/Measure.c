@@ -1358,6 +1358,7 @@ void CompleteParmS(void){
 		case DEMO:P.Spc.Calib=TEST_CALIB; break;
 		case SPC_NIRS:P.Spc.Calib=NIRS_DT; break;
 		case SPC_LUCA:P.Spc.Calib=LUCA_DT; break;
+		case SPC_MHARP: break;
 		default: break;
 		}
 	for(ib=0;ib<P.Num.Board;ib++) MakePathname (DIR_INI, P.Spc.IniFile[ib], P.Spc.Settings[ib]);
@@ -1388,6 +1389,15 @@ void CompleteParmS(void){
 	else
 		P.Spc.Format=SPC_LONG;
 	P.Spc.Subtract=(P.Meas.Stop?FALSE:TRUE);
+	if(P.Spc.Type==SPC_MHARP){
+		int lencode=0;
+		int a=1024;
+		while(P.Chann.Num<a){
+			a*=2;
+			lencode++;
+			}
+		P.Spc.Mharp[MHARP_DEV0].LenCode=lencode;
+		}
 	if((P.Spc.Type==SPC_NIRS)||(P.Spc.Type==SPC_LUCA)){
 		P.Meas.Stop=FALSE;
 		P.Spc.Subtract=FALSE;
@@ -3549,27 +3559,6 @@ void GetSwabElapsedTime(double *Elapsed_Time){
 	*Elapsed_Time=elapsed_time/(1.0*SWAB_S2PS);
 	}
 	
-/* START FILE WRITER SWAB */	
-void StartFileSwab(void){
-	int ret;
-	int is_running;
-	struct SwabS* SW=P.Spc.Swab;
-	int detectors[MAX_DET];
-	ssize_t numdet=P.Num.Det+1; // number of detectors in Swab
-	
-	detectors[0]=SW->DetSync; // NOTE: in case FreqDiv is APPLIED, this is Frequency Divided
-	for(int id=0;id<P.Num.Det;id++) detectors[id+1]=SW->DetSign[id];
-	//Open the FileWrite for writing the stream (Meas already checked)
-	if(!SW->isFwRunning&&SW->SaveTags){
-		strcpy(SW->FPathOut,P.File.Path); // take file name from .DAT file
-		SW->FPathOut[strlen(SW->FPathOut)-strlen(P.File.Ext)]=0; //delete ext of data fle for DTOF (leave '.' there)
-		strcat(SW->FPathOut,SWAB_FILEEXT); //add file ext for Time Tags the dot '.' is already included
-		ret=SwabianInstruments_TimeTagger_FileWriter__Create(&SW->Fw,SW->Ttb,SW->FPathOut,detectors,numdet,&SW->Except);
-		if(ret<0) ErrHandler(ERR_SWAB,ret,"FILE WRITER"); 
-		SW->isFwRunning=TRUE;
-		}
-	}
-
 	
 /* ########################   BCD FUNCTIONS ALSO STEP GATE AND PIX  ####################### */
 
@@ -3841,7 +3830,7 @@ void InitMharp(int Board) {
 	if(!isflow){ // initialize standard HIST Mode
 		ret = MH_Initialize(Board, MODE_HIST, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
 		ret = MH_SetHistoLen(Board, mh.LenCode, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
-		ret = MH_SetOffset(Board, mh.HistOffset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
+		ret = MH_SetOffset(Board, mh.Offset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
 		}
 	else{ // initialize T3 mode for flow
 		ret = MH_Initialize(Board, MODE_T3, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
@@ -4016,6 +4005,12 @@ void StartFlowMharp(void){
 	struct MharpS mh=P.Spc.Mharp[Board]; 
 	int isflow=TRUE;// You need this for the time being
 
+	if(P.Spc.Mharp[Board].SaveTags){
+		sprintf(message, "\nInitializing MharpHarp, Module #%d, ...", Board);
+		SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+		if(InitFileMharpTags()) Passed(); else ErrHandler(ERR_MHARP,0,"INIT FILE TAGS");
+		}
+
 	sprintf(message, "\nInitializing MharpHarp, Module #%d, ...", Board);
 	SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
 
@@ -4037,7 +4032,7 @@ void StartFlowMharp(void){
 	if(!isflow){ // initialize standard HIST Mode
 		ret = MH_Initialize(Board, MODE_HIST, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
 		ret = MH_SetHistoLen(Board, mh.LenCode, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
-		ret = MH_SetOffset(Board, mh.HistOffset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
+		ret = MH_SetOffset(Board, mh.Offset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
 		}
 	else{ // initialize T3 mode for flow
 		ret = MH_Initialize(Board, MODE_T3, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
@@ -4075,6 +4070,9 @@ void StartFlowMharp(void){
 void StopFlowMharp(void){
 	short ret;
 	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
+	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
+		if(!fclose(P.Spc.Mharp[MHARP_DEV0].FileTags)) ErrHandler(ERR_MHARP, 0, "MH_CloseFileTags");
+		}
 	}
 
 
@@ -4121,8 +4119,21 @@ void GetFlowMharp(void){
     	ret=MH_ReadFiFo(MHARP_DEV0,D.MharpBuffer[MHARP_DEV0],&numrecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
 		}
 	P.Spc.Mharp[MHARP_DEV0].NumRecords=numrecords;
-	}
+	
+	// Save all buffer to Tags File
+	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
+		if(fwrite(D.MharpBuffer[MHARP_DEV0],4,numrecords,P.Spc.Mharp[MHARP_DEV0].FileTags)!=(unsigned)numrecords) ErrHandler(ERR_MHARP, 0, "MH_WriteFileTags");
+		}
+ 	}
 
+/* INIT FILE WRITER MHARP */	
+int InitFileMharpTags(void){
+	struct MharpS* MH=&P.Spc.Mharp[MHARP_DEV0]; //use the pointer since you need to change the origianl structure
+	strcpy(MH->PathTags,P.File.Path); // take file name from .DAT file
+	MH->PathTags[strlen(MH->PathTags)-strlen(P.File.Ext)]=0; //delete ext of data fle for DTOF (leave '.' there)
+	strcat(MH->PathTags,MH_FILEEXT); //add file ext for Time Tags the dot '.' is already included
+	if((MH->FileTags=fopen(MH->PathTags,"wb"))==NULL) return(TRUE); else return(FALSE);
+	}
 
 /* ########################   TIMEHARP260 FUNCTIONS (TH260)  ####################### */
 
@@ -10768,7 +10779,8 @@ void ErrHandler(int Device, int Code, char* Function){
 			strcpy (sdevice, "HYDRA");
 			break;
 		case ERR_MHARP:
-			MH_GetErrorString(serror, Code);
+			if(Code) MH_GetErrorString(serror, Code);
+			else strcpy (serror, "- c function -");
 			strcpy (sdevice, "MHARP");
 			break;
 		case ERR_TH260:
