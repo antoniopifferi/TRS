@@ -447,7 +447,7 @@ int TestPython(){
     printf("Result of call2: %ld\n", PyLong_AsLong(pRes3));
 
     // per disallocare la memoria dei pyObject... (comunque Py_Finalize() disalloca automaticamente tutto)
-	// tolte perchè se chiamate in ripetizione la variabile va tenuta
+	// tolte perchï¿½ se chiamate in ripetizione la variabile va tenuta
     //Py_DECREF(pModule);
     //Py_DECREF(pFunc);
     //Py_DECREF(pArgs);
@@ -7901,7 +7901,7 @@ void writePatternsOnFile(const int nEl, unsigned char ***basis){
     }
 }
 
-// questa funzione è qui perchè non inclusa nella dll di getbasis --> sistemato ora è inclusa
+// questa funzione ï¿½ qui perchï¿½ non inclusa nella dll di getbasis --> sistemato ora ï¿½ inclusa
 //int DmdTx_minimum(const int a, const int b){
 //	if(a>b) return b;
 //	else return a;
@@ -7969,7 +7969,7 @@ void SetupDmdTx(struct InfoDmd *info){
 					printf("Select endPx: ");
 					scanf("%d", &(info->endPx));
 					if ((info->endPx - info->startPx) / info->nBasis < 1) {
-						printf("***ERROR: Range startPx - endPx is too short for nBasis!!"); // andrebbero contollate altre possibilità di errore (es. endPx>WIDTH+HEIGHT, endPx<startPx...)
+						printf("***ERROR: Range startPx - endPx is too short for nBasis!!"); // andrebbero contollate altre possibilitï¿½ di errore (es. endPx>WIDTH+HEIGHT, endPx<startPx...)
 						return 1;
 					}
 				}
