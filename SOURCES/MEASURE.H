@@ -14,7 +14,7 @@
 
 // TYPE OF DATA
 // USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards.
-#define T_DATA unsigned short
+#define T_DATA unsigned long
 #define T_HEAD struct sHeader2
 #define T_SUB struct sSubHeader1
 
@@ -2331,7 +2331,6 @@ void CloseSpcm(void);
 void ClearSpcm(void);
 
 void test_sequencer_state(void);
-void SpcFlowSpcm(void);
 void WaitFlowSpcm(void);
 void CheckTriggerFlowSpcm(void);
 void GetFlowSpcm(void);
