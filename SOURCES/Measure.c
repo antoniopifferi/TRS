@@ -1392,7 +1392,7 @@ void CompleteParmS(void){
 	if(P.Spc.Type==SPC_MHARP){
 		int lencode=0;
 		int a=1024;
-		while(P.Chann.Num<a){
+		while(a<P.Chann.Num){
 			a*=2;
 			lencode++;
 			}
@@ -4007,7 +4007,8 @@ void StartFlowMharp(void){
 	int HistLen;
 
 	// Clear Buffer and initialise all variables
-	memset(D.Buffer[Board],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
+	for(int i=0; i<P.Num.Det*P.Chann.Num;i++) D.Buffer[Board][i]=0;
+	//memset(D.Buffer[Board],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
 	P.Flow.FilledFrame=FALSE;
 	P.Spc.Mharp[Board].Sync0=0;
 	P.Spc.Mharp[Board].EndTacq=FALSE;
@@ -4056,6 +4057,7 @@ void StartFlowMharp(void){
 		}
 	else{ // initialize T3 mode for flow
 		ret = MH_Initialize(Board, MODE_T3, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
+		ret = MH_SetOffset(Board, mh.Offset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
 		}
 	
 	// initialize Start Mode (you ALWAYS need this for the get sync rate and standard oscilloscope. Ovveride later on in case (e.g. marker)
@@ -4109,7 +4111,8 @@ void CopyFlowMharp(void){
 				for(int ic=0;ic<P.Chann.Num;ic++)
 					for(int id=0;id<P.Num.Det;id++)
 						D.Data[P.Frame.Actual][page0][ic]=D.Buffer[ib][ic+id*P.Chann.Num];
-				memset(D.Buffer[ib],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
+				for(int i=0; i<P.Num.Det*P.Chann.Num;i++) D.Buffer[ib][i]=0;
+				//memset(D.Buffer[ib],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
 				P.Flow.FilledFrame=TRUE; // Completed 1 Frame, go to next loop
 				P.Spc.Mharp[ib].ActualRecord=ir; // keep track of last read record
 				return; // exit the whole function
