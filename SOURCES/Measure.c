@@ -2215,6 +2215,7 @@ void SetGraphType(void){
 
 /* DISPLAY CURVE ON PLOT */
 void GraphPlot(void){
+	/**/ int a;
 	int plot_num,ip,page;
 	//int red,green,blue;
 	int color[MAX_PLOT];
@@ -2225,6 +2226,7 @@ void GraphPlot(void){
 	
 /**/	minplot = 1e0;
 /**/	maxplot = 1e5;
+
 
 /*	for(ip=0;ip<MAX_PLOT;ip++){
 		red=COLOR_FULL*(1-COLOR_FRACT*(1-1.0/4*ip+1))-1;
@@ -3983,7 +3985,8 @@ void ProcessT3(unsigned int TTTRRecord){
 		dt = T3Rec.bits.dtime; // bin=channel in TRS meaning
     	D.Buffer[MHARP_DEV0][dt+ch*P.Num.Det]++; //Histogramming: add one photon
 		double elapsed_time=(truensync-P.Spc.Mharp[MHARP_DEV0].Sync0)/(double)(P.Spc.Mharp[MHARP_DEV0].SyncRate); // time (s) since Start (Sync0)	
-		if(elapsed_time>(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1)*P.Spc.TimeM){ //completed Tacq=P.Spc.TimeM NOTE +1 since check end
+		double target_time=(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1)*P.Spc.TimeM; // goal time (s) since Start (Sync0)
+		if(elapsed_time>target_time){ //completed Tacq=P.Spc.TimeM NOTE +1 since check end
 			P.Spc.Mharp[MHARP_DEV0].EndTacq=TRUE;
 			P.Spc.Mharp[MHARP_DEV0].PassedTacq++; // this start from 0 and go on up to the end of meas.
 			}
@@ -4007,8 +4010,8 @@ void StartFlowMharp(void){
 	int HistLen;
 
 	// Clear Buffer and initialise all variables
-	for(int i=0; i<P.Num.Det*P.Chann.Num;i++) D.Buffer[Board][i]=0;
-	//memset(D.Buffer[Board],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
+	//for(int i=0; i<P.Num.Det*P.Chann.Num;i++) D.Buffer[Board][i]=0;
+	memset(D.Buffer[Board],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
 	P.Flow.FilledFrame=FALSE;
 	P.Spc.Mharp[Board].Sync0=0;
 	P.Spc.Mharp[Board].EndTacq=FALSE;
@@ -4109,10 +4112,11 @@ void CopyFlowMharp(void){
 				if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page0);
 				P.Page[page0].Acq=P.Acq.Actual;
 				for(int ic=0;ic<P.Chann.Num;ic++)
-					for(int id=0;id<P.Num.Det;id++)
+					for(int id=0;id<P.Num.Det;id++){
 						D.Data[P.Frame.Actual][page0][ic]=D.Buffer[ib][ic+id*P.Chann.Num];
-				for(int i=0; i<P.Num.Det*P.Chann.Num;i++) D.Buffer[ib][i]=0;
-				//memset(D.Buffer[ib],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
+						}
+				//for(int i=0; i<P.Num.Det*P.Chann.Num;i++) D.Buffer[ib][i]=0;
+				memset(D.Buffer[ib],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
 				P.Flow.FilledFrame=TRUE; // Completed 1 Frame, go to next loop
 				P.Spc.Mharp[ib].ActualRecord=ir; // keep track of last read record
 				return; // exit the whole function
@@ -4136,9 +4140,10 @@ void GetFlowMharp(void){
 	int ret;
 	int numrecords=0;
 	if(!P.Spc.Mharp[MHARP_DEV0].NextFifo) return;
-	ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
-    if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");	
+	
 	while(numrecords==0){
+		ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
+    	if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");	
     	ret=MH_ReadFiFo(MHARP_DEV0,D.MharpBuffer[MHARP_DEV0],&numrecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
 		}
 	P.Spc.Mharp[MHARP_DEV0].NumRecords=numrecords;
@@ -4147,6 +4152,412 @@ void GetFlowMharp(void){
 	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
 		if(fwrite(D.MharpBuffer[MHARP_DEV0],4,numrecords,P.Spc.Mharp[MHARP_DEV0].FileTags)!=(unsigned)numrecords) ErrHandler(ERR_MHARP, 0, "MH_WriteFileTags");
 		}
+	
+	
+//FILE *fpout;
+//uint64_t oflcorrection = 0;
+//double Resolution = 0; // in ps
+//double Syncperiod = 0; // in s
+
+//unsigned int buffer[TTREADMAX];
+
+//#define T3HISTBINS 32768 //=2^15, dtime in T3 mode has 15 bits
+//unsigned int histogram[MAXINPCHAN][T3HISTBINS];
+//	
+//	
+//	int stopretry = 0;
+//	int flags;  
+//	int nRecords;
+//	int fifo=0;
+//  int dev[MAXDEVNUM];
+//  int found = 0;
+//  int retcode;
+//  int ctcstatus;
+//  char LIB_Version[8];
+//  char HW_Model[32];
+//  char HW_Partno[8];
+//  char HW_Serial[9];
+//  char HW_Version[16];
+//  char Errorstring[40];
+//  int NumChannels;
+//  int Mode = MODE_T3; //This demo is only for T3! observe suitable Sync divider and Range!
+//  int Binning = 4;    //you can change this, meaningful only in T3 mode
+//  int Offset = 0;     //you can change this, meaningful only in T3 mode
+//  int Tacq = ACQTMAX;    //Measurement time in millisec, you can change this
+//  int SyncDivider = 1; //you can change this, observe Mode! READ MANUAL!
+
+//  int SyncTiggerEdge = 0; //you can change this
+//  int SyncTriggerLevel = -50; //you can change this
+//  int InputTriggerEdge = 0; //you can change this
+//  int InputTriggerLevel = -50; //you can change this
+
+//  int Syncrate;
+//  int Countrate;
+//  int i,j;
+//  int warnings;
+//  char warningstext[16384]; //must have 16384 bytest text buffer
+//  unsigned int Progress;
+
+//  memset(histogram, 0, sizeof(histogram));
+
+//  printf("\nMultiHarp MHLib Demo Application                      PicoQuant GmbH, 2022");
+//  printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+//  MH_GetLibraryVersion(LIB_Version);
+//  printf("\nLibrary version is %s\n", LIB_Version);
+//  if (strncmp(LIB_Version, LIB_VERSION, sizeof(LIB_VERSION)) != 0)
+//  {
+//    printf("\nWarning: The application was built for version %s.", LIB_VERSION);
+//  }
+
+//  if ((fpout = fopen("t3histout.txt", "w")) == NULL)
+//  {
+//    printf("\ncannot open output file\n");
+//    goto ex;
+//  }
+
+
+//  printf("\nSearching for MultiHarp devices...");
+//  printf("\nDevidx     Serial     Status");
+
+
+//  for (i = 0; i < MAXDEVNUM; i++)
+//  {
+//    retcode = MH_OpenDevice(i, HW_Serial);
+//    if (retcode == 0) //Grab any device we can open
+//    {
+//      printf("\n  %1d        %7s    open ok", i, HW_Serial);
+//      dev[found] = i; //keep index to devices we want to use
+//      found++;
+//    }
+//    else
+//    {
+//      if (retcode == HH_ERROR_DEVICE_OPEN_FAIL)
+//      {
+//        printf("\n  %1d        %7s    no device", i, HW_Serial);
+//      }
+//      else
+//      {
+//        MH_GetErrorString(Errorstring, retcode);
+//        printf("\n  %1d        %7s    %s", i, HW_Serial, Errorstring);
+//      }
+//    }
+//  }
+
+//  //In this demo we will use the first device we find, i.e. dev[0].
+//  //You can also use multiple devices in parallel.
+//  //You can also check for specific serial numbers, so that you always know 
+//  //which physical device you are talking to.
+
+//  if (found < 1)
+//  {
+//    printf("\nNo device available.");
+//    goto ex;
+//  }
+//  printf("\nUsing device #%1d", dev[0]);
+//  printf("\nInitializing the device...");
+
+
+//  retcode = MH_Initialize(dev[0], Mode, 0);
+//  if (retcode < 0)
+//  {
+//    MH_GetErrorString(Errorstring, retcode);
+//    printf("\nMH_Initialize error %d (%s). Aborted.\n", retcode, Errorstring);
+//    goto ex;
+//  }
+
+//  retcode = MH_GetHardwareInfo(dev[0], HW_Model, HW_Partno, HW_Version);
+//  if (retcode < 0)
+//  {
+//    MH_GetErrorString(Errorstring, retcode);
+//    printf("\nMH_GetHardwareInfo error %d (%s). Aborted.\n", retcode, Errorstring);
+//    goto ex;
+//  }
+//  else
+//  {
+//    printf("\nFound Model %s Part no %s Version %s", HW_Model, HW_Partno, HW_Version);
+//  }
+
+
+//  retcode = MH_GetNumOfInputChannels(dev[0], &NumChannels);
+//  if (retcode < 0)
+//  {
+//    MH_GetErrorString(Errorstring, retcode);
+//    printf("\nMH_GetNumOfInputChannels error %d (%s). Aborted.\n", retcode, Errorstring);
+//    goto ex;
+//  }
+//  else
+//  {
+//    printf("\nDevice has %i input channels.", NumChannels);
+//  }
+
+//  printf("\n\nUsing the following settings:\n");
+
+//  printf("Mode              : %d\n", Mode);
+//  printf("Binning           : %d\n", Binning);
+//  printf("Offset            : %d\n", Offset);
+//  printf("AcquisitionTime   : %d\n", Tacq);
+//  printf("SyncDivider       : %d\n", SyncDivider);
+//  printf("SyncTiggerEdge    : %d\n", SyncTiggerEdge);
+//  printf("SyncTriggerLevel  : %d\n", SyncTriggerLevel);
+//  printf("InputTriggerEdge  : %d\n", InputTriggerEdge);
+//  printf("InputTriggerLevel : %d\n", InputTriggerLevel);
+
+
+//  retcode = MH_SetSyncDiv(dev[0], SyncDivider);
+//  if (retcode < 0)
+//  {
+//   MH_GetErrorString(Errorstring, retcode);
+//    printf("\nPH_SetSyncDiv error %d (%s). Aborted.\n", retcode, Errorstring);
+//    goto ex;
+//  }
+
+//  retcode =MH_SetSyncEdgeTrg(dev[0], SyncTriggerLevel, SyncTiggerEdge);
+//  if (retcode < 0)
+//  {
+//    MH_GetErrorString(Errorstring, retcode);
+//    printf("\nMH_SetSyncEdgeTrg error %d (%s). Aborted.\n", retcode, Errorstring);
+//    goto ex;
+//  }
+
+//  retcode = MH_SetSyncChannelOffset(dev[0], -10000); //in ps, emulate a cable delay
+//  if (retcode<0)
+//  {
+//   MH_GetErrorString(Errorstring, retcode);
+//    printf("\nMH_SetSyncChannelOffset error %d (%s). Aborted.\n", retcode, Errorstring);
+//    goto ex;
+//  }
+
+//  for (i = 0; i < NumChannels; i++) // we use the same input settings for all channels
+//  {
+//    retcode = MH_SetInputEdgeTrg(dev[0], i, InputTriggerLevel, InputTriggerEdge);
+//    if (retcode < 0)
+//    {
+//      MH_GetErrorString(Errorstring, retcode);
+//      printf("\nMH_SetInputEdgeTrg error %d (%s). Aborted.\n", retcode, Errorstring);
+//      goto ex;
+//    }
+
+//    retcode =MH_SetInputChannelOffset(dev[0], i, 0);  //in ps, emulate a cable delay
+//    if (retcode < 0)
+//    {
+//      MH_GetErrorString(Errorstring, retcode);
+//      printf("\nMH_SetInputChannelOffset error %d (%s). Aborted.\n", retcode, Errorstring);
+//      goto ex;
+//    }
+
+//    retcode = MH_SetInputChannelEnable(dev[0], i, 1);
+//    if (retcode < 0)
+//    {
+//      MH_GetErrorString(Errorstring, retcode);
+//      printf("\nMH_SetInputChannelEnable error %d (%s). Aborted.\n", retcode, Errorstring);
+//      goto ex;
+//    }
+//  }
+
+//  if (Mode != MODE_T2)
+//  {
+//    retcode = MH_SetBinning(dev[0], Binning);
+//    if (retcode < 0)
+//    {
+//      MH_GetErrorString(Errorstring, retcode);
+//      printf("\nMH_SetBinning error %d (%s). Aborted.\n", retcode, Errorstring);
+//      goto ex;
+//    }
+
+//    retcode = MH_SetOffset(dev[0], Offset);
+//    if (retcode<0)
+//    {
+//      MH_GetErrorString(Errorstring, retcode);
+//      printf("\nMH_SetOffset error %d (%s). Aborted.\n", retcode, Errorstring);
+//      goto ex;
+//    }
+//  }
+
+//  retcode = MH_GetResolution(dev[0], &Resolution);
+//  if (retcode<0)
+//  {
+//    MH_GetErrorString(Errorstring, retcode);
+//    printf("\nMH_GetResolution error %d (%s). Aborted.\n", retcode, Errorstring);
+//    goto ex;
+//  }
+//  printf("\nResolution is %1.0lfps\n", Resolution);
+
+//  printf("\nMeasuring input rates...\n");
+
+
+//  // After Init allow 150 ms for valid  count rate readings
+//  // Subsequently you get new values after every 100ms
+//  Sleep(150);
+
+//  retcode = MH_GetSyncRate(dev[0], &Syncrate);
+//  if (retcode < 0)
+//  {
+//    MH_GetErrorString(Errorstring, retcode);
+//    printf("\nMH_GetSyncRate error%d (%s). Aborted.\n", retcode, Errorstring);
+//    goto ex;
+//  }
+//  printf("\nSyncrate=%1d/s", Syncrate);
+
+
+//  for (i = 0; i < NumChannels; i++) // for all channels
+//  {
+//    retcode = MH_GetCountRate(dev[0], i, &Countrate);
+//    if (retcode<0)
+//    {
+//      MH_GetErrorString(Errorstring, retcode);
+//      printf("\nMH_GetCountRate error %d (%s). Aborted.\n", retcode, Errorstring);
+//      goto ex;
+//    }
+//    printf("\nCountrate[%1d]=%1d/s", i, Countrate);
+//  }
+
+//  printf("\n");
+
+//  //after getting the count rates you can check for warnings
+//  retcode = MH_GetWarnings(dev[0], &warnings);
+//  if (retcode<0)
+//  {
+//    MH_GetErrorString(Errorstring, retcode);
+//    printf("\nMH_GetWarnings error %d (%s). Aborted.\n", retcode, Errorstring);
+//    goto ex;
+//  }
+//  if (warnings)
+//  {
+//    MH_GetWarningsText(dev[0], warningstext, warnings);
+//    printf("\n\n%s", warningstext);
+//  }
+
+//  if (Mode == MODE_T2)
+//    fprintf(fpout,"This demo is not for use with T2 mode!\n");
+//  else
+//  {
+//    for (j = 0; j < NumChannels; j++)
+//	  fprintf(fpout,"  ch%2u ", j);
+//    fprintf(fpout,"\n");
+//  }
+//  printf("\npress RETURN to start");
+//  getchar();
+
+//  retcode = MH_StartMeas(dev[0], ACQTMAX);
+//  if (retcode < 0)
+//  {
+//    MH_GetErrorString(Errorstring, retcode);
+//    printf("\nMH_StartMeas error %d (%s). Aborted.\n", retcode, Errorstring);
+//    goto ex;
+//  }
+
+//  if (Mode == MODE_T3)
+//  {
+//    //We need the sync period in order to calculate the true times of photon records.
+//    //This only makes sense in T3 mode and it assumes a stable period like from a laser.
+//    //Note: Two sync periods must have elapsed after MH_StartMeas to get proper results.
+//    //You can also use the inverse of what you read via GetSyncRate but it depends on 
+//    //the actual sync rate if this is accurate enough.
+//    //It is OK to use the sync input for a photon detector, e.g. if you want to perform
+//    //something like an antibunching measurement. In that case the sync rate obviously is
+//    //not periodic. This means that a) you should set the sync divider to 1 (none) and
+//    //b) that you cannot meaningfully measure the sync period here, which probaly won't
+//    //matter as you only care for the time difference (dtime) of the events.
+//    retcode = MH_GetSyncPeriod(dev[0], &Syncperiod);
+//    if (retcode<0)
+//    {
+//      MH_GetErrorString(Errorstring, retcode);
+//      printf("\nMH_GetSyncPeriod error %d (%s). Aborted.\n", retcode, Errorstring);
+//      goto ex;
+//    }
+//    printf("\nSync period is %lf ns\n", Syncperiod * 1e9);
+//  }
+
+//  printf("\nStarting data collection...\n");
+
+//  Progress = 0;
+//  printf("\nProgress:%12u", Progress);
+
+//  oflcorrection = 0;
+
+
+
+
+// 
+//  while (1)
+//  {
+//    retcode = MH_GetFlags(dev[0], &flags);
+//    if (retcode < 0)
+//    {
+//      MH_GetErrorString(Errorstring, retcode);
+//      printf("\nMH_GetFlags error %d (%s). Aborted.\n", retcode, Errorstring);
+//      goto ex;
+//    }
+
+//    if (flags & FLAG_FIFOFULL)
+//    {
+//      printf("\nFiFo Overrun!\n");
+//      goto ex;
+//    }
+
+//    retcode = MH_ReadFiFo(dev[0], buffer, &nRecords);   //may return less!  
+//    if (retcode < 0)
+//    {
+//      MH_GetErrorString(Errorstring, retcode);
+//      printf("\nMH_ReadFiFo error %d (%s). Aborted.\n", retcode, Errorstring);
+//      goto ex;
+//    }
+
+//    if (nRecords)
+//    {
+//      // Here we process the data. Note that the time this consumes prevents us
+//      // from getting around the loop quickly for the next Fifo read.
+//      // In a serious performance critical scenario you would write the data to
+//      // a software queue and do the processing in another thread reading from 
+//      // that queue.
+
+//      if (Mode == MODE_T2)
+//        for (i = 0; i < nRecords; i++)
+//          ProcessT3(buffer[i]);
+//      else
+//        for (i = 0; i < nRecords; i++)
+//          ProcessT3(buffer[i]);
+
+//      Progress += nRecords;
+//      printf("\b\b\b\b\b\b\b\b\b\b\b\b%12u", Progress);
+//      fflush(stdout);
+//    }
+//    else
+//    {
+//      retcode = MH_CTCStatus(dev[0], &ctcstatus);
+//      if (retcode < 0)
+//      {
+//        MH_GetErrorString(Errorstring, retcode);
+//        printf("\nMH_CTCStatus error %d (%s). Aborted.\n", retcode, Errorstring);
+//        goto ex;
+//      }
+//      if (ctcstatus)
+//      {
+//        stopretry++; //do a few more rounds as there might be some more in the FiFo
+//        if(stopretry>5) 
+//        {
+//          printf("\nDone\n");
+//          goto ex;
+//        }
+//      }
+//    }
+
+//    //within this loop you can also read the count rates if needed.
+//  }
+
+//	
+//	
+//ex:
+
+
+//  printf("\npress RETURN to exit");
+//  getchar();
+
+//  return 0;
+
+//	
+//	
+//	
  	}
 
 /* INIT FILE WRITER MHARP */	

@@ -67,7 +67,7 @@ int main (int argc, char *argv[]){
 	InitPanel();
 	InitPad();								//ALE
 	InitVariable();
-	SetSleepPolicy (VAL_SLEEP_MORE);
+	SetSleepPolicy (VAL_SLEEP_NONE);
 	RunUserInterface ();
 	return 0;
 	}
