@@ -3999,6 +3999,10 @@ void StartFlowMharp(void){
 	// Clear Buffer and initialise all variables
 	//for(int i=0; i<P.Num.Det*P.Chann.Num;i++) D.Buffer[Board][i]=0;
 	memset(D.Buffer[Board],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
+<<<<<<< HEAD
+=======
+	P.Flow.FilledFrame=FALSE;
+>>>>>>> GAP
 	P.Spc.Mharp[Board].Sync0=0;
 	P.Spc.Mharp[Board].EndTacq=FALSE;
 	P.Spc.Mharp[Board].PassedTacq=0; // this start from 0 and go on up to the end of meas.
