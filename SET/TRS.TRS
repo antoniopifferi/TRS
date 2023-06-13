@@ -47,14 +47,9 @@
 0	0	TimeBase	0
 0	0	ReadUIR	0
 0	3	FileDir	c:\temp
-0	3	FileExt	DAT
-<<<<<<< HEAD
-0	3	FilePrefix	AAAm
-0	1	FileTag	170
-=======
+0	3	FileExt	HEAD
 0	3	FilePrefix	BCDm
 0	1	FileTag	117
->>>>>>> GAP
 0	0	FileType	1
 0	0	FileSave	1
 0	0	FlowFlow	1
