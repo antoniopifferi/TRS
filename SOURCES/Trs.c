@@ -415,8 +415,11 @@ void CreateTable(void){
 	AddTab(CE,TCHAR,PARM,PARM_FILE_TYPE,"FileType",0,0,&P.File.Type); 
 	AddTab(CE,TCHAR,PARM,PARM_FILE_SAVE,"FileSave",0,0,&P.File.Save); 
 
-	// 19+5
+	// 2
 	AddTab(CE,TCHAR,PARM,PARM_FLOW_FLOW,"FlowFlow",0,0,&P.Flow.Flow);
+	AddTab(CE,TINT,PARM,PARM_FLOW_MULTI_THREAD,"FlowMultiThread",0,0,&P.Flow.MultiThread);
+	
+	// 19+4
 	AddTab(CE,TCHAR,PARM,PARM_SPC_TYPE,"SpcType",0,0,&P.Spc.Type);
 	AddTab(CE,TCHAR,PARM,PARM_SPC_SCALE,"SpcScale",0,0,&P.Spc.Scale);
 	AddTab(CE,TDOUBLE,PARM,PARM_SPC_CALIB,"SpcCalib",0,0,&P.Spc.Calib);

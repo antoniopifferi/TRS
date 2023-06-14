@@ -86,7 +86,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1235
+#define MAX_TABLE		1236
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -712,6 +712,8 @@
 #define T3HISTBINS 32768 //=2^15, dtime in T3 mode has 15 bits (w/o binning???)
 #define MH_SLEEPFORSYNCRATE 150 // After Init allow 150 ms for valid  count rate readings
 #define MH_FILEEXT		"mhbin" // file extension for MultiHarp Time Tags
+#define MHARP_SLEEP_THREAD 0.002 // number of seconds to sleep if FIFO or Buffer not ready
+#define MHARP_BUFFER_MULT 4 // Factor to increase the size of the buffer for multithread storing
 
 
 /* TH260 CONSTANTS */
@@ -2069,6 +2071,11 @@ struct FlowS {
 	int Bank;
 	int Spcm;
 	int Mharp;
+	int MultiThread;
+	int StopMultiThread;
+	int MultiThreadFunctionId;
+	int NumRecords;
+	CmtThreadLockHandle Lock;
 	};
 
 struct ParmS {
@@ -2135,7 +2142,8 @@ struct DataS {
 	T_DATA **Bank;		// D.Bank[P.Num.Board][SPC_BANK_DIM] or D.Bank[P.Num.Board][MAX FIFO MHARP] // not a problem: there is a calloc later
 	T_DATA *Curve;		// D.Curve[P.Num.Chann] 
 	T_DATA *Last;		// D.Last[P.Num.Chann]
-	uint32_t **MharpBuffer;		// D.MharpBuffer[P.Num.Board][TTREADMAX] 
+	uint32_t **MharpBuffer;		// D.MharpBuffer[P.Num.Board][TTREADMAX*MHARP_BUFFER_MULT] 
+	uint32_t *MharpBufferThread;	// D.MharpBufferThread[P.Num.Board][TTREADMAX*MHARP_BUFFER_MULT]
 	SC1000_TYPE ***BufferTDC;
 	};
 
@@ -2361,6 +2369,10 @@ void WaitFlowMharp(void);
 void GetFlowMharp(void);
 void CopyFlowMharp(void);
 int InitFileMharpTags(void);
+void MharpReadFifoSingle(unsigned int* Buffer, int* pNumRecords);
+void MharpReadFifoMulti(unsigned int* Buffer, int* pNumRecords);
+int CVICALLBACK FlowMultithreadMharp (void *functionData);
+
 
 /* ########################   TH260 HARP FUNCTIONS   ####################### */
 void InitTH260(int Board);
