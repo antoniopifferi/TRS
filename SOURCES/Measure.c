@@ -1202,7 +1202,7 @@ void CloseMem(void){
 
 /* COMPLETE STRUCTURE PARM */
 void CompleteParmS(void){  
-	int  is,isw,il,it,ir,ips,ipp,nb,ib;
+	int  is,isw,il,it,ir,ip,ips,ipp,nb,ib;
     int LoopFactorTot;
     int NumBlock=0;
     char loopX, loopY;
@@ -1638,7 +1638,7 @@ void CheckJump(void){
 	
 	// check max area
 	P.Jump.Area=0;
-	for(ic=0;ic<P.Chann.Num;ic++) P.Jump.Area+=D.Buffer[P.Jump.Board][ic];
+	for(int ic=0;ic<P.Chann.Num;ic++) P.Jump.Area+=D.Buffer[P.Jump.Board][ic];
 	if(P.Jump.Area<P.Jump.Max){ P.Jump.Break=FALSE; return;}
 	
 	// set flags
@@ -2270,7 +2270,7 @@ void GraphPlot(void){
 							   P.Chann.Num, type_data, VAL_SCATTER,
 							   VAL_SMALL_CROSS, VAL_SOLID, 1, color[ip]);
 				// Draw markers
-				for(ir=0;ir<MAX_ROW_ROI;ir++)
+				for(int ir=0;ir<MAX_ROW_ROI;ir++)
 					if(is_meas?P.Roi.RoiM[ir]:P.Roi.RoiO[ir]) {
 						GetTableCellAttribute (hDisplay, DISPLAY_T_ROI, MakePoint(COL_ROI_PAGE,ir+1), ATTR_CTRL_VAL,
 		   						&roipage);
@@ -3899,17 +3899,22 @@ void StopMharp(int Board) {
 /* TRANSFER DATA FROM SPC_MHARP */
 void GetDataMharp(void) {
 	//short state;
-	int ib;
-	int ic;
-	unsigned int DataMharp[1024 * 16]; // TODO CHECK
+	unsigned int DataMharp[4096]; // TODO CHECK
 	int ret = 0;
 
+	/**/double t0=Timer();
 	P.Spc.Overflow = FALSE;
-	for (ib = 0; ib < P.Num.Board; ib++) {
-		ret = MH_GetHistogram(MHARP_DEV0, DataMharp, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
-		for (ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic] = (unsigned short)DataMharp[ic];
+	for (int ib = 0; ib < P.Num.Board; ib++) {
+//		ret = MH_GetAllHistograms(MHARP_DEV0, DataMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
+		for(int id=0;id<P.Num.Det;id++){
+			ret = MH_GetHistogram(MHARP_DEV0, DataMharp,id); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
+			for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[ic];
+//			for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[id][ic];
+			}
+		}
+	/**/double t1=Timer();
+	/**/printf("Delta=%lf ms\n",1000*(t1-t0));
 	}
-}
 
 
 /* CLEAR SPC_MHARP */
@@ -4080,38 +4085,47 @@ void StartFlowMharp(void){
 	
 	// Start Multi Thread function to fetch FIFO Buffer
 	if(P.Flow.MultiThread){
-		P.Flow.StopMultiThread=FALSE;
+		CmtNewLock(NULL,0,&P.Flow.Lock); // initialise the Lock		
+		CmtGetLock(P.Flow.Lock);
+			P.Flow.StopMultiThread=FALSE;
+		CmtReleaseLock(P.Flow.Lock);	
 		CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, FlowMultithreadMharp, NULL,&P.Flow.MultiThreadFunctionId);
 		}
 	}
 
 void StopFlowMharp(void){
 	short ret;
-	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
 	
-	if(P.Flow.MultiThread){ // Stop Multi Thread function to fetch FIFO Buffer
+	// Stop Multi Thread function to fetch FIFO Buffer
+	if(P.Flow.MultiThread){ 
 		P.Flow.StopMultiThread=TRUE;
 		CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE, P.Flow.MultiThreadFunctionId, 0);
+		CmtDiscardLock(P.Flow.Lock); // remove the Lock	
 		}
+	
+	// stop board
+	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
 
+	// file TAGS
 	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
 		if(!fclose(P.Spc.Mharp[MHARP_DEV0].FileTags)) ErrHandler(ERR_MHARP, 0, "MH_CloseFileTags");
 		}
 	}
 
 void CopyFlowMharp(void){
-	int page0=0; // just 1 page
+	int page0=0;
 	for(int ib=0;ib<P.Num.Board;ib++){
-		for(ir=P.Spc.Mharp[ib].ActualRecord;ir<P.Spc.Mharp[ib].NumRecords;ir++){	// iterate over records in the FIFO Buffer
+		for(int ir=P.Spc.Mharp[ib].ActualRecord;ir<P.Spc.Mharp[ib].NumRecords;ir++){	// iterate over records in the FIFO Buffer
 			ProcessT3(D.MharpBuffer[ib][ir]); // Decipher the record and add to Histogramming
 			if(P.Spc.Mharp[ib].EndTacq){ // Completed Tacq
-				long page=P.Filter.Page[P.Acq.Actual][ib][page0]; // last [] is the page num
-				if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page0);
-				P.Page[page0].Acq=P.Acq.Actual;
-				for(int ic=0;ic<P.Chann.Num;ic++)
-					for(int id=0;id<P.Num.Det;id++){
-						D.Data[P.Frame.Actual][page0][ic]=D.Buffer[ib][ic+id*P.Chann.Num];
+				for(int id=0;id<P.Num.Det;id++){
+					long page=P.Filter.Page[P.Acq.Actual][ib][id];
+					P.Page[page].Acq=P.Acq.Actual;
+					if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page);
+					for(int ic=0;ic<P.Chann.Num;ic++){
+						D.Data[P.Frame.Actual][page][ic]=D.Buffer[ib][ic+id*P.Chann.Num];
 						}
+					}
 				memset(D.Buffer[ib],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
 				P.Flow.FilledFrame=TRUE; // Completed 1 Frame, go to next loop
 				P.Spc.Mharp[ib].EndTacq=FALSE; // reset Tacq to initial state (FALSE) 
@@ -4166,14 +4180,14 @@ void MharpReadFifoMulti(unsigned int* Buffer, int* pNumRecords){
 	while(wait){
 		CmtGetLock(P.Flow.Lock);
 		if(P.Flow.NumRecords>0){
-			for(ir=0;ir<P.Flow.NumRecords;ir++) Buffer[ir]=D.MharpBufferThread[ir];	
+			for(int ir=0;ir<P.Flow.NumRecords;ir++) Buffer[ir]=D.MharpBufferThread[ir];	
+			*pNumRecords=P.Flow.NumRecords;
 			P.Flow.NumRecords=0;
 			wait=FALSE;
 			}
 		CmtReleaseLock(P.Flow.Lock);
 		if(wait) Delay(MHARP_SLEEP_THREAD);
 		}
-	*pNumRecords=P.Flow.NumRecords;
 	}
 
 /* Multithread Function: Get FIFO into Multithread Buffer */
@@ -4182,7 +4196,8 @@ int CVICALLBACK FlowMultithreadMharp (void *functionData){
 	int ret;
 	unsigned int buffer[TTREADMAX];
 	
-	while(!P.Flow.StopMultiThread) {
+	while(1) {
+		if(P.Flow.StopMultiThread) return 0;
 		int numrecords=0;
 		ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
     	if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");	
@@ -4190,9 +4205,11 @@ int CVICALLBACK FlowMultithreadMharp (void *functionData){
 		if(numrecords>0){
 			int wait=TRUE;
 			while(wait){
+				if(P.Flow.StopMultiThread) return 0;
 				CmtGetLock(P.Flow.Lock);
+				//P.Flow.NumRecords=0;
 				if(P.Flow.NumRecords+numrecords<TTREADMAX*MHARP_BUFFER_MULT){ // there is enough space in the multithread buffer to host these data
-					for(ir=0;ir<numrecords;ir++) D.MharpBufferThread[P.Flow.NumRecords+ir]=buffer[ir];
+					for(int ir=0;ir<numrecords;ir++) D.MharpBufferThread[P.Flow.NumRecords+ir]=buffer[ir];
 					P.Flow.NumRecords+=numrecords;
 					wait=FALSE;
 					}
@@ -4201,7 +4218,6 @@ int CVICALLBACK FlowMultithreadMharp (void *functionData){
 				}
 			}
 		}
-	return 0;
 	}
 
 
@@ -11591,7 +11607,7 @@ void InitMammot(void){	   //EDO
 /* RESUME MAMMOT PROCEDURE */
 void StartMammot(void){
 	// Clear DATA
-	int ifr,ip,ib;
+	int ifr,ip,ib,ic;
 	for(ifr=0; ifr<P.Frame.Num;ifr++)
 		for(ip=0; ip<P.Num.Page;ip++)
 			for(ic=0; ic<P.Chann.Num;ic++)

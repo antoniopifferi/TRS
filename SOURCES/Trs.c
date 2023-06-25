@@ -67,7 +67,7 @@ int main (int argc, char *argv[]){
 	InitPanel();
 	InitPad();								//ALE
 	InitVariable();
-	SetSleepPolicy (VAL_SLEEP_NONE);
+	SetSleepPolicy (VAL_SLEEP_MORE);
 	RunUserInterface ();
 	return 0;
 	}
@@ -838,6 +838,8 @@ int CVICALLBACK CreatePad (int panel, int control, int event,void *callbackData,
 	int fi,si,pi,oi;
 	int valctrl;
 	int xpos, ypos;
+	int ip,ir,ic,jr,jc,lattice_type;							//ALE
+
 	
 	switch (event){
 		case EVENT_VAL_CHANGED:
@@ -1291,6 +1293,8 @@ int CVICALLBACK PropPad (int panel, int control, int event,void *callbackData, i
 
 	int oi,fi,si;
 	int valctrl;
+	int ip,ir,ic,jr,jc,lattice_type;							//ALE
+
 
 	switch (event)
 		{
@@ -1489,6 +1493,8 @@ int CVICALLBACK SaveGeom (int panel, int control, int event,void *callbackData, 
 	double mindist,last_dist,distx;
 	char source_exist[MAX_PAD],fiber_exist[MAX_PAD];
 	char fo,ff;
+	int ip,ir,ic,jr,jc,lattice_type;							//ALE
+
 
 	switch (event){
 		case EVENT_COMMIT:
@@ -1911,6 +1917,8 @@ void ReCreatePad (void){
 	int pi,oi,pj;
 	int xpos, ypos;
 	int totsource, totfiber, totpad, fiberx,sourcex;
+	int ip,ir,ic,jr,jc,lattice_type;							//ALE
+
 	
 	totsource = 0;
 	totfiber = 0;

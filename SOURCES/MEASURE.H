@@ -712,7 +712,7 @@
 #define T3HISTBINS 32768 //=2^15, dtime in T3 mode has 15 bits (w/o binning???)
 #define MH_SLEEPFORSYNCRATE 150 // After Init allow 150 ms for valid  count rate readings
 #define MH_FILEEXT		"mhbin" // file extension for MultiHarp Time Tags
-#define MHARP_SLEEP_THREAD 0.002 // number of seconds to sleep if FIFO or Buffer not ready
+#define MHARP_SLEEP_THREAD 0.001 // number of seconds to sleep if FIFO or Buffer not ready
 #define MHARP_BUFFER_MULT 4 // Factor to increase the size of the buffer for multithread storing
 
 
@@ -2072,7 +2072,7 @@ struct FlowS {
 	int Spcm;
 	int Mharp;
 	int MultiThread;
-	int StopMultiThread;
+	volatile int StopMultiThread;
 	int MultiThreadFunctionId;
 	int NumRecords;
 	CmtThreadLockHandle Lock;
@@ -2206,7 +2206,7 @@ int num_read;
 /* GEOMETRY GLOBAL VARIABLES */								//ALE
 int hGeom;													//ALE
 int pa,lattice_type,clatticetype;							//ALE
-int ip,ir,ic,jr,jc,lattice_type;							//ALE
+//int ip,ir,ic,jr,jc,lattice_type;							//ALE
 int cid[MAX_PAD][MAX_PAD_ROW][MAX_PAD_COL];					//ALE
 int step_row,step_col;										//ALE
 char padname[STRLEN],fname[STRLEN];							//ALE
