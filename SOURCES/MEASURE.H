@@ -714,6 +714,7 @@
 #define MH_FILEEXT		"mhbin" // file extension for MultiHarp Time Tags
 #define MHARP_SLEEP_THREAD 0.001 // number of seconds to sleep if FIFO or Buffer not ready
 #define MHARP_BUFFER_MULT 4 // Factor to increase the size of the buffer for multithread storing
+#define MHARP_BUFFER_RING MHARP_BUFFER_MULT*TTREADMAX // Size of Ring Buffer for Multithreading
 
 
 /* TH260 CONSTANTS */
@@ -2160,6 +2161,16 @@ struct TableS {
 	int   Num;   
 	};
    
+// Ring buffer structure
+typedef struct {
+    unsigned int *data;
+    unsigned int front;
+    unsigned int rear;
+    unsigned int count;
+    CRITICAL_SECTION mutex;
+    CONDITION_VARIABLE notEmpty;
+	int stop;
+} RingBuffer;
    
 
 struct sPad Pad[MAX_PAD];								//ALE
