@@ -4079,28 +4079,60 @@ void StartFlowMharp(void){
  	Sleep(MH_SLEEPFORSYNCRATE); // After Init allow 150 ms for valid  count rate readings
   	ret = MH_GetSyncRate(MHARP_DEV0, &P.Spc.Mharp[Board].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // &P. needed here. This is needed to control Tacq (expressed in terms of sync)
 	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas"); // here measure is stopped to clear all memeory
-
-	// start measure
-	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
 	
+	//// Start Multi Thread function to fetch FIFO Buffer
+	//if(P.Flow.MultiThread){
+	//	CmtNewLock(NULL,0,&P.Flow.Lock); // initialise the Lock		
+	//	CmtGetLock(P.Flow.Lock);
+	//		P.Flow.StopMultiThread=FALSE;
+	//	CmtReleaseLock(P.Flow.Lock);	
+	//	CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, FlowMultithreadMharp, NULL,&P.Flow.MultiThreadFunctionId);
+	//	}
+
 	// Start Multi Thread function to fetch FIFO Buffer
 	if(P.Flow.MultiThread){
-		CmtNewLock(NULL,0,&P.Flow.Lock); // initialise the Lock		
-		CmtGetLock(P.Flow.Lock);
-			P.Flow.StopMultiThread=FALSE;
-		CmtReleaseLock(P.Flow.Lock);	
-		CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, FlowMultithreadMharp, NULL,&P.Flow.MultiThreadFunctionId);
+		// Initialise variables
+		struct RingBufferS* rb = &P.Spc.Mharp[MHARP_DEV0].RingBuffer;
+    	rb->front = 0;
+    	rb->rear = 0;
+    	rb->count = 0;
+		rb->stop = FALSE;
+		rb->data = calloc(MHARP_BUFFER_RING, sizeof(unsigned long));
+
+		// Initialize mutex and condition variable
+    	InitializeCriticalSection(&rb->mutex);
+    	//InitializeConditionVariable(&rb->notEmpty); // Not needed?
+    
+    	// Create threads for acquiring and analyzing data
+    	HANDLE acquireThread = CreateThread(NULL, 0, FlowMultithreadMharp, rb, 0, NULL);
+    	//HANDLE analyzeThread = CreateThread(NULL, 0, analyzeData, &rbuffer, 0, NULL);
 		}
-	}
+	
+	// start measure
+	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
+}
 
 void StopFlowMharp(void){
 	short ret;
+	struct RingBufferS* rb = &P.Spc.Mharp[MHARP_DEV0].RingBuffer;
 	
 	// Stop Multi Thread function to fetch FIFO Buffer
-	if(P.Flow.MultiThread){ 
-		P.Flow.StopMultiThread=TRUE;
-		CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE, P.Flow.MultiThreadFunctionId, 0);
-		CmtDiscardLock(P.Flow.Lock); // remove the Lock	
+	if(P.Flow.MultiThread){ 		
+        EnterCriticalSection(&rb->mutex);
+		rb->stop=TRUE;
+        LeaveCriticalSection(&rb->mutex);
+
+		// Main thread waits for the other threads to finish
+    	WaitForSingleObject(FlowMultithreadMharp, INFINITE);
+    	//WaitForSingleObject(analyzeThread, INFINITE);
+    
+    	// Clean up mutex and condition variable
+    	DeleteCriticalSection(&rb->mutex);
+    
+    	CloseHandle(FlowMultithreadMharp);
+    	//CloseHandle(analyzeThread);
+		
+		free(rb->data);
 		}
 	
 	// stop board
@@ -4110,10 +4142,44 @@ void StopFlowMharp(void){
 	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
 		if(!fclose(P.Spc.Mharp[MHARP_DEV0].FileTags)) ErrHandler(ERR_MHARP, 0, "MH_CloseFileTags");
 		}
+	
+	//** DELETE THIS SECTION
+	printf("\nDone\n");
+	int det, bin;
+	for(det=0; det<1; det++)
+		for(bin=0; bin<P.Chann.Num; bin++)
+			printf("det=%d\tbin=%d\tcounts=%d\n",det,bin,D.Data[0][det][bin]);
+	unsigned int tot=0;
+	for(det=0; det<P.Num.Det; det++)
+		for(bin=0; bin<P.Chann.Num; bin++)
+			tot+=D.Data[0][det][bin];
+	printf("TOT = %ud\n",tot);
+	printf("tAcqCrit=%lf\t tAcqMeas=%lf\t tAnalCrit=%lf\t tAnalProc=%lf\n",tAcqCrit,tAcqMeas,tAnalCrit,tAnalProc);
+	getchar();
 	}
+
+//void StopFlowMharp(void){
+//	short ret;
+//	
+//	// Stop Multi Thread function to fetch FIFO Buffer
+//	if(P.Flow.MultiThread){ 
+//		P.Flow.StopMultiThread=TRUE;
+//		CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE, P.Flow.MultiThreadFunctionId, 0);
+//		CmtDiscardLock(P.Flow.Lock); // remove the Lock	
+//		}
+//	
+//	// stop board
+//	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
+
+//	// file TAGS
+//	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
+//		if(!fclose(P.Spc.Mharp[MHARP_DEV0].FileTags)) ErrHandler(ERR_MHARP, 0, "MH_CloseFileTags");
+//		}
+//	}
 
 void CopyFlowMharp(void){
 	int page0=0;
+	/**/double t1=Timer();
 	for(int ib=0;ib<P.Num.Board;ib++){
 		for(int ir=P.Spc.Mharp[ib].ActualRecord;ir<P.Spc.Mharp[ib].NumRecords;ir++){	// iterate over records in the FIFO Buffer
 			ProcessT3(D.MharpBuffer[ib][ir]); // Decipher the record and add to Histogramming
@@ -4137,6 +4203,8 @@ void CopyFlowMharp(void){
 		P.Spc.Mharp[ib].ActualRecord=0;
 		P.Spc.Mharp[ib].NextFifo=TRUE;
 		}
+	/**/double t2=Timer();
+	/**/tAnalCrit+=(t2-t1);        
 	}
 
 
@@ -4174,51 +4242,117 @@ void MharpReadFifoSingle(unsigned int* Buffer, int* pNumRecords){
 	*pNumRecords=numrecords;
 	}
 
+///* Get FIFO from multithred buffer */
+//void MharpReadFifoMulti(unsigned int* Buffer, int* pNumRecords){
+//	int wait=TRUE;
+//	while(wait){
+//		CmtGetLock(P.Flow.Lock);
+//		if(P.Flow.NumRecords>0){
+//			for(int ir=0;ir<P.Flow.NumRecords;ir++) Buffer[ir]=D.MharpBufferThread[ir];	
+//			*pNumRecords=P.Flow.NumRecords;
+//			P.Flow.NumRecords=0;
+//			wait=FALSE;
+//			}
+//		CmtReleaseLock(P.Flow.Lock);
+//		if(wait) Delay(MHARP_SLEEP_THREAD);
+//		}
+//	}
+
 /* Get FIFO from multithred buffer */
 void MharpReadFifoMulti(unsigned int* Buffer, int* pNumRecords){
-	int wait=TRUE;
-	while(wait){
-		CmtGetLock(P.Flow.Lock);
-		if(P.Flow.NumRecords>0){
-			for(int ir=0;ir<P.Flow.NumRecords;ir++) Buffer[ir]=D.MharpBufferThread[ir];	
-			*pNumRecords=P.Flow.NumRecords;
-			P.Flow.NumRecords=0;
-			wait=FALSE;
+    struct RingBufferS* rb = &P.Spc.Mharp[MHARP_DEV0].RingBuffer;
+	int newdata=FALSE;
+    while (!newdata) {
+		/**/double t1=Timer();
+        EnterCriticalSection(&rb->mutex);
+		int nRecords=rb->count;
+		unsigned int buffer_size=MHARP_BUFFER_RING;
+		if(nRecords>0){
+			for(int ir=0;ir<nRecords;ir++){
+        		Buffer[ir] = rb->data[rb->rear];
+        		rb->rear = (rb->rear + 1) % buffer_size;
+				}
+			*pNumRecords=nRecords;
+			rb->count=0;
+			newdata=TRUE;
 			}
-		CmtReleaseLock(P.Flow.Lock);
-		if(wait) Delay(MHARP_SLEEP_THREAD);
-		}
+        LeaveCriticalSection(&rb->mutex);
+		/**/double t2=Timer();
+		/**/tAnalCrit+=(t2-t1);        
+    	}
 	}
 
-/* Multithread Function: Get FIFO into Multithread Buffer */
-int CVICALLBACK FlowMultithreadMharp (void *functionData){
+///* Multithread Function: Get FIFO into Multithread Buffer */
+//int CVICALLBACK FlowMultithreadMharp (void *functionData){
+//	int flags;
+//	int ret;
+//	unsigned int buffer[TTREADMAX];
+//	
+//	while(1) {
+//		if(P.Flow.StopMultiThread) return 0;
+//		int numrecords=0;
+//		ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
+//    	if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");	
+//    	ret=MH_ReadFiFo(MHARP_DEV0,buffer,&numrecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
+//		if(numrecords>0){
+//			int wait=TRUE;
+//			while(wait){
+//				if(P.Flow.StopMultiThread) return 0;
+//				CmtGetLock(P.Flow.Lock);
+//				//P.Flow.NumRecords=0;
+//				if(P.Flow.NumRecords+numrecords<TTREADMAX*MHARP_BUFFER_MULT){ // there is enough space in the multithread buffer to host these data
+//					for(int ir=0;ir<numrecords;ir++) D.MharpBufferThread[P.Flow.NumRecords+ir]=buffer[ir];
+//					P.Flow.NumRecords+=numrecords;
+//					wait=FALSE;
+//					}
+//				CmtReleaseLock(P.Flow.Lock);
+//				if(wait) Delay(MHARP_SLEEP_THREAD);
+//				}
+//			}
+//		}
+//	}
+
+
+// Function to acquire data from the sensor and store it in the ring buffer
+DWORD WINAPI FlowMultithreadMharp(LPVOID ComBuffer) {
+    struct RingBufferS* rb = (struct RingBufferS*)ComBuffer;
 	int flags;
 	int ret;
-	unsigned int buffer[TTREADMAX];
-	
-	while(1) {
-		if(P.Flow.StopMultiThread) return 0;
-		int numrecords=0;
+	int nRecords;
+	unsigned long *buffer;
+	buffer = calloc(TTREADMAX, sizeof(unsigned long));
+
+	int stop=0;	
+    while (!stop) {
+		/**/double t1=Timer();
 		ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
     	if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");	
-    	ret=MH_ReadFiFo(MHARP_DEV0,buffer,&numrecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
-		if(numrecords>0){
-			int wait=TRUE;
-			while(wait){
-				if(P.Flow.StopMultiThread) return 0;
-				CmtGetLock(P.Flow.Lock);
-				//P.Flow.NumRecords=0;
-				if(P.Flow.NumRecords+numrecords<TTREADMAX*MHARP_BUFFER_MULT){ // there is enough space in the multithread buffer to host these data
-					for(int ir=0;ir<numrecords;ir++) D.MharpBufferThread[P.Flow.NumRecords+ir]=buffer[ir];
-					P.Flow.NumRecords+=numrecords;
-					wait=FALSE;
-					}
-				CmtReleaseLock(P.Flow.Lock);
-				if(wait) Delay(MHARP_SLEEP_THREAD);
+    	ret=MH_ReadFiFo(MHARP_DEV0,buffer,&nRecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
+		/**/double t2=Timer();
+		/**/tAcqMeas+=(t2-t1);
+		if(nRecords>0){
+			/**/double t3=Timer();
+			EnterCriticalSection(&rb->mutex);
+			unsigned int buffer_size=MHARP_BUFFER_RING;
+        	for(int ir=0;ir<nRecords;ir++){
+				rb->data[rb->front] = buffer[ir];
+        		rb->front = (rb->front + 1) % buffer_size;
 				}
+        	rb->count+=nRecords;
+			if(rb->stop) stop=1;
+        	LeaveCriticalSection(&rb->mutex);
+			/**/double t4=Timer();
+			/**/tAcqCrit+=(t4-t3);
 			}
-		}
+    	}    
+    free(buffer);
+	return 0;
 	}
+
+
+
+
+
 
 
 /* INIT FILE WRITER MHARP */	

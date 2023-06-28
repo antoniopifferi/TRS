@@ -1684,6 +1684,18 @@ struct SwabS{
 	};
 
 
+// Ring buffer structure
+typedef struct RingBufferS {
+    unsigned int *data;
+    unsigned int front;
+    unsigned int rear;
+    unsigned int count;
+    CRITICAL_SECTION mutex;
+    CONDITION_VARIABLE notEmpty;
+	int stop;
+};
+
+
 struct MharpS{
 	int Mode; // MHARP_MODE_HIST=standard histogramming, MHARP_MODE_T3=continuous flow using T3 (time-tags)  
 	int oflcorrection; // overflow correction. remember number of occured overflow in sync time
@@ -1707,6 +1719,7 @@ struct MharpS{
 	int SaveTags; // save file with time-tags. Format=Flow of TimeTags as retrieved with ReadFifo
 	char PathTags[PATHLEN]; // pathlength of the TAGS file
 	FILE *FileTags; // pointer to the TAGS FILE
+	struct RingBufferS RingBuffer; // ring buffer to host multithreading 
 	};
 
 struct SpcS {
@@ -2161,22 +2174,15 @@ struct TableS {
 	int   Num;   
 	};
    
-// Ring buffer structure
-typedef struct {
-    unsigned int *data;
-    unsigned int front;
-    unsigned int rear;
-    unsigned int count;
-    CRITICAL_SECTION mutex;
-    CONDITION_VARIABLE notEmpty;
-	int stop;
-} RingBuffer;
    
 
 struct sPad Pad[MAX_PAD];								//ALE
 /* END GEOMETRY TYPE DEFINITION */						//ALE
    
 /* #####################   GLOBAL VARIABLES   ########################### */
+
+
+/**/double tAnalCrit, tAnalProc, tAcqCrit, tAcqMeas;
 
 struct ParmS P;
 struct DataS D;
@@ -2382,7 +2388,9 @@ void CopyFlowMharp(void);
 int InitFileMharpTags(void);
 void MharpReadFifoSingle(unsigned int* Buffer, int* pNumRecords);
 void MharpReadFifoMulti(unsigned int* Buffer, int* pNumRecords);
-int CVICALLBACK FlowMultithreadMharp (void *functionData);
+//int CVICALLBACK FlowMultithreadMharp (void *functionData);
+DWORD WINAPI FlowMultithreadMharp(LPVOID ComBuffer);
+
 
 
 /* ########################   TH260 HARP FUNCTIONS   ####################### */
