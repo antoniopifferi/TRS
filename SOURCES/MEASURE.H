@@ -2183,6 +2183,8 @@ struct sPad Pad[MAX_PAD];								//ALE
 
 
 /**/double tAnalCrit, tAnalProc, tAcqCrit, tAcqMeas;
+/**/double tRand;
+/**/int MHAfter;
 
 struct ParmS P;
 struct DataS D;
