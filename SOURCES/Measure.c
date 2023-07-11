@@ -4302,10 +4302,34 @@ void StopFlowMharp(void){
         LeaveCriticalSection(&rb->mutex);
 
 		// Main thread waits for the other threads to finish
-    	DWORD ret=WaitForSingleObject(FlowMultithreadMharp, INFINITE);
+		DWORD ret=WaitForSingleObject(FlowMultithreadMharp, INFINITE);
 		/**/Delay(1);
     	//WaitForSingleObject(analyzeThread, INFINITE);
-    
+ 
+		
+	//	    LPWSTR pMessage = L"%1!*.*s! %4 %5!*s!";
+    //DWORD_PTR pArgs[] = { (DWORD_PTR)4, (DWORD_PTR)2, (DWORD_PTR)L"Bill",  // %1!*.*s! refers back to the first insertion string in pMessage
+    //     (DWORD_PTR)L"Bob",                                                // %4 refers back to the second insertion string in pMessage
+    //     (DWORD_PTR)6, (DWORD_PTR)L"Bill" };                               // %5!*s! refers back to the third insertion string in pMessage
+    //const DWORD size = 100+1;
+    //WCHAR buffer[size];
+	//	_Post_equals_last_error_ DWORD GetLastError();
+	//	    if (!FormatMessage(FORMAT_MESSAGE_FROM_STRING | FORMAT_MESSAGE_ARGUMENT_ARRAY,
+    //                   pMessage, 
+    //                   0,
+    //                   0,
+    //                   buffer, 
+    //                   size, 
+    //                   (va_list*)pArgs))
+    //{
+    //    printf(L"Format message failed with 0x%x\n", GetLastError());
+    //    return;
+    //}
+
+    //// Buffer contains "  Bi Bob   Bill".
+    //printf(L"Formatted message: %s\n", buffer);
+		
+   
     	// Clean up mutex and condition variable
     	DeleteCriticalSection(&rb->mutex);
     
