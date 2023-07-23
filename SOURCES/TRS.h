@@ -340,6 +340,8 @@
 #define  MHARP_LABEL_2                    23      /* control type: textMsg, callback function: (none) */
 #define  MHARP_LABEL_1                    24      /* control type: textMsg, callback function: (none) */
 #define  MHARP_SAVE_TAGS                  25      /* control type: binary, callback function: Setting */
+#define  MHARP_ZERO                       26      /* control type: command, callback function: MharpZero */
+#define  MHARP_COPYFIRST                  27      /* control type: command, callback function: MharpCopyfirst */
 
 #define  MOXY                             10      /* callback function: ClosePanel */
 #define  MOXY_TITLE                       2       /* control type: textMsg, callback function: (none) */
@@ -1165,6 +1167,8 @@ void CVICALLBACK LoadSetting(int menubar, int menuItem, void *callbackData, int 
 int  CVICALLBACK LucaBoxCbk(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK LucaLasersCbk(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 void CVICALLBACK Measure(int menubar, int menuItem, void *callbackData, int panel);
+int  CVICALLBACK MharpCopyfirst(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK MharpZero(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK NirsBoxCbk(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK NirsLasersCbk(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 void CVICALLBACK Print(int menubar, int menuItem, void *callbackData, int panel);

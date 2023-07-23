@@ -54,6 +54,10 @@
 #define COL_SOURCE_SOURCE	1
 #define COL_SOURCE_SWITCH	2
 #define COL_SOURCE_CHANN	3
+#define COL_MHARP_INPUT_OFFSET		1
+#define COL_MHARP_INPUT_LEVEL		2
+#define COL_MHARP_INPUT_EDGE		3
+#define COL_MHARP_INPUT_DEADTIME	4
 #define MAX_ROW_SOURCE		16
 #define MAX_TWITCH		2
 #define MAX_CHANN_SWITCH	2
@@ -86,7 +90,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1236
+#define MAX_TABLE		1298
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -715,6 +719,7 @@
 #define MHARP_SLEEP_THREAD 0.001 // number of seconds to sleep if FIFO or Buffer not ready
 #define MHARP_BUFFER_MULT 4 // Factor to increase the size of the buffer for multithread storing
 #define MHARP_BUFFER_RING MHARP_BUFFER_MULT*TTREADMAX // Size of Ring Buffer for Multithreading
+#define	MHARP_MAX_DET	16 // Max number of det in input
 
 
 /* TH260 CONSTANTS */
@@ -1713,9 +1718,11 @@ struct MharpS{
 	int SyncOffset; // offset of the sync (ps)
 	int SyncLevel; // threshold for the sync (mV)
 	int SyncEdge; // 0=falling, 1=rising
-	int InputOffset; // offset of the signal (ps)
-	int InputLevel; // threshold for the signal (mV)
-	int InputEdge; // 0=falling, 1=rising
+	int SyncDeadtime; // delay before a new sync is taken (ps)
+	int InputOffset[MHARP_MAX_DET]; // offset of the signal (ps)
+	int InputLevel[MHARP_MAX_DET]; // threshold for the signal (mV)
+	int InputEdge[MHARP_MAX_DET]; // 0=falling, 1=rising
+	int InputDeadtime[MHARP_MAX_DET]; // delay before a new input is taken (ps)	
 	int SaveTags; // save file with time-tags. Format=Flow of TimeTags as retrieved with ReadFifo
 	char PathTags[PATHLEN]; // pathlength of the TAGS file
 	FILE *FileTags; // pointer to the TAGS FILE

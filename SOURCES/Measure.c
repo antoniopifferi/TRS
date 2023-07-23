@@ -3855,8 +3855,10 @@ void InitMharp(int Board) {
 	ret = MH_SetSyncEdgeTrg(Board, mh.SyncLevel, mh.SyncEdge); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
 	ret = MH_SetSyncChannelOffset(Board, mh.SyncOffset);  if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncChannelOffset"); // add cable to SYNC
 	for (int id = 0; id < P.Num.Det; id++){
-		ret = MH_SetInputEdgeTrg(Board, id, mh.InputLevel, mh.InputEdge); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
-		ret = MH_SetInputChannelOffset(Board, id, mh.InputOffset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
+		ret = MH_SetInputEdgeTrg(Board, id, mh.InputLevel[id], mh.InputEdge[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
+		ret = MH_SetInputChannelOffset(Board, id, mh.InputOffset[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
+		int on_deadtime=(mh.InputDeadtime[id]==0?0:1); // if extended deadline is not required, set to 0
+		ret = MH_SetInputDeadTime(Board, id, on_deadtime, mh.InputDeadtime[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputDeadtime");
 		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
 		}
 	ret = MH_SetBinning(Board, mh.Binning); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
