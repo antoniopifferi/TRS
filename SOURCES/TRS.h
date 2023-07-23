@@ -316,26 +316,30 @@
 #define  MAMM_NEG_PER_VAR_COUNTS          52      /* control type: numeric, callback function: Setting */
 
 #define  MHARP                            9
-#define  MHARP_TITLE                      2       /* control type: textMsg, callback function: (none) */
-#define  MHARP_SYNC_DIVIDER               3       /* control type: numeric, callback function: Setting */
-#define  MHARP_OFFSET                     4       /* control type: numeric, callback function: Setting */
-#define  MHARP_INPUT_EDGE                 5       /* control type: numeric, callback function: Setting */
-#define  MHARP_INPUT_LEVEL                6       /* control type: numeric, callback function: Setting */
-#define  MHARP_INPUT_OFFSET               7       /* control type: numeric, callback function: Setting */
-#define  MHARP_SYNC_EDGE                  8       /* control type: numeric, callback function: Setting */
-#define  MHARP_SYNC_LEVEL                 9       /* control type: numeric, callback function: Setting */
-#define  MHARP_SYNC_OFFSET                10      /* control type: numeric, callback function: Setting */
-#define  MHARP_BINNING                    11      /* control type: numeric, callback function: Setting */
-#define  MHARP_LABEL_9                    12      /* control type: textMsg, callback function: (none) */
-#define  MHARP_LABEL_8                    13      /* control type: textMsg, callback function: (none) */
-#define  MHARP_LABEL_7                    14      /* control type: textMsg, callback function: (none) */
-#define  MHARP_LABEL_4                    15      /* control type: textMsg, callback function: (none) */
-#define  MHARP_LABEL_6                    16      /* control type: textMsg, callback function: (none) */
-#define  MHARP_LABEL_5                    17      /* control type: textMsg, callback function: (none) */
-#define  MHARP_LABEL_3                    18      /* control type: textMsg, callback function: (none) */
-#define  MHARP_LABEL_2                    19      /* control type: textMsg, callback function: (none) */
-#define  MHARP_LABEL_1                    20      /* control type: textMsg, callback function: (none) */
-#define  MHARP_SAVE_TAGS                  21      /* control type: binary, callback function: Setting */
+#define  MHARP_T_INPUT                    2       /* control type: table, callback function: Setting */
+#define  MHARP_TITLE                      3       /* control type: textMsg, callback function: (none) */
+#define  MHARP_SYNC_DIVIDER               4       /* control type: numeric, callback function: Setting */
+#define  MHARP_OFFSET                     5       /* control type: numeric, callback function: Setting */
+#define  MHARP_INPUT_EDGE_2               6       /* control type: numeric, callback function: Setting */
+#define  MHARP_INPUT_EDGE                 7       /* control type: numeric, callback function: Setting */
+#define  MHARP_INPUT_LEVEL                8       /* control type: numeric, callback function: Setting */
+#define  MHARP_SYNC_DEADTIME              9       /* control type: numeric, callback function: Setting */
+#define  MHARP_INPUT_OFFSET               10      /* control type: numeric, callback function: Setting */
+#define  MHARP_SYNC_EDGE                  11      /* control type: numeric, callback function: Setting */
+#define  MHARP_SYNC_LEVEL                 12      /* control type: numeric, callback function: Setting */
+#define  MHARP_SYNC_OFFSET                13      /* control type: numeric, callback function: Setting */
+#define  MHARP_BINNING                    14      /* control type: numeric, callback function: Setting */
+#define  MHARP_LABEL_9                    15      /* control type: textMsg, callback function: (none) */
+#define  MHARP_LABEL_8                    16      /* control type: textMsg, callback function: (none) */
+#define  MHARP_LABEL_10                   17      /* control type: textMsg, callback function: (none) */
+#define  MHARP_LABEL_7                    18      /* control type: textMsg, callback function: (none) */
+#define  MHARP_LABEL_4                    19      /* control type: textMsg, callback function: (none) */
+#define  MHARP_LABEL_6                    20      /* control type: textMsg, callback function: (none) */
+#define  MHARP_LABEL_5                    21      /* control type: textMsg, callback function: (none) */
+#define  MHARP_LABEL_3                    22      /* control type: textMsg, callback function: (none) */
+#define  MHARP_LABEL_2                    23      /* control type: textMsg, callback function: (none) */
+#define  MHARP_LABEL_1                    24      /* control type: textMsg, callback function: (none) */
+#define  MHARP_SAVE_TAGS                  25      /* control type: binary, callback function: Setting */
 
 #define  MOXY                             10      /* callback function: ClosePanel */
 #define  MOXY_TITLE                       2       /* control type: textMsg, callback function: (none) */
