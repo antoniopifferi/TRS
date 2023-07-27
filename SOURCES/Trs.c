@@ -367,7 +367,6 @@ int CVICALLBACK ClosePanel (int panel, int event, void *callbackdata, int eventd
 
 /// TABLE
 void AddTab(int Class,int Type,int Panel,int Control,char *Label,int Row,int Col,void *Addr){
-	/**/int aaa;
 	T.Class[T.Num]=Class;
 	T.Type[T.Num]=Type;
 	T.Panel[T.Num]=Panel;
@@ -724,7 +723,7 @@ void CreateTable(void){
 		AddTab(CT,TINT,MHARP,MHARP_T_INPUT,"MharpInputOffset",id+1,COL_MHARP_INPUT_OFFSET,&P.Spc.Mharp[MHARP_DEV0].InputOffset[id]);
 		AddTab(CT,TINT,MHARP,MHARP_T_INPUT,"MharpInputLevel",id+1,COL_MHARP_INPUT_LEVEL,&P.Spc.Mharp[MHARP_DEV0].InputLevel[id]);
 		AddTab(CT,TINT,MHARP,MHARP_T_INPUT,"MharpInputEdge",id+1,COL_MHARP_INPUT_EDGE,&P.Spc.Mharp[MHARP_DEV0].InputEdge[id]);
-		AddTab(CT,TINT,MHARP,MHARP_T_INPUT,"MharpInputDeadtime",id+1,COL_MHARP_INPUT_DEADTIME,&P.Spc.Mharp[MHARP_DEV0].InputDeadtime[id]);
+		AddTab(CT,TINT,MHARP,MHARP_T_INPUT,"MharpInputDead",id+1,COL_MHARP_INPUT_DEADTIME,&P.Spc.Mharp[MHARP_DEV0].InputDeadtime[id]);
 		}	
 
 	// BCD PANEL
@@ -808,11 +807,12 @@ int CVICALLBACK LucaLasersCbk(int panel,int control,int event,void *callbackData
 
 /* COPY FIRST ROW TO ALL IN TABLE MHARP INPUT */
 int CVICALLBACK MharpCopyfirst(int panel,int control,int event,void *callbackData,int eventData1,int eventData2){
-	for(int id=1;id<MHARP_MAX_DET;id++){
-		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_OFFSET, id+1), P.Spc.Mharp[MHARP_DEV0].InputOffset[id]);
-		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_LEVEL, id+1), P.Spc.Mharp[MHARP_DEV0].InputLevel[id]);
-		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_EDGE, id+1), P.Spc.Mharp[MHARP_DEV0].InputEdge[id]);
-		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_DEADTIME, id+1), P.Spc.Mharp[MHARP_DEV0].InputDeadtime[id]);
+	if(event!=EVENT_COMMIT) return 0;
+	for(int id=1;id<MHARP_MAX_DET;id++){ // start from 1 since copy 1st line
+		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_OFFSET, id+1), P.Spc.Mharp[MHARP_DEV0].InputOffset[0]);
+		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_LEVEL, id+1), P.Spc.Mharp[MHARP_DEV0].InputLevel[0]);
+		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_EDGE, id+1), P.Spc.Mharp[MHARP_DEV0].InputEdge[0]);
+		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_DEADTIME, id+1), P.Spc.Mharp[MHARP_DEV0].InputDeadtime[0]);
 		}
 	ReadAll();
 	CompleteParmS();
@@ -821,7 +821,8 @@ int CVICALLBACK MharpCopyfirst(int panel,int control,int event,void *callbackDat
 
 /* SET TABLE MHARP INPUT TO 0*/
 int CVICALLBACK MharpZero(int panel,int control,int event,void *callbackData,int eventData1,int eventData2){
-	for(int id=1;id<MHARP_MAX_DET;id++){
+	if(event!=EVENT_COMMIT) return 0;
+	for(int id=0;id<MHARP_MAX_DET;id++){
 		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_OFFSET, id+1),0);
 		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_LEVEL, id+1),0);
 		SetTableCellVal(hMharp,MHARP_T_INPUT,MakePoint(COL_MHARP_INPUT_EDGE, id+1),0);
