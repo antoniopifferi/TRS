@@ -90,7 +90,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1298
+#define MAX_TABLE		1297
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -714,12 +714,14 @@
 /* MHARP CONSTANTS */
 #define MHARP_DEV0		0 // Use just 1 Device, the software can control more than 1 device (i.e. many HydraHarp) (Board = Channel, not Device)
 #define T3HISTBINS 32768 //=2^15, dtime in T3 mode has 15 bits (w/o binning???)
-#define MH_SLEEPFORSYNCRATE 150 // After Init allow 150 ms for valid  count rate readings
+#define MH_SLEEPFORSYNCRATE 300 // After Init allow 150 ms for valid  count rate readings
 #define MH_FILEEXT		"mhbin" // file extension for MultiHarp Time Tags
 #define MHARP_SLEEP_THREAD 0.001 // number of seconds to sleep if FIFO or Buffer not ready
-#define MHARP_BUFFER_MULT 4 // Factor to increase the size of the buffer for multithread storing
-#define MHARP_BUFFER_RING MHARP_BUFFER_MULT*TTREADMAX // Size of Ring Buffer for Multithreading
 #define	MHARP_MAX_DET	16 // Max number of det in input
+#define	MHARP_MAX_BIN	16384 // Max number of bins
+#define MHARP_BUFFER_MULT 4 // Expand the buffer
+#define MHARP_SIZE_RING_M MHARP_BUFFER_MULT*TTREADMAX // Size of Ring Buffer for Acquisition
+#define MHARP_SIZE_RING_A MHARP_BUFFER_MULT*MHARP_MAX_DET*MHARP_MAX_BIN // Size of Ring Buffer for Analysis
 
 
 /* TH260 CONSTANTS */
@@ -1700,6 +1702,12 @@ typedef struct RingBufferS {
 	int stop;
 };
 
+typedef struct RingBufferMA{
+    struct RingBufferS* bufferM; // Measurement data buffer
+    struct RingBufferS* bufferA; // Analyzed data buffer
+};
+
+
 
 struct MharpS{
 	int Mode; // MHARP_MODE_HIST=standard histogramming, MHARP_MODE_T3=continuous flow using T3 (time-tags)  
@@ -1710,7 +1718,6 @@ struct MharpS{
 	int EndTacq; // reached Tacq
 	int NumRecords; // number of records in FIFO
 	int ActualRecord; // position of the actual record in the processed FifoBuffer
-	int NextFifo; // FIFO Buffer is all processed, goto fill the next one
 	int Binning; // binning of the acquisition bins (i.e. channels in old TRS)
 	int SyncDivider; // to be used to reduce sync rate to max 75MHz, otherwise use 1
 	int LenCode; // Power of 2 of the HystLen (=P.Chann.Num)
@@ -1726,7 +1733,11 @@ struct MharpS{
 	int SaveTags; // save file with time-tags. Format=Flow of TimeTags as retrieved with ReadFifo
 	char PathTags[PATHLEN]; // pathlength of the TAGS file
 	FILE *FileTags; // pointer to the TAGS FILE
-	struct RingBufferS RingBuffer; // ring buffer to host multithreading 
+	struct RingBufferS RingBufferM; // ring buffer for Measurement 
+	struct RingBufferS RingBufferA; // ring buffer for Analysis 
+	struct RingBufferMA RingBufferMA; // ring buffer for Analysis 
+	HANDLE AcquireThread; // handle for Multithread functions
+	HANDLE AnalyzeThread; // handle for Multithread functions
 	};
 
 struct SpcS {
@@ -2092,7 +2103,6 @@ struct FlowS {
 	int Bank;
 	int Spcm;
 	int Mharp;
-	int MultiThread;
 	volatile int StopMultiThread;
 	int MultiThreadFunctionId;
 	int NumRecords;
@@ -2388,18 +2398,14 @@ void GetDataMharp(void);
 void ClearMharp(void);
 void StartMharp(int Board);
 void WaitMharp(int Board);
-void SpcFlowMharp(void);
 void StartFlowMharp(void);
 void StopFlowMharp(void);
-void WaitFlowMharp(void);
-void GetFlowMharp(void);
 void CopyFlowMharp(void);
 int InitFileMharpTags(void);
 void MharpReadFifoSingle(unsigned int* Buffer, int* pNumRecords);
 void MharpReadFifoMulti(unsigned int* Buffer, int* pNumRecords);
-//int CVICALLBACK FlowMultithreadMharp (void *functionData);
-DWORD WINAPI FlowMultithreadMharp(LPVOID ComBuffer);
-
+DWORD WINAPI AnalyzeDataMharp(LPVOID pBufferMA);
+DWORD WINAPI AcquireDataMharp(LPVOID Buffer);
 
 
 /* ########################   TH260 HARP FUNCTIONS   ####################### */

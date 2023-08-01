@@ -416,7 +416,6 @@ void CreateTable(void){
 
 	// 2
 	AddTab(CE,TCHAR,PARM,PARM_FLOW_FLOW,"FlowFlow",0,0,&P.Flow.Flow);
-	AddTab(CE,TINT,PARM,PARM_FLOW_MULTI_THREAD,"FlowMultiThread",0,0,&P.Flow.MultiThread);
 	
 	// 19+4
 	AddTab(CE,TCHAR,PARM,PARM_SPC_TYPE,"SpcType",0,0,&P.Spc.Type);

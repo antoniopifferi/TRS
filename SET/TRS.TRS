@@ -53,7 +53,6 @@
 0	0	FileType	1
 0	0	FileSave	1
 0	0	FlowFlow	1
-0	1	FlowMultiThread	1
 0	0	SpcType	16
 0	0	SpcScale	1
 0	2	SpcCalib	5.000000

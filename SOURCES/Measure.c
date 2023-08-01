@@ -1177,7 +1177,7 @@ void InitMem(void){
 	if(P.Moxy.Moxy) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Flow.Spcm) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Flow.Mharp) D.MharpBuffer=DAlloc2D_uint32(P.Num.Board,TTREADMAX*MHARP_BUFFER_MULT); // allocate memory for the FIFO USB Buffer
-	if((P.Flow.Mharp)&&(P.Flow.MultiThread)) D.MharpBufferThread = calloc(TTREADMAX*MHARP_BUFFER_MULT, sizeof(uint32_t)); // allocate memory for the multithred Buffer
+	if(P.Flow.Mharp) D.MharpBufferThread = calloc(TTREADMAX*MHARP_BUFFER_MULT, sizeof(uint32_t)); // allocate memory for the multithred Buffer
 	if(P.Info.SubHeader) D.Sub=SAlloc2D(P.Frame.Num,P.Num.Page);
 	D.Data=DAlloc3D(P.Frame.Num,P.Num.Page,P.Chann.Num);
 	
@@ -1194,7 +1194,7 @@ void CloseMem(void){
 	if(P.Moxy.Moxy) DFree2D(D.Bank,P.Num.Board); 
 	if(P.Flow.Spcm) DFree2D(D.Bank,P.Num.Board); 
 	if(P.Flow.Mharp) DFree2D_uint32(D.MharpBuffer,P.Num.Board); 
-	if((P.Flow.Mharp)&&(P.Flow.MultiThread)) free(D.MharpBufferThread);
+	if(P.Flow.Mharp) free(D.MharpBufferThread);
 	if(P.Info.SubHeader) SFree2D(D.Sub,P.Frame.Num);
 	DFree3D(D.Data,P.Frame.Num,P.Num.Page); 
 }
@@ -2905,7 +2905,7 @@ void WaitFlow(void){
 	switch(P.Spc.Type){
 		case SPC630:   
 		case SPC130: WaitFlowSpcm();break;
-		case SPC_MHARP: WaitFlowMharp(); break;
+		case SPC_MHARP: break;
 		default:;
 		}
 	}
@@ -2915,7 +2915,7 @@ void GetFlow(void){
 	switch(P.Spc.Type){
 		case SPC630:   
 		case SPC130: GetFlowSpcm();break;
-		case SPC_MHARP: GetFlowMharp(); break;
+		case SPC_MHARP: break;
 		default:;
 		}
 	}
@@ -3900,22 +3900,22 @@ void StopMharp(int Board) {
 
 /* TRANSFER DATA FROM SPC_MHARP */
 void GetDataMharp(void) {
-	//short state;
-	unsigned int DataMharp[4096]; // TODO CHECK
+	//**unsigned int DataMharp[MHARP_MAX_BIN];
+	unsigned int DataMharp[MHARP_MAX_DET][MHARP_MAX_BIN];
 	int ret = 0;
 
 	/**/double t0=Timer();
 	P.Spc.Overflow = FALSE;
 	for (int ib = 0; ib < P.Num.Board; ib++) {
-//		ret = MH_GetAllHistograms(MHARP_DEV0, DataMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
+		/**/ret = MH_GetAllHistograms(MHARP_DEV0, DataMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
 		for(int id=0;id<P.Num.Det;id++){
-			ret = MH_GetHistogram(MHARP_DEV0, DataMharp,id); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
-			for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[ic];
-//			for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[id][ic];
+			//**ret = MH_GetHistogram(MHARP_DEV0, DataMharp,id); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
+			//**for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[ic];
+			for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[id][ic];
 			}
 		}
 	/**/double t1=Timer();
-	//printf("Delta=%lf ms\n",1000*(t1-t0));
+	/**/printf("Delta=%lf ms\n",1000*(t1-t0));
 	}
 
 
@@ -3930,10 +3930,6 @@ void ClearMharp(void) {
 /* START SPC_MHARP */
 void StartMharp(int Board) {
 	short ret;
-	//MEASCTRL_C1_START_CTC_STOP
-	//if ((P.Contest.Run == CONTEST_MEAS) && (P.Spc.Mharp.HwStart == TRUE))
-	//	ret = MH_SetMeasControl(Board, MEASCTRL_C1_START_CTC_STOP, 1, 1); // set HW start on rising edge
-	//else
 	ret = MH_SetMeasControl(Board, MEASCTRL_SINGLESHOT_CTC, 1, 1); // standard software start
 	if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");
 	ret = MH_StartMeas(MHARP_DEV0, P.Spc.TimeMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas");
@@ -3984,7 +3980,6 @@ void ProcessT3(unsigned int TTTRRecord){
 		double target_time=(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1)*P.Spc.TimeM; // goal time (s) since Start (Sync0)
 		if(elapsed_time>target_time){ //completed Tacq=P.Spc.TimeM NOTE +1 since check end
 			P.Spc.Mharp[MHARP_DEV0].EndTacq=TRUE;
-			P.Spc.Mharp[MHARP_DEV0].PassedTacq++; // this start from 0 and go on up to the end of meas.
 			}
     	}
 	else{ //marker or some events
@@ -4001,11 +3996,11 @@ void ProcessT3(unsigned int TTTRRecord){
 
 
 // Function to acquire data from the sensor and store it in the ring buffer
-DWORD WINAPI acquireData(LPVOID ComBuffer) {
-    struct RingBufferS* ringBuffer = (struct RingBufferS*)ComBuffer;
-	int retcode;
+DWORD WINAPI AcquireDataMharp(LPVOID Buffer) {
+    struct RingBufferS* ringBufferM = (struct RingBufferS*)Buffer;
+	int ret;
 	int dev[1];
-	dev[0]=0;
+	dev[0]=MHARP_DEV0;
 	int flags;
 	int nRecords;
 	char Errorstring[256];
@@ -4019,62 +4014,45 @@ DWORD WINAPI acquireData(LPVOID ComBuffer) {
 	
     while (!stop) {
 		/**/double t1=Timer();
- 		retcode = MH_GetFlags(dev[0], &flags);
-    	if (retcode < 0){
-	    	MH_GetErrorString(Errorstring, retcode);
-	    	printf("\nMH_GetFlags error %d (%s). Aborted.\n", retcode, Errorstring);
-	    	//goto ex;
-	    	}
-	    if (flags & FLAG_FIFOFULL){
-	    	printf("\nFiFo Overrun!\n");
-	    	//goto stoptttr;
-	    	}
-	    retcode = MH_ReadFiFo(dev[0], buffer, &nRecords);   //may return less!  
-	    if (retcode < 0){
-	    	MH_GetErrorString(Errorstring, retcode);
-	    	printf("\nMH_ReadFiFo error %d (%s). Aborted.\n", retcode, Errorstring);
-	    	//goto stoptttr;
-	    	}
+ 		ret = MH_GetFlags(dev[0], &flags); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
+	    if (flags & FLAG_FIFOFULL) printf("\nFiFo Overrun!\n");
+	    ret = MH_ReadFiFo(dev[0], buffer, &nRecords);; if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_ReadFifo");  
+		if(P.Spc.Mharp[MHARP_DEV0].SaveTags);
+			
 		/**/double t2=Timer();
 		/**/tAcqMeas+=(t2-t1);
 
 		if(nRecords>0){
 		/**/double t3=Timer();
-			EnterCriticalSection(&ringBuffer->mutex);
+			EnterCriticalSection(&ringBufferM->mutex);
         	//while (ringBuffer->count +nRecords >= BUFFER_SIZE) {
             	// Wait until the buffer is not full
             	//SleepConditionVariableCS(&ringBuffer->notEmpty, &ringBuffer->mutex, INFINITE);
         		//}
-			unsigned int buffer_size=MHARP_BUFFER_RING;
+			unsigned int buffer_size=MHARP_SIZE_RING_M;
         	for(int ir=0;ir<nRecords;ir++){
-				ringBuffer->data[ringBuffer->front] = buffer[ir];
-        		ringBuffer->front = (ringBuffer->front + 1) % buffer_size;
+				ringBufferM->data[ringBufferM->front] = buffer[ir];
+        		ringBufferM->front = (ringBufferM->front + 1) % buffer_size;
 				}
-        	ringBuffer->count+=nRecords;
-			if(ringBuffer->stop) stop=1;
-        	LeaveCriticalSection(&ringBuffer->mutex);
+        	ringBufferM->count+=nRecords;
+			if(ringBufferM->stop) stop=1;
+        	LeaveCriticalSection(&ringBufferM->mutex);
 		/**/double t4=Timer();
 		/**/tAcqCrit+=(t4-t3);
 			}
 		else{
-	    	retcode = MH_CTCStatus(dev[0], &ctcstatus);
-	      	if (retcode < 0){
-	        	MH_GetErrorString(Errorstring, retcode);
-	        	printf("\nMH_CTCStatus error %d (%s). Aborted.\n", retcode, Errorstring);
-	        	//goto ex;
-	      		}
+	    	ret = MH_CTCStatus(dev[0], &ctcstatus);; if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_CTCStatus");
 	      	if (ctcstatus){
 	        	stopretry++; //do a few more rounds as there might be some more in the FiFo
 	        	if(stopretry>5) {
 	          		//goto stoptttr;
-			  		EnterCriticalSection(&ringBuffer->mutex);
-					ringBuffer->stop=1;
+			  		EnterCriticalSection(&ringBufferM->mutex);
+					ringBufferM->stop=1;
 					stop=1;
-	          		LeaveCriticalSection(&ringBuffer->mutex);
+	          		LeaveCriticalSection(&ringBufferM->mutex);
 	        		}
 	      		}
 	    	}
-        //Sleep(5); // Sleep for 1 msecond
     	}
     
     free(buffer);
@@ -4082,49 +4060,60 @@ DWORD WINAPI acquireData(LPVOID ComBuffer) {
 }
 
 // Function to analyze the data from the ring buffer
-DWORD WINAPI analyzeData(LPVOID buffer) {
-    struct RingBufferS* ringBuffer = (struct RingBufferS*)buffer;
+DWORD WINAPI AnalyzeDataMharp(LPVOID pBufferMA) {
+	struct RingBufferMA* bufferMA = (struct RingBufferMA*)pBufferMA;
+    struct RingBufferS* bufferM = bufferMA->bufferM;
+    struct RingBufferS* bufferA = bufferMA->bufferA;
 	
 	unsigned int *BufferRecords;
-	BufferRecords = calloc(MHARP_BUFFER_RING, sizeof(unsigned long));
+	BufferRecords = calloc(MHARP_SIZE_RING_M, sizeof(unsigned long));
 	
-	int stop=0;
-    
+	int stop=0;  
     while (!stop) {
 		/**/double t1=Timer();
-        EnterCriticalSection(&ringBuffer->mutex);
+        EnterCriticalSection(&bufferM->mutex);
         //while (ringBuffer->count == 0) {
             // Wait until the buffer is not empty
         //    SleepConditionVariableCS(&ringBuffer->notEmpty, &ringBuffer->mutex, INFINITE);
         //	}
-		int nRecords=ringBuffer->count;
-		stop=ringBuffer->stop;
-		//if(nRecords==0) LeaveCriticalSection(&ringBuffer->mutex);
-
-		unsigned int buffer_size=MHARP_BUFFER_RING;
+		int nRecords=bufferM->count;
+		stop=bufferM->stop;
+		unsigned int buffer_sizeM=MHARP_SIZE_RING_M;
 		if(nRecords>0){
 			for(int ir=0;ir<nRecords;ir++){
-        		BufferRecords[ir] = ringBuffer->data[ringBuffer->rear];
-        		ringBuffer->rear = (ringBuffer->rear + 1) % buffer_size;
+        		BufferRecords[ir] = bufferM->data[bufferM->rear];
+        		bufferM->rear = (bufferM->rear + 1) % buffer_sizeM;
 				}
-			ringBuffer->count=0;
+			bufferM->count=0;
 			}
-        LeaveCriticalSection(&ringBuffer->mutex);
+        LeaveCriticalSection(&bufferM->mutex);
 		/**/double t2=Timer();
 		/**/tAnalCrit+=(t2-t1);
         
 		/**/double t3=Timer();
-        // Your code here to analyze the data
-		for (int ir = 0; ir < nRecords; ir++)
+		unsigned int buffer_sizeA=MHARP_SIZE_RING_A;		
+		for (int ir = 0; ir < nRecords; ir++){
         	ProcessT3(BufferRecords[ir]);
+			if(P.Spc.Mharp[MHARP_DEV0].EndTacq){
+				EnterCriticalSection(&bufferA->mutex);
+				for(int id=0;id<P.Num.Det;id++)
+					for(int ic=0;ic<P.Chann.Num;ic++){			
+        				bufferA->data[bufferA->front]=D.Buffer[MHARP_DEV0][ic+id*P.Chann.Num];
+        				bufferA->front = (bufferA->front + 1) % buffer_sizeA;
+						bufferA->count++;
+						}
+				P.Spc.Mharp[MHARP_DEV0].EndTacq=FALSE;
+				memset(D.Buffer[MHARP_DEV0], 0, sizeof(T_DATA));
+				P.Spc.Mharp[MHARP_DEV0].PassedTacq++; // this start from 0 and go on up to the end of meas.	Syncronous with start (Sync0)		
+				LeaveCriticalSection(&bufferA->mutex);
+				}
+			}
 		/**/double t4=Timer();
 		/**/tAnalProc+=(t4-t3);
-        //Sleep(5); // Sleep for 1 msecond
     }
     free(BufferRecords);
     return 0;	
 }
-
 
 
 void StartFlowMharp(void){
@@ -4138,7 +4127,6 @@ void StartFlowMharp(void){
 	P.Spc.Mharp[Board].EndTacq=FALSE;
 	P.Spc.Mharp[Board].PassedTacq=0; // this start from 0 and go on up to the end of meas.
 	P.Spc.Mharp[Board].oflcorrection = 0; // no ovfl in sync
-	P.Spc.Mharp[Board].NextFifo=TRUE;
 	P.Spc.Mharp[Board].ActualRecord=0;
 	
 	// INIT
@@ -4147,7 +4135,7 @@ void StartFlowMharp(void){
 	double resolution;
 	int binsteps;
 	char LIB_Version[8];
-	struct MharpS mh=P.Spc.Mharp[Board]; 
+	struct MharpS *mh=&P.Spc.Mharp[Board]; 
 	int isflow=TRUE;// You need this for the time being
 
 	if(P.Spc.Mharp[Board].SaveTags){
@@ -4176,27 +4164,27 @@ void StartFlowMharp(void){
 	// initialize specific operation mode
 	if(!isflow){ // initialize standard HIST Mode
 		ret = MH_Initialize(Board, MODE_HIST, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
-		ret = MH_SetHistoLen(Board, mh.LenCode, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
-		ret = MH_SetOffset(Board, mh.Offset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
+		ret = MH_SetHistoLen(Board, mh->LenCode, &HistLen); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetHistoLen");
+		ret = MH_SetOffset(Board, mh->Offset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
 		}
 	else{ // initialize T3 mode for flow
 		ret = MH_Initialize(Board, MODE_T3, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_Initialize");
-		ret = MH_SetOffset(Board, mh.Offset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
+		ret = MH_SetOffset(Board, mh->Offset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetOffset"); // this is a software offset in the Hist
 		}
 	
 	// initialize Start Mode (you ALWAYS need this for the get sync rate and standard oscilloscope. Ovveride later on in case (e.g. marker)
  	ret = MH_SetMeasControl(MHARP_DEV0, MEASCTRL_SINGLESHOT_CTC, 1, 1); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");  // standard software start
 		
 	// set ini parameters
-	ret = MH_SetSyncDiv(Board, mh.SyncDivider); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncDiv");
-	ret = MH_SetSyncEdgeTrg(Board, mh.SyncLevel, mh.SyncEdge); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
-	ret = MH_SetSyncChannelOffset(Board, mh.SyncOffset);  if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncChannelOffset"); // add cable to SYNC
+	ret = MH_SetSyncDiv(Board, mh->SyncDivider); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncDiv");
+	ret = MH_SetSyncEdgeTrg(Board, mh->SyncLevel, mh->SyncEdge); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
+	ret = MH_SetSyncChannelOffset(Board, mh->SyncOffset);  if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncChannelOffset"); // add cable to SYNC
 	for (int id = 0; id < P.Num.Det; id++){
-		ret = MH_SetInputEdgeTrg(Board, id, mh.InputLevel, mh.InputEdge); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
-		ret = MH_SetInputChannelOffset(Board, id, mh.InputOffset); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
+		ret = MH_SetInputEdgeTrg(Board, id, mh->InputLevel[id], mh->InputEdge[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
+		ret = MH_SetInputChannelOffset(Board, id, mh->InputOffset[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
 		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
 		}
-	ret = MH_SetBinning(Board, mh.Binning); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
+	ret = MH_SetBinning(Board, mh->Binning); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
 	
 	// get temporal scale
 	ret = MH_GetResolution(Board, &resolution); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetResolution");
@@ -4205,383 +4193,97 @@ void StartFlowMharp(void){
 	
 	// get sync rate
 	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
-	Sleep(MH_SLEEPFORSYNCRATE); // After Init allow 150 ms for valid  count rate readings
+	Sleep(MH_SLEEPFORSYNCRATE); // After Init allow at least 150 ms for valid  count rate readings
   	ret = MH_GetSyncRate(MHARP_DEV0, &P.Spc.Mharp[Board].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // &P. needed here. This is needed to control Tacq (expressed in terms of sync)
 	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas4"); // here measure is stopped to clear all memeory
 	
-	//// Start Multi Thread function to fetch FIFO Buffer
-	//if(P.Flow.MultiThread){
-	//	CmtNewLock(NULL,0,&P.Flow.Lock); // initialise the Lock		
-	//	CmtGetLock(P.Flow.Lock);
-	//		P.Flow.StopMultiThread=FALSE;
-	//	CmtReleaseLock(P.Flow.Lock);	
-	//	CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, FlowMultithreadMharp, NULL,&P.Flow.MultiThreadFunctionId);
-	//	}
-
 	// start measure
 	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
 
 	// Start Multi Thread function to fetch FIFO Buffer
-	if(P.Flow.MultiThread){
-		// Initialise variables
-		struct RingBufferS* rb = &P.Spc.Mharp[MHARP_DEV0].RingBuffer;
-    	rb->front = 0;
-    	rb->rear = 0;
-    	rb->count = 0;
-		rb->stop = FALSE;
-		rb->data = calloc(MHARP_BUFFER_RING, sizeof(unsigned long));
+    struct RingBufferS *bufferM=&P.Spc.Mharp[MHARP_DEV0].RingBufferM;
+   	struct RingBufferS *bufferA=&P.Spc.Mharp[MHARP_DEV0].RingBufferA;
+	struct RingBufferMA *bufferMA=&P.Spc.Mharp[MHARP_DEV0].RingBufferMA;
+	
+	bufferMA->bufferM=&bufferM;
+	bufferMA->bufferA=&bufferA;
+	
+   	bufferM->front = 0;
+   	bufferM->rear = 0;
+   	bufferM->count = 0;
+	bufferM->stop =0;
+	bufferM->data = calloc(MHARP_SIZE_RING_M, sizeof(unsigned long));
+	
+   	bufferA->front = 0;
+   	bufferA->rear = 0;
+   	bufferA->count = 0;
+	bufferA->stop =0;
+	bufferA->data = calloc(MHARP_SIZE_RING_A, sizeof(unsigned int));
 
-		// Initialize mutex and condition variable
-    	InitializeCriticalSection(&rb->mutex);
-    	//InitializeConditionVariable(&rb->notEmpty); // Not needed?
+   	// Initialize mutex and condition variable
+   	InitializeCriticalSection(&bufferM->mutex);
+   	InitializeConditionVariable(&bufferM->notEmpty);
+   	InitializeCriticalSection(&bufferA->mutex);
+   	InitializeConditionVariable(&bufferA->notEmpty);
     
-    	// Create threads for acquiring and analyzing data
-    	HANDLE acquireThread = CreateThread(NULL, 0, FlowMultithreadMharp, rb, 0, NULL);
-    	//HANDLE acquireThread = CreateThread(NULL, 0, acquireData, rb, 0, NULL);
-    	//HANDLE analyzeThread = CreateThread(NULL, 0, analyzeData, &rbuffer, 0, NULL);
-		}
-
-	
-	
-	//// Start Multi Thread function to fetch FIFO Buffer
-	//if(P.Flow.MultiThread){
-    //struct RingBufferS buffer;
-    //buffer.front = 0;
-    //buffer.rear = 0;
-    //buffer.count = 0;
-	//buffer.stop =0;
-	//buffer.data = calloc (MHARP_BUFFER_RING, sizeof(unsigned long));
-	////InitMharp();
-    //
-    //// Initialize mutex and condition variable
-    //InitializeCriticalSection(&buffer.mutex);
-    //InitializeConditionVariable(&buffer.notEmpty);
-    //
-    //// Create threads for acquiring and analyzing data
-    //HANDLE acquireThread = CreateThread(NULL, 0, FlowMultithreadMharp, &buffer, 0, NULL);
-    ////HANDLE acquireThread = CreateThread(NULL, 0, acquireData, &buffer, 0, NULL);
-    //HANDLE analyzeThread = CreateThread(NULL, 0, analyzeData, &buffer, 0, NULL);
-    //
-    //// Main thread waits for the other threads to finish
-    //WaitForSingleObject(acquireThread, INFINITE);
-    //WaitForSingleObject(analyzeThread, INFINITE);
-    //
-    //// Clean up mutex and condition variable
-    //DeleteCriticalSection(&buffer.mutex);
-    //
-    //CloseHandle(acquireThread);
-    //CloseHandle(analyzeThread);
-	//
-	//int det,bin;
-	//printf("\nDone\n");
-	//	for(det=0; det<1; det++)
-	//		for(bin=0; bin<P.Chann.Num; bin++)
-	//			printf("det=%d\tbin=%d\tcounts=%d\n",det,bin,D.Buffer[0][bin]);
-	//	unsigned int tot=0;
-	//	for(det=0; det<P.Num.Det; det++)
-	//		for(bin=0; bin<P.Chann.Num; bin++)
-	//			tot+=D.Buffer[0][bin+det*P.Chann.Num];
-	//	printf("TOT = %ud\n",tot);
-	//	printf("tAcqCrit=%lf\t tAcqMeas=%lf\t tAnalCrit=%lf\t tAnalProc=%lf\n",tAcqCrit,tAcqMeas,tAnalCrit,tAnalProc);
-	//	printf("tRand=%lf\n",tRand);
-	//	getchar();
-
-    //free(buffer.data);
-	//}
-	
-}
+   	// Create threads for acquiring and analyzing data
+   	P.Spc.Mharp[MHARP_DEV0].AcquireThread = CreateThread(NULL, 0, AcquireDataMharp, bufferM, 0, NULL);
+   	P.Spc.Mharp[MHARP_DEV0].AnalyzeThread = CreateThread(NULL, 0, AnalyzeDataMharp, bufferMA, 0, NULL);
+	}
 
 	
 
 void StopFlowMharp(void){
-	short ret;
-	struct RingBufferS* rb = &P.Spc.Mharp[MHARP_DEV0].RingBuffer;
+	   struct RingBufferS *bufferM=&P.Spc.Mharp[MHARP_DEV0].RingBufferM;
+    struct RingBufferS *bufferA=&P.Spc.Mharp[MHARP_DEV0].RingBufferA;
+
+	EnterCriticalSection(&bufferM->mutex);
+	bufferM->stop=1;
+	LeaveCriticalSection(&bufferM->mutex);
 	
-	// Stop Multi Thread function to fetch FIFO Buffer
-	if(P.Flow.MultiThread){ 		
-        EnterCriticalSection(&rb->mutex);
-		rb->stop=TRUE;
-        LeaveCriticalSection(&rb->mutex);
-
-		// Main thread waits for the other threads to finish
-		DWORD ret=WaitForSingleObject(FlowMultithreadMharp, INFINITE);
-		/**/Delay(1);
-    	//WaitForSingleObject(analyzeThread, INFINITE);
- 
-		
-	//	    LPWSTR pMessage = L"%1!*.*s! %4 %5!*s!";
-    //DWORD_PTR pArgs[] = { (DWORD_PTR)4, (DWORD_PTR)2, (DWORD_PTR)L"Bill",  // %1!*.*s! refers back to the first insertion string in pMessage
-    //     (DWORD_PTR)L"Bob",                                                // %4 refers back to the second insertion string in pMessage
-    //     (DWORD_PTR)6, (DWORD_PTR)L"Bill" };                               // %5!*s! refers back to the third insertion string in pMessage
-    //const DWORD size = 100+1;
-    //WCHAR buffer[size];
-	//	_Post_equals_last_error_ DWORD GetLastError();
-	//	    if (!FormatMessage(FORMAT_MESSAGE_FROM_STRING | FORMAT_MESSAGE_ARGUMENT_ARRAY,
-    //                   pMessage, 
-    //                   0,
-    //                   0,
-    //                   buffer, 
-    //                   size, 
-    //                   (va_list*)pArgs))
-    //{
-    //    printf(L"Format message failed with 0x%x\n", GetLastError());
-    //    return;
-    //}
-
-    //// Buffer contains "  Bi Bob   Bill".
-    //printf(L"Formatted message: %s\n", buffer);
-		
-   
-    	// Clean up mutex and condition variable
-    	DeleteCriticalSection(&rb->mutex);
+    // Main thread waits for the other threads to finish
+    WaitForSingleObject(P.Spc.Mharp[MHARP_DEV0].AcquireThread, INFINITE);
+    WaitForSingleObject(P.Spc.Mharp[MHARP_DEV0].AnalyzeThread, INFINITE);
     
-    	CloseHandle(FlowMultithreadMharp);
-    	//CloseHandle(analyzeThread);
-		
-		free(rb->data);
-		}
+    // Clean up mutex and condition variable
+    DeleteCriticalSection(&bufferM->mutex);
+    DeleteCriticalSection(&bufferA->mutex);
+    
+    CloseHandle(P.Spc.Mharp[MHARP_DEV0].AcquireThread);
+    CloseHandle(P.Spc.Mharp[MHARP_DEV0].AnalyzeThread);
 	
+    free(bufferM->data);
+    free(bufferA->data);
 
 	// file TAGS
 	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
 		if(!fclose(P.Spc.Mharp[MHARP_DEV0].FileTags)) ErrHandler(ERR_MHARP, 0, "MH_CloseFileTags");
-		}
-	
-	////** DELETE THIS SECTION
-	//printf("\nDone\n");
-	//int det, bin;
-	//for(det=0; det<1; det++)
-	//	for(bin=0; bin<P.Chann.Num; bin++)
-	//		printf("det=%d\tbin=%d\tcounts=%d\n",det,bin,D.Data[0][det][bin]);
-	//unsigned int tot=0;
-	//for(det=0; det<P.Num.Det; det++)
-	//	for(bin=0; bin<P.Chann.Num; bin++)
-	//		tot+=D.Data[0][det][bin];
-	//printf("TOT = %ud\n",tot);
-	//printf("tAcqCrit=%lf\t tAcqMeas=%lf\t tAnalCrit=%lf\t tAnalProc=%lf\n",tAcqCrit,tAcqMeas,tAnalCrit,tAnalProc);
-	//getchar();
+		}	
 	}
 
-//void StopFlowMharp(void){
-//	short ret;
-//	
-//	// Stop Multi Thread function to fetch FIFO Buffer
-//	if(P.Flow.MultiThread){ 
-//		P.Flow.StopMultiThread=TRUE;
-//		CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE, P.Flow.MultiThreadFunctionId, 0);
-//		CmtDiscardLock(P.Flow.Lock); // remove the Lock	
-//		}
-//	
-//	// stop board
-//	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas");
-
-//	// file TAGS
-//	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
-//		if(!fclose(P.Spc.Mharp[MHARP_DEV0].FileTags)) ErrHandler(ERR_MHARP, 0, "MH_CloseFileTags");
-//		}
-//	}
-
-
-
-
+// Copy Flow from MultiThread Buffer
 void CopyFlowMharp(void){
-	int page0=0;
-	/**/double t1=Timer();
-	for(int ib=0;ib<P.Num.Board;ib++){
-		for(int ir=P.Spc.Mharp[ib].ActualRecord;ir<P.Spc.Mharp[ib].NumRecords;ir++){	// iterate over records in the FIFO Buffer
-			ProcessT3(D.MharpBuffer[ib][ir]); // Decipher the record and add to Histogramming
-			if(P.Spc.Mharp[ib].EndTacq){ // Completed Tacq
-				for(int id=0;id<P.Num.Det;id++){
-					long page=P.Filter.Page[P.Acq.Actual][ib][id];
-					P.Page[page].Acq=P.Acq.Actual;
-					if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page);
-					for(int ic=0;ic<P.Chann.Num;ic++){
-						D.Data[P.Frame.Actual][page][ic]=D.Buffer[ib][ic+id*P.Chann.Num];
-						}
-					}
-				memset(D.Buffer[ib],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
-				P.Flow.FilledFrame=TRUE; // Completed 1 Frame, go to next loop
-				P.Spc.Mharp[ib].EndTacq=FALSE; // reset Tacq to initial state (FALSE) 
-				P.Spc.Mharp[ib].ActualRecord=ir; // keep track of last read record
-				return; // exit the whole function
+	struct RingBufferS *bufferA=&P.Spc.Mharp[MHARP_DEV0].RingBufferA;
+	int done=0;
+	while(!done){
+       	EnterCriticalSection(&bufferA->mutex);
+		unsigned int buffer_sizeA=MHARP_SIZE_RING_A;
+		if(bufferA->count>0){
+			done=1;
+			for(int id=0;id<P.Num.Det;id++){
+				long page=P.Filter.Page[P.Acq.Actual][MHARP_DEV0][id];
+				P.Page[page].Acq=P.Acq.Actual;
+				if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page);
+				for(int ic=0;ic<P.Chann.Num;ic++){
+       			D.Data[P.Frame.Actual][page][ic] = bufferA->data[bufferA->rear];
+       			bufferA->rear = (bufferA->rear + 1) % buffer_sizeA;
 				}
-			}
-		// here completed for loop, and therefore FIFO Buffer is empty
-		P.Spc.Mharp[ib].ActualRecord=0;
-		P.Spc.Mharp[ib].NextFifo=TRUE;
-		}
-	/**/double t2=Timer();
-	/**/tAnalCrit+=(t2-t1);        
-	}
-
-
-/* WaitFlowMharp */
-void WaitFlowMharp(void){
-	// do nothing for the moment since FIFO has always something
-	}
-
-/* Get FIFO MHarp */
-void GetFlowMharp(void){
-	if(!P.Spc.Mharp[MHARP_DEV0].NextFifo) return;
-	
-	if(P.Flow.MultiThread) MharpReadFifoMulti(D.MharpBuffer[MHARP_DEV0], &P.Spc.Mharp[MHARP_DEV0].NumRecords); // fetch data from multithreding process
-	else MharpReadFifoSingle(D.MharpBuffer[MHARP_DEV0], &P.Spc.Mharp[MHARP_DEV0].NumRecords); // fetch data directly from MultiHarp
-	
-	P.Spc.Mharp[MHARP_DEV0].NextFifo=FALSE;
-	
-	// Save all buffer to Tags File
-	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
-		if(fwrite(D.MharpBuffer[MHARP_DEV0],4,P.Spc.Mharp[MHARP_DEV0].NumRecords,P.Spc.Mharp[MHARP_DEV0].FileTags)!=(unsigned)P.Spc.Mharp[MHARP_DEV0].NumRecords) ErrHandler(ERR_MHARP, 0, "MH_WriteFileTags");
-		}
- 	}
-
-/* Get FIFO directly from MultiHarp */
-void MharpReadFifoSingle(unsigned int* Buffer, int* pNumRecords){
-	int flags;
-	int ret;
-	int numrecords=0;
-	
-	while(numrecords==0){
-		ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
-    	if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");	
-    	ret=MH_ReadFiFo(MHARP_DEV0,D.MharpBuffer[MHARP_DEV0],&numrecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
-		}
-	*pNumRecords=numrecords;
-	}
-
-///* Get FIFO from multithred buffer */
-//void MharpReadFifoMulti(unsigned int* Buffer, int* pNumRecords){
-//	int wait=TRUE;
-//	while(wait){
-//		CmtGetLock(P.Flow.Lock);
-//		if(P.Flow.NumRecords>0){
-//			for(int ir=0;ir<P.Flow.NumRecords;ir++) Buffer[ir]=D.MharpBufferThread[ir];	
-//			*pNumRecords=P.Flow.NumRecords;
-//			P.Flow.NumRecords=0;
-//			wait=FALSE;
-//			}
-//		CmtReleaseLock(P.Flow.Lock);
-//		if(wait) Delay(MHARP_SLEEP_THREAD);
-//		}
-//	}
-
-/* Get FIFO from multithred buffer */
-void MharpReadFifoMulti(unsigned int* Buffer, int* pNumRecords){
-    struct RingBufferS* rb = &P.Spc.Mharp[MHARP_DEV0].RingBuffer;
-	int newdata=FALSE;
-    while (!newdata) {
-		/**/double t1=Timer();
-        EnterCriticalSection(&rb->mutex);
-		int nRecords=rb->count;
-		unsigned int buffer_size=MHARP_BUFFER_RING;
-		if(nRecords>0){
-			//printf("Anal nRec=%d\n",nRecords);
-			for(int ir=0;ir<nRecords;ir++){
-        		Buffer[ir] = rb->data[rb->rear];
-        		rb->rear = (rb->rear + 1) % buffer_size;
 				}
-			*pNumRecords=nRecords;
-			rb->count=0;
-			newdata=TRUE;
+			bufferA->count-=P.Num.Det*P.Chann.Num;
 			}
-        LeaveCriticalSection(&rb->mutex);
-		/**/double t2=Timer();
-		/**/tAnalCrit+=(t2-t1);        
-    	}
+       	LeaveCriticalSection(&bufferA->mutex);
+		}
 	}
-
-///* Multithread Function: Get FIFO into Multithread Buffer */
-//int CVICALLBACK FlowMultithreadMharp (void *functionData){
-//	int flags;
-//	int ret;
-//	unsigned int buffer[TTREADMAX];
-//	
-//	while(1) {
-//		if(P.Flow.StopMultiThread) return 0;
-//		int numrecords=0;
-//		ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
-//    	if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");	
-//    	ret=MH_ReadFiFo(MHARP_DEV0,buffer,&numrecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
-//		if(numrecords>0){
-//			int wait=TRUE;
-//			while(wait){
-//				if(P.Flow.StopMultiThread) return 0;
-//				CmtGetLock(P.Flow.Lock);
-//				//P.Flow.NumRecords=0;
-//				if(P.Flow.NumRecords+numrecords<TTREADMAX*MHARP_BUFFER_MULT){ // there is enough space in the multithread buffer to host these data
-//					for(int ir=0;ir<numrecords;ir++) D.MharpBufferThread[P.Flow.NumRecords+ir]=buffer[ir];
-//					P.Flow.NumRecords+=numrecords;
-//					wait=FALSE;
-//					}
-//				CmtReleaseLock(P.Flow.Lock);
-//				if(wait) Delay(MHARP_SLEEP_THREAD);
-//				}
-//			}
-//		}
-//	}
-
-
-// Function to acquire data from the sensor and store it in the ring buffer
-DWORD WINAPI FlowMultithreadMharp(LPVOID ComBuffer) {
-    struct RingBufferS* rb = (struct RingBufferS*)ComBuffer;
-	int flags;
-	int ret;
-	int nRecords;
-	unsigned long *buffer;
-	buffer = calloc(TTREADMAX, sizeof(unsigned long));
-
-	int stop=0;	
-	int ctcstatus;
-    while (!stop) {
-		/**/double t1=Timer();
-		ret=MH_GetFlags(MHARP_DEV0, &flags); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
-    	if(flags & FLAG_FIFOFULL) ErrHandler(ERR_MHARP, ret, "FIFO Full on USB - you loose photons");	
-    	ret=MH_ReadFiFo(MHARP_DEV0,buffer,&nRecords); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_ReadFiFo");
-		/**/double t2=Timer();
-		/**/tAcqMeas+=(t2-t1);
-		if(nRecords>0){
-			/**/double t3=Timer();
-			//printf("Acq nRec=%d\n",nRecords);
-			EnterCriticalSection(&rb->mutex);
-			if(rb->stop) stop=1;
-			unsigned int buffer_size=MHARP_BUFFER_RING;
-			if((rb->count+nRecords)<MHARP_BUFFER_RING){
-        		for(int ir=0;ir<nRecords;ir++){
-					rb->data[rb->front] = buffer[ir];
-        			rb->front = (rb->front + 1) % buffer_size;
-					}
-			//printf("Acq ir=%d\n",ir);
-			//double tRand0=Timer();
-			//for(int i=0;i<1000;i++)
-				//tRand=tRand0+Timer();
-        		rb->count+=nRecords;
-				}
-        	LeaveCriticalSection(&rb->mutex);
-			/**/double t4=Timer();
-			/**/tAcqCrit+=(t4-t3);
-			}
-		//else{
-	    //	ret = MH_CTCStatus(MHARP_DEV0, &ctcstatus); if(ret<0) ErrHandler(ERR_MHARP, ret, "MH_CTCSTATUS");
-	    //  	if (ctcstatus){
-		//	  	EnterCriticalSection(&rb->mutex);
-		//		rb->stop=1;
-		//		stop=1;
-	    //      	LeaveCriticalSection(&rb->mutex);
-	    //    	}
-	    //  	}
-    	}    
-    free(buffer);
-	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas5");
-	//printf("Exit thread\n");
-	//getchar();
-	/**/Delay(1);
-	return 0;
-	}
-
-
-
-
-
 
 
 /* INIT FILE WRITER MHARP */	
