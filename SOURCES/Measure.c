@@ -3978,19 +3978,17 @@ void ProcessT3(unsigned int TTTRRecord){
     	D.Buffer[MHARP_DEV0][dt+ch*P.Chann.Num]++; //Histogramming: add one photon
 		double elapsed_time=(truensync-P.Spc.Mharp[MHARP_DEV0].Sync0)/(double)(P.Spc.Mharp[MHARP_DEV0].SyncRate); // time (s) since Start (Sync0)	
 		double target_time=(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1)*P.Spc.TimeM; // goal time (s) since Start (Sync0)
-		if(elapsed_time>target_time){ //completed Tacq=P.Spc.TimeM NOTE +1 since check end
-			P.Spc.Mharp[MHARP_DEV0].EndTacq=TRUE;
-			}
+		if(elapsed_time>target_time) 
+			if(P.Wait.Type==WAIT_SPC)
+				P.Spc.Mharp[MHARP_DEV0].NextAcq=TRUE; //completed Tacq=P.Spc.TimeM NOTE +1 since check end
     	}
 	else{ //marker or some events
 		if(T3Rec.bits.channel==0x3F){ //overflow //number of overflows is stored in nsync
     		P.Spc.Mharp[MHARP_DEV0].oflcorrection += (uint64_t)T3WRAPAROUND * T3Rec.bits.nsync;
     		}
-    	if((T3Rec.bits.channel>=1)&&(T3Rec.bits.channel<=15)){ //markers
-    		truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync; //the time unit depends on sync period
-			// INSERT HERE GOT MARKER
-    		//GotMarkerT3(truensync, T3Rec.bits.channel);
-    		}
+    	if((T3Rec.bits.channel>=1)&&(T3Rec.bits.channel<=MHARP_MAX_DET))
+			if(P.Wait.Type==WAIT_MARKER)
+				P.Spc.Mharp[MHARP_DEV0].NextAcq=TRUE; //markers
   		}
 	}
 
@@ -4017,7 +4015,9 @@ DWORD WINAPI AcquireDataMharp(LPVOID Buffer) {
  		ret = MH_GetFlags(dev[0], &flags); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
 	    if (flags & FLAG_FIFOFULL) printf("\nFiFo Overrun!\n");
 	    ret = MH_ReadFiFo(dev[0], buffer, &nRecords);; if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_ReadFifo");  
-		if(P.Spc.Mharp[MHARP_DEV0].SaveTags);
+		// Save all buffer to Tags File
+		if(P.Spc.Mharp[MHARP_DEV0].SaveTags)
+			if(fwrite(D.MharpBuffer[MHARP_DEV0],4,P.Spc.Mharp[MHARP_DEV0].NumRecords,P.Spc.Mharp[MHARP_DEV0].FileTags)!=(unsigned)P.Spc.Mharp[MHARP_DEV0].NumRecords) ErrHandler(ERR_MHARP, 0, "MH_WriteFileTags");
 			
 		/**/double t2=Timer();
 		/**/tAcqMeas+=(t2-t1);
@@ -4094,7 +4094,7 @@ DWORD WINAPI AnalyzeDataMharp(LPVOID pBufferMA) {
 		unsigned int buffer_sizeA=MHARP_SIZE_RING_A;		
 		for (int ir = 0; ir < nRecords; ir++){
         	ProcessT3(BufferRecords[ir]);
-			if(P.Spc.Mharp[MHARP_DEV0].EndTacq){
+			if(P.Spc.Mharp[MHARP_DEV0].NextAcq){
 				EnterCriticalSection(&bufferA->mutex);
 				for(int id=0;id<P.Num.Det;id++)
 					for(int ic=0;ic<P.Chann.Num;ic++){			
@@ -4102,7 +4102,7 @@ DWORD WINAPI AnalyzeDataMharp(LPVOID pBufferMA) {
         				bufferA->front = (bufferA->front + 1) % buffer_sizeA;
 						bufferA->count++;
 						}
-				P.Spc.Mharp[MHARP_DEV0].EndTacq=FALSE;
+				P.Spc.Mharp[MHARP_DEV0].NextAcq=FALSE;
 				memset(D.Buffer[MHARP_DEV0], 0, sizeof(T_DATA));
 				P.Spc.Mharp[MHARP_DEV0].PassedTacq++; // this start from 0 and go on up to the end of meas.	Syncronous with start (Sync0)		
 				LeaveCriticalSection(&bufferA->mutex);
@@ -4124,7 +4124,7 @@ void StartFlowMharp(void){
 	// Clear Buffer and initialise all variables
 	memset(D.Buffer[Board],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
 	P.Spc.Mharp[Board].Sync0=0;
-	P.Spc.Mharp[Board].EndTacq=FALSE;
+	P.Spc.Mharp[Board].NextAcq=FALSE;
 	P.Spc.Mharp[Board].PassedTacq=0; // this start from 0 and go on up to the end of meas.
 	P.Spc.Mharp[Board].oflcorrection = 0; // no ovfl in sync
 	P.Spc.Mharp[Board].ActualRecord=0;

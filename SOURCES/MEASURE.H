@@ -595,6 +595,7 @@
 #define WAIT_COUNT	 2
 #define WAIT_POS     3
 #define WAIT_SPC     4
+#define WAIT_MARKER	 5
 #define BYN		     1
 #define ASC			 0
 #define MEASURE 	 0
@@ -1715,7 +1716,7 @@ struct MharpS{
 	int SyncRate; // sync rate needed to control Tacq (expressed in terms of sync counts)
 	int Sync0; // initial sync value (number of elapsed syncs)
 	int PassedTacq; // number of acquisitions up to now since board was started
-	int EndTacq; // reached Tacq
+	int NextAcq; // reached Tacq
 	int NumRecords; // number of records in FIFO
 	int ActualRecord; // position of the actual record in the processed FifoBuffer
 	int Binning; // binning of the acquisition bins (i.e. channels in old TRS)
