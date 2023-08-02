@@ -3960,13 +3960,13 @@ void ProcessT3(unsigned int TTTRRecord){
 			unsigned channel  :6;
 			unsigned special  :1;
 			} bits;
-		} T3Rec;
+		} T3Rec ={0};
   
-	T3Rec.allbits = 0; // you need to initialize this first
-	T3Rec.bits.nsync = 0; // you need to initialize this first
-	T3Rec.bits.dtime = 0; // you need to initialize this first
-	T3Rec.bits.channel = 0; // you need to initialize this first
-	T3Rec.bits.special = 0; // you need to initialize this first
+	//T3Rec.allbits = 0; // you need to initialize this first
+	//T3Rec.bits.nsync = 0; // you need to initialize this first
+	//T3Rec.bits.dtime = 0; // you need to initialize this first
+	//T3Rec.bits.channel = 0; // you need to initialize this first
+	//T3Rec.bits.special = 0; // you need to initialize this first
 //		T3Rec.allbits = TTTRRecord;
 
 	T3Rec.allbits = TTTRRecord;
