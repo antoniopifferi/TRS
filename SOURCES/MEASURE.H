@@ -2200,7 +2200,8 @@ struct sPad Pad[MAX_PAD];								//ALE
 /* #####################   GLOBAL VARIABLES   ########################### */
 
 
-/**/double tAnalCrit, tAnalProc, tAcqCrit, tAcqMeas;
+/**/double tAnalMCrit, tAnalAProc, tAnalACrit, tAcqCrit, tAcqMeas;
+/**/int TempLoop;
 /**/double tRand;
 /**/int MHAfter;
 

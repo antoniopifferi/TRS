@@ -64,6 +64,7 @@
 	#include "th260defin.h" 
 #endif
 
+#include "mhdefin.h"
 #include "hhlib.h"
 #include "mhlib.h"
 #include "th260lib.h"
@@ -559,6 +560,15 @@ void InitVariable(void){
 //TaskHandle	taskmodpower=0;
 /* DO MEASUREMENT */
 void CVICALLBACK Measure(int menuBar,int menuItem,void *callbackData,int panel){
+	/**/
+	tAcqCrit=0;
+	tAcqMeas=0;
+	tAnalACrit=0;
+	tAnalAProc=0;
+	tAnalMCrit=0;
+	TempLoop=0;
+	
+	/**/
 	char isw,is,it,il;
 	if(IS_PROFILING) InitProf();
 	do{ 
@@ -3849,7 +3859,12 @@ void InitMharp(int Board) {
 	
 	// initialize Start Mode (you ALWAYS need this for the get sync rate and standard oscilloscope. Ovveride later on in case (e.g. marker)
  	ret = MH_SetMeasControl(MHARP_DEV0, MEASCTRL_SINGLESHOT_CTC, 1, 1); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetMeasControl");  // standard software start
-		
+	
+	// Get Features
+	int features;
+	MH_GetFeatures (Board, &features); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetFeature");
+	int ok_deadtime=(features&FEATURE_PROG_TD);
+	
 	// set ini parameters
 	ret = MH_SetSyncDiv(Board, mh.SyncDivider); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncDiv");
 	ret = MH_SetSyncEdgeTrg(Board, mh.SyncLevel, mh.SyncEdge); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetSyncEdgeTrg");
@@ -3857,8 +3872,10 @@ void InitMharp(int Board) {
 	for (int id = 0; id < P.Num.Det; id++){
 		ret = MH_SetInputEdgeTrg(Board, id, mh.InputLevel[id], mh.InputEdge[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
 		ret = MH_SetInputChannelOffset(Board, id, mh.InputOffset[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
-		int on_deadtime=(mh.InputDeadtime[id]==0?0:1); // if extended deadline is not required, set to 0
-		ret = MH_SetInputDeadTime(Board, id, on_deadtime, mh.InputDeadtime[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputDeadtime");
+		//if(mh.InputDeadtime[id]<EXTDEADMIN)
+		//	{ret = MH_SetInputDeadTime(Board, id, 0, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputDeadtime");}
+		//else
+		//	{ret = MH_SetInputDeadTime(Board, id, 1, mh.InputDeadtime[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputDeadtime");}
 		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
 		}
 	ret = MH_SetBinning(Board, mh.Binning); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
@@ -3900,22 +3917,22 @@ void StopMharp(int Board) {
 
 /* TRANSFER DATA FROM SPC_MHARP */
 void GetDataMharp(void) {
-	//**unsigned int DataMharp[MHARP_MAX_BIN];
-	unsigned int DataMharp[MHARP_MAX_DET][MHARP_MAX_BIN];
+	/**/unsigned int DataMharp[MHARP_MAX_BIN];
+	//**unsigned int DataMharp[MHARP_MAX_DET][MHARP_MAX_BIN];
 	int ret = 0;
 
 	/**/double t0=Timer();
 	P.Spc.Overflow = FALSE;
 	for (int ib = 0; ib < P.Num.Board; ib++) {
-		/**/ret = MH_GetAllHistograms(MHARP_DEV0, DataMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
+		//**ret = MH_GetAllHistograms(MHARP_DEV0, DataMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
 		for(int id=0;id<P.Num.Det;id++){
-			//**ret = MH_GetHistogram(MHARP_DEV0, DataMharp,id); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
-			//**for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[ic];
-			for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[id][ic];
+			/**/ret = MH_GetHistogram(MHARP_DEV0, DataMharp,id); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
+			/**/for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[ic];
+			//**for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[id][ic];
 			}
 		}
 	/**/double t1=Timer();
-	/**/printf("Delta=%lf ms\n",1000*(t1-t0));
+	//printf("Delta=%lf ms\n",1000*(t1-t0));
 	}
 
 
@@ -3976,11 +3993,10 @@ void ProcessT3(unsigned int TTTRRecord){
 		ch = T3Rec.bits.channel; // channel=Detector
 		dt = T3Rec.bits.dtime; // bin=channel in TRS meaning
     	D.Buffer[MHARP_DEV0][dt+ch*P.Chann.Num]++; //Histogramming: add one photon
-		double elapsed_time=(truensync-P.Spc.Mharp[MHARP_DEV0].Sync0)/(double)(P.Spc.Mharp[MHARP_DEV0].SyncRate); // time (s) since Start (Sync0)	
-		double target_time=(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1)*P.Spc.TimeM; // goal time (s) since Start (Sync0)
-		if(elapsed_time>target_time) 
-			if(P.Wait.Type==WAIT_SPC)
+		if(truensync>P.Spc.TimeM*P.Spc.Mharp[MHARP_DEV0].SyncRate*(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1))
+			if(P.Wait.Type==WAIT_SPC){
 				P.Spc.Mharp[MHARP_DEV0].NextAcq=TRUE; //completed Tacq=P.Spc.TimeM NOTE +1 since check end
+				}
     	}
 	else{ //marker or some events
 		if(T3Rec.bits.channel==0x3F){ //overflow //number of overflows is stored in nsync
@@ -3988,7 +4004,7 @@ void ProcessT3(unsigned int TTTRRecord){
     		}
     	if((T3Rec.bits.channel>=1)&&(T3Rec.bits.channel<=MHARP_MAX_DET))
 			if(P.Wait.Type==WAIT_MARKER)
-				P.Spc.Mharp[MHARP_DEV0].NextAcq=TRUE; //markers
+			P.Spc.Mharp[MHARP_DEV0].NextAcq=TRUE; //markers
   		}
 	}
 
@@ -4064,6 +4080,7 @@ DWORD WINAPI AnalyzeDataMharp(LPVOID pBufferMA) {
 	struct RingBufferMA* bufferMA = (struct RingBufferMA*)pBufferMA;
     struct RingBufferS* bufferM = bufferMA->bufferM;
     struct RingBufferS* bufferA = bufferMA->bufferA;
+	/**/double t5,t6;
 	
 	unsigned int *BufferRecords;
 	BufferRecords = calloc(MHARP_SIZE_RING_M, sizeof(unsigned long));
@@ -4088,13 +4105,14 @@ DWORD WINAPI AnalyzeDataMharp(LPVOID pBufferMA) {
 			}
         LeaveCriticalSection(&bufferM->mutex);
 		/**/double t2=Timer();
-		/**/tAnalCrit+=(t2-t1);
+		/**/tAnalMCrit+=(t2-t1);
         
 		/**/double t3=Timer();
 		unsigned int buffer_sizeA=MHARP_SIZE_RING_A;		
 		for (int ir = 0; ir < nRecords; ir++){
         	ProcessT3(BufferRecords[ir]);
 			if(P.Spc.Mharp[MHARP_DEV0].NextAcq){
+				/**/t5=Timer();
 				EnterCriticalSection(&bufferA->mutex);
 				for(int id=0;id<P.Num.Det;id++)
 					for(int ic=0;ic<P.Chann.Num;ic++){			
@@ -4103,13 +4121,16 @@ DWORD WINAPI AnalyzeDataMharp(LPVOID pBufferMA) {
 						bufferA->count++;
 						}
 				P.Spc.Mharp[MHARP_DEV0].NextAcq=FALSE;
-				memset(D.Buffer[MHARP_DEV0], 0, sizeof(T_DATA));
+				memset(D.Buffer[MHARP_DEV0], 0, sizeof(T_DATA)*P.Chann.Num*P.Num.Det);
 				P.Spc.Mharp[MHARP_DEV0].PassedTacq++; // this start from 0 and go on up to the end of meas.	Syncronous with start (Sync0)		
 				LeaveCriticalSection(&bufferA->mutex);
+				/**/t6=Timer();
+				/**/tAnalACrit+=(t6-t5);
 				}
 			}
 		/**/double t4=Timer();
-		/**/tAnalProc+=(t4-t3);
+		/**/tAnalAProc+=(t4-t3);
+		
     }
     free(BufferRecords);
     return 0;	
@@ -4197,16 +4218,13 @@ void StartFlowMharp(void){
   	ret = MH_GetSyncRate(MHARP_DEV0, &P.Spc.Mharp[Board].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // &P. needed here. This is needed to control Tacq (expressed in terms of sync)
 	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas4"); // here measure is stopped to clear all memeory
 	
-	// start measure
-	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
-
 	// Start Multi Thread function to fetch FIFO Buffer
     struct RingBufferS *bufferM=&P.Spc.Mharp[MHARP_DEV0].RingBufferM;
    	struct RingBufferS *bufferA=&P.Spc.Mharp[MHARP_DEV0].RingBufferA;
 	struct RingBufferMA *bufferMA=&P.Spc.Mharp[MHARP_DEV0].RingBufferMA;
 	
-	bufferMA->bufferM=&bufferM;
-	bufferMA->bufferA=&bufferA;
+	bufferMA->bufferM=bufferM;
+	bufferMA->bufferA=bufferA;
 	
    	bufferM->front = 0;
    	bufferM->rear = 0;
@@ -4226,6 +4244,9 @@ void StartFlowMharp(void){
    	InitializeCriticalSection(&bufferA->mutex);
    	InitializeConditionVariable(&bufferA->notEmpty);
     
+	// start measure
+	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
+
    	// Create threads for acquiring and analyzing data
    	P.Spc.Mharp[MHARP_DEV0].AcquireThread = CreateThread(NULL, 0, AcquireDataMharp, bufferM, 0, NULL);
    	P.Spc.Mharp[MHARP_DEV0].AnalyzeThread = CreateThread(NULL, 0, AnalyzeDataMharp, bufferMA, 0, NULL);
@@ -4234,7 +4255,7 @@ void StartFlowMharp(void){
 	
 
 void StopFlowMharp(void){
-	   struct RingBufferS *bufferM=&P.Spc.Mharp[MHARP_DEV0].RingBufferM;
+	struct RingBufferS *bufferM=&P.Spc.Mharp[MHARP_DEV0].RingBufferM;
     struct RingBufferS *bufferA=&P.Spc.Mharp[MHARP_DEV0].RingBufferA;
 
 	EnterCriticalSection(&bufferM->mutex);
@@ -4259,6 +4280,10 @@ void StopFlowMharp(void){
 	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
 		if(!fclose(P.Spc.Mharp[MHARP_DEV0].FileTags)) ErrHandler(ERR_MHARP, 0, "MH_CloseFileTags");
 		}	
+	
+	/**/printf("tAcqCrit=%f\ntAcqProc=%f\ntAnalMCrit=%f\ntAnalACrit=%f\ntAnalAProc=%f\n",tAcqCrit,tAcqMeas,tAnalMCrit,tAnalACrit,tAnalAProc);
+	/**/getchar();
+	
 	}
 
 // Copy Flow from MultiThread Buffer
@@ -4275,11 +4300,12 @@ void CopyFlowMharp(void){
 				P.Page[page].Acq=P.Acq.Actual;
 				if(P.Info.SubHeader) CompileSub(P.Ram.Actual,P.Frame.Actual,page);
 				for(int ic=0;ic<P.Chann.Num;ic++){
-       			D.Data[P.Frame.Actual][page][ic] = bufferA->data[bufferA->rear];
-       			bufferA->rear = (bufferA->rear + 1) % buffer_sizeA;
-				}
+       				D.Data[P.Frame.Actual][page][ic] = bufferA->data[bufferA->rear];
+       				bufferA->rear = (bufferA->rear + 1) % buffer_sizeA;
+					}
 				}
 			bufferA->count-=P.Num.Det*P.Chann.Num;
+			P.Flow.FilledFrame=TRUE;
 			}
        	LeaveCriticalSection(&bufferA->mutex);
 		}
