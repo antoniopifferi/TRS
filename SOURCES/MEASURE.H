@@ -1712,10 +1712,11 @@ typedef struct RingBufferMA{
 
 struct MharpS{
 	int Mode; // MHARP_MODE_HIST=standard histogramming, MHARP_MODE_T3=continuous flow using T3 (time-tags)  
-	int oflcorrection; // overflow correction. remember number of occured overflow in sync time
+	//int oflcorrection; // overflow correction. remember number of occured overflow in sync time
 	int SyncRate; // sync rate needed to control Tacq (expressed in terms of sync counts)
-	int Sync0; // initial sync value (number of elapsed syncs)
-	int PassedTacq; // number of acquisitions up to now since board was started
+	//int Sync0; // initial sync value (number of elapsed syncs)
+	uint64_t SyncGoal; // sync counts that delimit the next Tacq (already corrected for overflow)
+	//int PassedTacq; // number of acquisitions up to now since board was started
 	int NextAcq; // reached Tacq
 	int NumRecords; // number of records in FIFO
 	int ActualRecord; // position of the actual record in the processed FifoBuffer
@@ -2204,6 +2205,12 @@ struct sPad Pad[MAX_PAD];								//ALE
 /**/int TempLoop;
 /**/double tRand;
 /**/int MHAfter;
+
+// DELETE THIS BELOW
+/**/int NumPhotons;
+/**/int NumCall;
+/**/int NumValidCall;
+/**/int FinalSync;
 
 struct ParmS P;
 struct DataS D;

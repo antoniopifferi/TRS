@@ -45,11 +45,11 @@
 0	0	LoopCont_5	0
 0	2	SpcTimeO	0.100000
 0	0	TimeBase	0
-0	0	ReadUIR	1
+0	0	ReadUIR	0
 0	3	FileDir	c:\temp
 0	3	FileExt	DAT
-0	3	FilePrefix	LLLm
-0	1	FileTag	425
+0	3	FilePrefix	MMMm
+0	1	FileTag	38
 0	0	FileType	1
 0	0	FileSave	1
 0	0	FlowFlow	1
@@ -76,10 +76,10 @@
 0	3	SpcIniFile_2	
 0	3	SpcIniFile_3	
 0	3	SpcIniFile_4	
-0	1	MeasPlot	1
-0	1	MeasStatus	1
-0	1	MeasRoi	1
-0	1	MeasMem	1
+0	1	MeasPlot	10
+0	1	MeasStatus	10
+0	1	MeasRoi	10
+0	1	MeasMem	10
 0	0	MeasClear	1
 0	0	MeasStop	1
 0	0	MeasAutorun	0
@@ -1207,7 +1207,7 @@
 0	3	SwabFNameVirt	
 0	1	SwabFreqDiv	10
 0	1	SwabFreqMult	10
-0	1	MharpBinning	0
+0	1	MharpBinning	4
 0	1	MharpOffset	0
 0	1	MharpSyncDivider	2
 0	1	MharpSyncOffset	0

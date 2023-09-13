@@ -3966,7 +3966,7 @@ void WaitMharp(int Board) {
 // HydraHarpV2 or TimeHarp260 or MultiHarp T3 record data
 void ProcessT3(unsigned int TTTRRecord){
 	int ch, dt;
-	uint64_t truensync;
+	//uint64_t truensync;
 	const int T3WRAPAROUND = 1024;
 
 	union {
@@ -3979,28 +3979,23 @@ void ProcessT3(unsigned int TTTRRecord){
 			} bits;
 		} T3Rec ={0};
   
-	//T3Rec.allbits = 0; // you need to initialize this first
-	//T3Rec.bits.nsync = 0; // you need to initialize this first
-	//T3Rec.bits.dtime = 0; // you need to initialize this first
-	//T3Rec.bits.channel = 0; // you need to initialize this first
-	//T3Rec.bits.special = 0; // you need to initialize this first
-//		T3Rec.allbits = TTTRRecord;
-
 	T3Rec.allbits = TTTRRecord;
 
 	if(T3Rec.bits.special!=1){ //regular input channel
-		truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync; //truensync indicates the number of the sync period. dtime unit depends on the chosen resolution (binning)
+		//truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync; //truensync indicates the number of the sync period. dtime unit depends on the chosen resolution (binning)
 		ch = T3Rec.bits.channel; // channel=Detector
 		dt = T3Rec.bits.dtime; // bin=channel in TRS meaning
     	D.Buffer[MHARP_DEV0][dt+ch*P.Chann.Num]++; //Histogramming: add one photon
-		if(truensync>P.Spc.TimeM*P.Spc.Mharp[MHARP_DEV0].SyncRate*(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1))
+		//if(truensync>P.Spc.TimeM*P.Spc.Mharp[MHARP_DEV0].SyncRate*(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1))
+		if(T3Rec.bits.nsync>P.Spc.Mharp[MHARP_DEV0].SyncGoal)
 			if(P.Wait.Type==WAIT_SPC){
 				P.Spc.Mharp[MHARP_DEV0].NextAcq=TRUE; //completed Tacq=P.Spc.TimeM NOTE +1 since check end
 				}
     	}
 	else{ //marker or some events
 		if(T3Rec.bits.channel==0x3F){ //overflow //number of overflows is stored in nsync
-    		P.Spc.Mharp[MHARP_DEV0].oflcorrection += (uint64_t)T3WRAPAROUND * T3Rec.bits.nsync;
+    		//P.Spc.Mharp[MHARP_DEV0].oflcorrection += (uint64_t)T3WRAPAROUND * T3Rec.bits.nsync;
+			P.Spc.Mharp[MHARP_DEV0].SyncGoal-=(uint64_t)T3WRAPAROUND * T3Rec.bits.nsync;
     		}
     	if((T3Rec.bits.channel>=1)&&(T3Rec.bits.channel<=MHARP_MAX_DET))
 			if(P.Wait.Type==WAIT_MARKER)
@@ -4013,6 +4008,7 @@ void ProcessT3(unsigned int TTTRRecord){
 DWORD WINAPI AcquireDataMharp(LPVOID Buffer) {
     struct RingBufferS* ringBufferM = (struct RingBufferS*)Buffer;
 	int ret;
+	int ir;
 	int dev[1];
 	dev[0]=MHARP_DEV0;
 	int flags;
@@ -4030,7 +4026,10 @@ DWORD WINAPI AcquireDataMharp(LPVOID Buffer) {
 		/**/double t1=Timer();
  		ret = MH_GetFlags(dev[0], &flags); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetFlags");
 	    if (flags & FLAG_FIFOFULL) printf("\nFiFo Overrun!\n");
-	    ret = MH_ReadFiFo(dev[0], buffer, &nRecords);; if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_ReadFifo");  
+	    ret = MH_ReadFiFo(dev[0], buffer, &nRecords); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_ReadFifo");  
+		/**/NumPhotons+=nRecords;
+		/**/NumCall+=1;
+
 		// Save all buffer to Tags File
 		if(P.Spc.Mharp[MHARP_DEV0].SaveTags)
 			if(fwrite(D.MharpBuffer[MHARP_DEV0],4,P.Spc.Mharp[MHARP_DEV0].NumRecords,P.Spc.Mharp[MHARP_DEV0].FileTags)!=(unsigned)P.Spc.Mharp[MHARP_DEV0].NumRecords) ErrHandler(ERR_MHARP, 0, "MH_WriteFileTags");
@@ -4039,17 +4038,28 @@ DWORD WINAPI AcquireDataMharp(LPVOID Buffer) {
 		/**/tAcqMeas+=(t2-t1);
 
 		if(nRecords>0){
+		/**/NumValidCall+=1;
 		/**/double t3=Timer();
 			EnterCriticalSection(&ringBufferM->mutex);
         	//while (ringBuffer->count +nRecords >= BUFFER_SIZE) {
             	// Wait until the buffer is not full
             	//SleepConditionVariableCS(&ringBuffer->notEmpty, &ringBuffer->mutex, INFINITE);
         		//}
-			unsigned int buffer_size=MHARP_SIZE_RING_M;
-        	for(int ir=0;ir<nRecords;ir++){
-				ringBufferM->data[ringBufferM->front] = buffer[ir];
-        		ringBufferM->front = (ringBufferM->front + 1) % buffer_size;
-				}
+			static unsigned int buffer_size=MHARP_SIZE_RING_M;
+			
+        	//for(int ir=0;ir<nRecords;ir++){
+			//	ringBufferM->data[ringBufferM->front] = buffer[ir];
+        	//	ringBufferM->front = (ringBufferM->front + 1) % buffer_size;
+			//	}
+			
+			int delta1=min(nRecords,buffer_size-ringBufferM->front); // records that stay within the current round
+			int delta2=nRecords-delta1; // records that need to be allocated in next round
+        	for(ir=0;ir<delta1;ir++)
+				ringBufferM->data[ir+ringBufferM->front] = buffer[ir];
+        	for(ir=0;ir<delta2;ir++)
+				ringBufferM->data[ir] = buffer[ir+delta1];
+			ringBufferM->front = (ringBufferM->front + nRecords) % buffer_size;
+			
         	ringBufferM->count+=nRecords;
 			if(ringBufferM->stop) stop=1;
         	LeaveCriticalSection(&ringBufferM->mutex);
@@ -4122,7 +4132,8 @@ DWORD WINAPI AnalyzeDataMharp(LPVOID pBufferMA) {
 						}
 				P.Spc.Mharp[MHARP_DEV0].NextAcq=FALSE;
 				memset(D.Buffer[MHARP_DEV0], 0, sizeof(T_DATA)*P.Chann.Num*P.Num.Det);
-				P.Spc.Mharp[MHARP_DEV0].PassedTacq++; // this start from 0 and go on up to the end of meas.	Syncronous with start (Sync0)		
+				//P.Spc.Mharp[MHARP_DEV0].PassedTacq++; // this start from 0 and go on up to the end of meas.	Syncronous with start (Sync0)	
+				P.Spc.Mharp[MHARP_DEV0].SyncGoal+=P.Spc.TimeM*P.Spc.Mharp[MHARP_DEV0].SyncRate; // this start from 0 and go on up to the end of meas.	Syncronous with start (Sync0)	
 				LeaveCriticalSection(&bufferA->mutex);
 				/**/t6=Timer();
 				/**/tAnalACrit+=(t6-t5);
@@ -4144,10 +4155,11 @@ void StartFlowMharp(void){
 
 	// Clear Buffer and initialise all variables
 	memset(D.Buffer[Board],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
-	P.Spc.Mharp[Board].Sync0=0;
+	//P.Spc.Mharp[Board].Sync0=0;
 	P.Spc.Mharp[Board].NextAcq=FALSE;
-	P.Spc.Mharp[Board].PassedTacq=0; // this start from 0 and go on up to the end of meas.
-	P.Spc.Mharp[Board].oflcorrection = 0; // no ovfl in sync
+	//P.Spc.Mharp[Board].PassedTacq=0; // this start from 0 and go on up to the end of meas.
+	P.Spc.Mharp[MHARP_DEV0].SyncGoal=P.Spc.TimeM*P.Spc.Mharp[MHARP_DEV0].SyncRate; // initialise to first goal
+	//P.Spc.Mharp[Board].oflcorrection = 0; // no ovfl in sync
 	P.Spc.Mharp[Board].ActualRecord=0;
 	
 	// INIT
@@ -4237,6 +4249,12 @@ void StartFlowMharp(void){
    	bufferA->count = 0;
 	bufferA->stop =0;
 	bufferA->data = calloc(MHARP_SIZE_RING_A, sizeof(unsigned int));
+	
+	
+	//DELETE THIS
+/**/NumPhotons=0;
+/**/NumCall=0;
+/**/NumValidCall=0;
 
    	// Initialize mutex and condition variable
    	InitializeCriticalSection(&bufferM->mutex);
@@ -4282,6 +4300,7 @@ void StopFlowMharp(void){
 		}	
 	
 	/**/printf("tAcqCrit=%f\ntAcqProc=%f\ntAnalMCrit=%f\ntAnalACrit=%f\ntAnalAProc=%f\n",tAcqCrit,tAcqMeas,tAnalMCrit,tAnalACrit,tAnalAProc);
+	/**/printf("NumPhotons=%d\nNumCall=%d\nNumValidCall=%d\nAveragePhotons=%f\n\n",NumPhotons,NumCall,NumValidCall,(1.0*NumPhotons)/(1.0*NumValidCall));
 	/**/getchar();
 	
 	}
