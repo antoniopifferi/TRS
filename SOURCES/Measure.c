@@ -3913,7 +3913,7 @@ void GetDataMharp(void) {
 			}
 		}
 	/**/double t1=Timer();
-	/**/printf("Delta=%lf ms\n",1000*(t1-t0));
+	//**printf("Delta=%lf ms\n",1000*(t1-t0));
 	}
 
 
