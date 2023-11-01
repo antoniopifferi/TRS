@@ -52,7 +52,7 @@
 0	1	FileTag	103
 0	0	FileType	1
 0	0	FileSave	1
-0	0	FlowFlow	1
+0	0	FlowFlow	0
 0	0	SpcType	16
 0	0	SpcScale	1
 0	2	SpcCalib	10.000000
@@ -730,8 +730,13 @@
 0	1	PlotPageU_16	16
 0	0	GraphType	0
 0	0	GraphType	0
+<<<<<<< HEAD
 0	1	OscillZoomFirst	0
 0	1	OscillZoomLast	2500
+=======
+0	1	OscillZoomFirst	1
+0	1	OscillZoomLast	4095
+>>>>>>> GAP2
 0	0	LayoutOrder	0
 1	0	ValueRoi_1_1	2
 1	1	OscillFirst_1_1	0
