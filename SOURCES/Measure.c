@@ -4041,24 +4041,20 @@ DWORD WINAPI AcquireDataMharp(LPVOID Buffer) {
 		/**/NumValidCall+=1;
 		/**/double t3=Timer();
 			EnterCriticalSection(&ringBufferM->mutex);
-        	//while (ringBuffer->count +nRecords >= BUFFER_SIZE) {
-            	// Wait until the buffer is not full
-            	//SleepConditionVariableCS(&ringBuffer->notEmpty, &ringBuffer->mutex, INFINITE);
-        		//}
-			static unsigned int buffer_size=MHARP_SIZE_RING_M;
+ 			static unsigned int buffer_size=MHARP_SIZE_RING_M;
 			
-        	//for(int ir=0;ir<nRecords;ir++){
-			//	ringBufferM->data[ringBufferM->front] = buffer[ir];
-        	//	ringBufferM->front = (ringBufferM->front + 1) % buffer_size;
-			//	}
+        	for(int ir=0;ir<nRecords;ir++){
+				ringBufferM->data[ringBufferM->front] = buffer[ir];
+        		ringBufferM->front = (ringBufferM->front + 1) % buffer_size;
+				}
 			
-			int delta1=min(nRecords,buffer_size-ringBufferM->front); // records that stay within the current round
-			int delta2=nRecords-delta1; // records that need to be allocated in next round
-        	for(ir=0;ir<delta1;ir++)
-				ringBufferM->data[ir+ringBufferM->front] = buffer[ir];
-        	for(ir=0;ir<delta2;ir++)
-				ringBufferM->data[ir] = buffer[ir+delta1];
-			ringBufferM->front = (ringBufferM->front + nRecords) % buffer_size;
+			//int delta1=min(nRecords,buffer_size-ringBufferM->front); // records that stay within the current round
+			//int delta2=nRecords-delta1; // records that need to be allocated in next round
+        	//for(ir=0;ir<delta1;ir++)
+			//	ringBufferM->data[ir+ringBufferM->front] = buffer[ir];
+        	//for(ir=0;ir<delta2;ir++)
+			//	ringBufferM->data[ir] = buffer[ir+delta1];
+			//ringBufferM->front = (ringBufferM->front + nRecords) % buffer_size;
 			
         	ringBufferM->count+=nRecords;
 			if(ringBufferM->stop) stop=1;
