@@ -3984,7 +3984,7 @@ void ProcessT3(unsigned int TTTRRecord){
 	if(T3Rec.bits.special!=1){ //regular input channel
 		//truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync; //truensync indicates the number of the sync period. dtime unit depends on the chosen resolution (binning)
 		ch = T3Rec.bits.channel; // channel=Detector
-		dt = T3Rec.bits.dtime; // bin=channel in TRS meaning
+		dt = min(T3Rec.bits.dtime,P.Chann.Num-1); // bin=channel in TRS meaning
     	D.Buffer[MHARP_DEV0][dt+ch*P.Chann.Num]++; //Histogramming: add one photon
 		//if(truensync>P.Spc.TimeM*P.Spc.Mharp[MHARP_DEV0].SyncRate*(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1))
 		if(T3Rec.bits.nsync>P.Spc.Mharp[MHARP_DEV0].SyncGoal)
