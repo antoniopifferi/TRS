@@ -7102,6 +7102,8 @@ void InitStep(char Step){
 		case BCD_SYNC: InitBcd(0); break;
 		case BCD_PIX: InitBcd(0); break;
 		case DMD_TX: InitDmdTx(Step); break;
+		case ARD_FLOW:
+		case ARD_STEP:  InitArd(Step); break;
 		default:;
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
@@ -7132,6 +7134,8 @@ void CloseStep(char Step){
 		case BCD_SYNC:
 		case BCD_PIX: CloseBcd(); break;
 		case DMD_TX: CloseDmdTx(Step); break;
+		case ARD_FLOW:
+		case ARD_STEP: CloseArd(Step); break;
 		default:;
 		}
 	}
@@ -7154,6 +7158,8 @@ void SetVel(char Step, double Freq){
 		case ESP300: SetVelEsp300(Step,Freq); break;
 		case CHAMALEON: SetVelCham(Step,Freq); break;
 		case STEP_STANDA2: SetVelStanda2(Step,Freq); break;
+		case ARD_FLOW:
+		case ARD_STEP:  SetVelArd(Step,Freq); break;
 		default:;
 		}
 	P.Step[Step].FreqActual=Freq;
@@ -7277,6 +7283,8 @@ void DefineHome(char Step){
 		case STEP_STANDA2: DefineHomeStanda2(Step); break;
 		case ATT_LUCA: DefineHomeAttLuca(Step); break;
 		case DMD_TX: DefineHomeDmdTx(Step); break;
+		case ARD_FLOW:
+		case ARD_STEP: DefineHomeArd(Step); break;
 		default:;
 		}
 		P.Step[Step].Actual=P.Step[Step].Home;
@@ -7339,6 +7347,8 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case BCD_SYNC: MoveBcdSync(Step,Goal,FALSE); break;
 		case BCD_PIX: MoveBcdPix(Step,Goal,FALSE); break;
 		case DMD_TX: MoveDmdTx(Step,Goal,Wait); break;
+		case ARD_FLOW:
+		case ARD_STEP: MoveArd(Step,Goal,Wait); break;
 		default:;
 		}
 	P.Spc.Trash=TRUE;
@@ -7368,6 +7378,8 @@ void StopStep(char Step){
 		case STEP_STANDA2: StopStanda2(Step); break;
 		case ATT_LUCA: StopAttLuca(Step); break;
 		case DMD_TX: StopDmdTx(Step); break;
+		case ARD_FLOW:
+		case ARD_STEP: StopArd(Step); break;
 		default:;
 		}
 	}
@@ -7389,6 +7401,8 @@ void TellPos(char Step,long *Position){
 		case CHAMALEON: TellPosCham(Step,Position); break;
 		case STEP_STANDA2: TellPosStanda2(Step,Position); break;
 		case ATT_LUCA: TellPosAttLuca(Step,Position); break;
+		case ARD_FLOW:
+		case ARD_STEP: TellPosArd(Step,Position); break;
 		default:;
 		}
 	}
@@ -7445,6 +7459,8 @@ void WaitStep(long *Actual,long Goal,char Step,char Status){
 		case STEP_STANDA2: WaitStanda2(Step,Goal); break;
 		case ATT_LUCA: WaitAttLuca(Step,Goal); break;
 		case DMD_TX: WaitDmdTx(Step,Goal); break;
+		case ARD_FLOW:
+		case ARD_STEP: WaitArd(Step,Goal); break;
 		default:;
 		}
 	}
@@ -7936,36 +7952,6 @@ void MoveMicro(char Step,long Goal,char Wait){
 	if(Wait) WaitMicro(Step,Goal);
 	}
 
-/* WAIT END OF MICRO MOVEMENT */
-/*void WaitMicro(char Step,long Goal){
-	long actual;
-	do{
-		TellPosMicro(Step,&actual);
-		Delay(0.1);
-		}
-	while(actual!=Goal);
-	P.Step[Step].Actual=actual;
-	} */
-
-/* WAIT END OF MICRO MOVEMENT */
-/*void WaitMicro(char Step,long Goal){
-	long actual;
-	int com=P.Step[Step].Com;
-	if(Goal==P.Step[Step].Actual) return;
-	GetMicro(com,&actual);
-	P.Step[Step].Actual=actual;
-	}*/ 
-
-/* WAIT END OF MICRO MOVEMENT */
-/* NEW */
-/*void WaitMicro(char Step,long Goal){
-	long actual;
-	if(Goal==P.Step[Step].Actual) return;
-	do TellPosMicro(Step, &actual); 
-	while(Goal!=actual);
-	P.Step[Step].Actual=actual;
-	} */
-
 
 /* WAIT END OF MICRO MOVEMENT */
 void WaitMicro(char Step,long Goal){
@@ -7982,10 +7968,8 @@ void WaitMicro(char Step,long Goal){
 			break;
 		}
 	P.Step[Step].Actual=actual;
-	return;
-	
+	return;	
 } 
-
 
 /* TELL POSITION MICRO */
 void TellPosMicro(char Step,long *Actual){
@@ -8043,6 +8027,106 @@ void GetMicro(int Com,long *Answer){
 	char *pChar;
 	pChar = (char*) Answer;
 	while(ComRd (Com,pChar,4)<4);
+	}
+
+
+// #### ARDUINO STEPPER ####
+	
+/* INITIALIZE ARDUINO */
+void InitArd(char Step){
+	int ret,open;
+	char message[STRLEN];
+	int com=P.Step[Step].Com;
+	sprintf(message,"Initializing MICRO Stepper #%d on COM%d",Step+1,com);
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+	open=OpenComConfig(com,NULL,ARD_BAUDRATE,ARD_PARITY,ARD_DATABITS,ARD_STOPBITS,0,-1);
+	FlushInQ (com);
+	FlushOutQ (com);
+    
+    //TalkMicro(Step,MICRO_LCD,P.Step[Step].Lcd,&ret);
+    //TalkMicro(Step,MICRO_HOLD,P.Step[Step].Hold,&ret);
+    //TalkMicro(Step,MICRO_FMIN,P.Step[Step].FreqMin,&ret);
+	//TalkMicro(Step,MICRO_VEL,(int) P.Step[Step].Freq,&ret);
+	//TalkMicro(Step,MICRO_FDELTA,P.Step[Step].FreqDelta,&ret);
+	//TalkMicro(com,MICRO_HOME,P.Step[Step].Home,&ret);
+    
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
+	}
+
+
+/* CLOSE ARDUINO */
+void CloseArd(char Step){
+	int ret;
+	int com=P.Step[Step].Com;
+    //TalkMicro(Step,MICRO_END,0,&ret);
+	FlushInQ (com);
+	FlushOutQ (com);
+	CloseCom (com);
+	}
+
+
+/* SET FREQUENCY ARDUINO */	
+void SetVelArd(char Step, double Freq){
+	int ret;
+    //TalkMicro(Step,MICRO_VEL,(int) Freq,&ret);
+	}
+
+
+/* MOVE ARDUINO */
+void MoveArd(char Step,long Goal,char Wait){
+	int ret;
+	if(Goal==P.Step[Step].Actual) return;
+    //TalkMicro(Step, MICRO_GOTO, Goal,&ret);
+	//if(Wait) WaitMicro(Step,Goal);
+	}
+
+
+/* WAIT END OF MICRO MOVEMENT */
+void WaitArd(char Step,long Goal){
+	long actual;
+	if(Goal==P.Step[Step].Actual) return;
+
+	do TellPosArd(Step, &actual);
+	while(Goal!=actual);
+	
+	P.Step[Step].Actual=actual;
+	return;	
+	} 
+
+/* TELL POSITION ARDUINO */
+void TellPosArd(char Step,long *Actual){
+    //TalkMicro(Step,MICRO_TELL,0,Actual);
+	}
+
+
+/* STOP ARDUINO */
+void StopArd(char Step){
+    //TalkMicro(Step, MICRO_STOP,0,&P.Step[Step].Actual);
+	}
+
+
+/* DEFINE HOME ARDUINO */
+void DefineHomeArd(char Step){
+    }
+
+/* SEND COMMAND TO ARDUINO AND GET ANSWER */
+void TalkArd(char Step, char Command, long Value, long *Answer){
+	char *pChar;	
+	int com=P.Step[Step].Com;
+
+	//pChar = (char*) &Value;
+	//pChar[3] = (char) Command;
+	//ComWrt(com,pChar,4);
+	//GetMicro(com,Answer);
+	
+	return;	
+	}
+
+/* GET ANSWER FROM ARD */
+void GetArd(int Com,long *Answer){
+	char *pChar;
+	pChar = (char*) Answer;
+	//while(ComRd (Com,pChar,4)<4);
 	}
 
 

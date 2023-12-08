@@ -250,6 +250,30 @@
 #define MICRO_DATABITS	8
 #define MICRO_STOPBITS	1
 
+// ARDUINO SPECIFIC CONSTANTS
+#define ARD_LCD		'W'
+#define ARD_HOLD	'H'
+#define ARD_FMIN	'M'
+#define ARD_FDELTA	'A'
+#define ARD_HOME	'I'
+#define ARD_VEL		'V'
+#define ARD_GOTO	'G'
+#define ARD_TELL	'T'
+#define ARD_STOP	'F'
+#define ARD_END		'E'
+#define ARD_TERM	';'
+#define ARD_GETLENGTH	16
+#define ARD_HOLD_OFF	0
+#define ARD_HOLD_MEAS	1
+#define ARD_HOLD_ON		2
+#define ARD_LCD_OFF		0	
+#define ARD_LCD_ALL		1	
+#define ARD_LCD_END		2	
+#define ARD_BAUDRATE 	115200
+#define ARD_PARITY 		0
+#define ARD_DATABITS	8
+#define ARD_STOPBITS	1
+
 // ESP300 SPECIFIC CONSTANTS
 #define ESP300_TERM		13 // Terminator = Carriage Return
 #define ESP300_BAUDRATE 19200
@@ -569,6 +593,8 @@
 #define BCD_SYNC	26
 #define BCD_PIX		27
 #define DMD_TX		28
+#define ARD_FLOW	29
+#define ARD_STEP	30
 
 #define VARRO		 1
 #define NI_6602	     5
@@ -2646,6 +2672,19 @@ void StopMicro(char Step);
 void DefineHomeMicro(char Step);
 void TalkMicro(char Step, char Command, long Value, long *Answer);
 void GetMicro(int Com, long *Answer);
+
+// #### ARDUINO STEPPER ####
+void InitArd(char Step);
+void CloseArd(char Step);
+void SetVelArd(char Step, double Freq);
+void MoveArd(char Step,long Goal,char Wait);
+void WaitArd(char Step,long Goal);
+void TellPosArd(char Step,long *Actual);
+void StopArd(char Step);
+void DefineHomeArd(char Step);
+void TalkArd(char Step, char Command, long Value, long *Answer);
+void GetArd(int Com,long *Answer);
+
 
 // #### DMD TEXAS STEPPER ####
 //void allocatePatternTest123(struct Patterns *p, int nEl);
