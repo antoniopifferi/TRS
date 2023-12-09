@@ -90,7 +90,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1297
+#define MAX_TABLE		1357
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -817,7 +817,7 @@
 #define LUCA_FILE_HANDLE "LucaHandle.log"
 
 /* SWAB CONSTANTS */
-#define SWAB_MAX_DET		8		// max number of detectors in SwabianBoard
+#define SWAB_MAX_DET		18		// max number of detectors in SwabianBoard
 #define SWAB_NONE			0		// no detector
 #define SWAB_SIGN			1		// sign detector
 #define SWAB_SYNC			2		// sync detector
@@ -1695,15 +1695,16 @@ struct SwabS{
 	int DetSign[SWAB_MAX_DET]; // code identifying Sign Detectors (1-based from UIR) 
 	int DetType[SWAB_MAX_DET]; // code identifying type of detector (SWAB_NONE, SWAB_SYNC, SWAB_SIGN)
 	double Level[SWAB_MAX_DET]; // threshold (mV)
+	int Hysteresis[SWAB_MAX_DET]; // Hysteresis (mV) - accepted values: 1mV, 20mV, 70mV
 	int Delay[SWAB_MAX_DET]; // (ps) delay
-	SwabianInstruments_TimeTagger_TimeTagger Ttr; // handle to a Real Tagger object
-	SwabianInstruments_TimeTagger_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
-	SwabianInstruments_TimeTagger_FrequencyMultiplier Fm; // handle to Frequency Multiplier object
-	SwabianInstruments_TimeTagger_TimeTaggerBase Ttb; // handle to Base Tagger object
-	SwabianInstruments_TimeTagger_HistogramLogBins Corr[SWAB_MAX_DET]; // handle to Correlation object
-	//SwabianInstruments_TimeTagger_Correlation Corr[SWAB_MAX_DET]; // handle to Correlation object
-	SwabianInstruments_TimeTagger_Histogram Hist[SWAB_MAX_DET]; // handle to Correlation object
-	SwabianInstruments_TimeTagger_FileWriter Fw; // handle to File Write object
+	Swab_TimeTag_TimeTagger Ttr; // handle to a Real Tagger object
+	Swab_TimeTag_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
+	Swab_TimeTag_FrequencyMultiplier Fm; // handle to Frequency Multiplier object
+	Swab_TimeTag_TimeTaggerBase Ttb; // handle to Base Tagger object
+	Swab_TimeTag_HistogramLogBins Corr[SWAB_MAX_DET]; // handle to Correlation object
+	//Swab_TimeTag_Correlation Corr[SWAB_MAX_DET]; // handle to Correlation object
+	Swab_TimeTag_Histogram Hist[SWAB_MAX_DET]; // handle to Correlation object
+	Swab_TimeTag_FileWriter Fw; // handle to File Write object
 	CDotNetHandle Except; // handle to Exception raised by the .NET function in the Swab library
 	char* FNameVirt[STRLEN]; // file name for reading the TimeTags
 	char* FPathVirt[STRLEN]; // complete file path for reading the TimeTags

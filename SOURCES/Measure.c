@@ -32,6 +32,7 @@
 // DMD+PYTHON
 // MULTIHARP
 // Generic CONTINUOUS FLOW
+// ARDUINO
 
 /* ########################   HELP   ################################## */
 // Board = Physical TCSPC Board
@@ -85,7 +86,7 @@
 #include <rs232.h>
 #include <analysis.h>
 #include <cvinetv.h>
-#include "SwabNet.h"
+#include "SwabNET.h"
 //#include "preSOLUS_BCD.h"
 
 #include "measure.h"   
@@ -3289,6 +3290,7 @@ void InitSwab(int Board){
 	int ret;
 	int id;
 	unsigned __int64 returnReplay;
+	CDotNetHandle net_handle;
 
 	// COMPLETE SWAB !!!! TRANSFER TO CompleteParm or leave here (better more clear)
 	P.Spc.Factor=P.Spc.Scale * P.Spc.Calib;
@@ -3307,35 +3309,38 @@ void InitSwab(int Board){
 	// Create Time Tagger (Real or Virtual)
 	switch(SW->Type){
 		case SWAB_REAL:
-			ret = SwabianInstruments_TimeTagger_TT_createTimeTagger_1 (&SW->Ttr, &SW->Except);
+			ret = Swab_TimeTag_TT_createTimeTagger_1 ("", &SW->Ttr, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE REAL"); 
-			ret = SwabianInstruments_TimeTagger_TimeTagger_reset (SW->Ttr, &SW->Except);
+			ret = Swab_TimeTag_TimeTagger_reset (SW->Ttr, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"RESET REAL"); 
 			if (SW->FreqDiv>1){ // Apply Frequency Divider
-				ret=SwabianInstruments_TimeTagger_TimeTagger_setEventDivider(SW->Ttr,SW->DetSync,SW->FreqDiv,&SW->Except);
+				ret=Swab_TimeTag_TimeTagger_setEventDivider(SW->Ttr,SW->DetSync,SW->FreqDiv,&SW->Except);
 				if(ret<0) ErrHandler(ERR_SWAB,ret,"EVENT DIVIDER"); 
 				}
 			else{ // if NOT frequency divided, apply Conditional Filter to reduce sync rate
-				ret=SwabianInstruments_TimeTagger_TimeTagger_setConditionalFilter_1(SW->Ttr,SW->DetSign,(ssize_t)P.Num.Det,&SW->DetSync,1,&SW->Except);
+				ret=Swab_TimeTag_TimeTagger_setConditionalFilter_1(SW->Ttr,SW->DetSign,(ssize_t)P.Num.Det,&SW->DetSync,1,&SW->Except);
 				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
 				}
 			for(id=0;id<SWAB_MAX_DET;id++)
 				if(SW->DetType[id]!=SWAB_NONE){
-					ret = SwabianInstruments_TimeTagger_TimeTagger_setTriggerLevel(SW->Ttr,id+1,SW->Level[id],&SW->Except);
+					ret = Swab_TimeTag_TimeTagger_setTriggerLevel(SW->Ttr,id+1,SW->Level[id],&SW->Except);
 					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
-					ret = SwabianInstruments_TimeTagger_TimeTagger_setInputDelay(SW->Ttr,id+1,(__int64)SW->Delay[id],&SW->Except);
+					ret = Swab_TimeTag_TimeTagger_setInputDelay(SW->Ttr,id+1,(__int64)SW->Delay[id],&SW->Except);
 					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
+					ret = Swab_TimeTag_TimeTagger_setInputHysteresis (SW->Ttr, id+1, SW->Hysteresis[id], &SW->Except);
+					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET HISTERESIS"); 
 					}
-			ret = SwabianInstruments_TimeTagger_TimeTagger_sync (SW->Ttr, &SW->Except);
+			int returnValue;
+			ret = Swab_TimeTag_TimeTagger_sync_1 (SW->Ttr, &returnValue, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"SYNC, that is update all param"); 
 			SW->Ttb=SW->Ttr; // Assign to Time Tagger Base for further processing
 			break;
 		case SWAB_VIRTUAL:
-			ret=SwabianInstruments_TimeTagger_TT_createTimeTaggerVirtual(&SW->Ttv,&SW->Except);
+			ret=Swab_TimeTag_TT_createTimeTaggerVirtual(&SW->Ttv,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE VIRTUAL"); 
-			ret = SwabianInstruments_TimeTagger_TimeTaggerVirtual_setReplaySpeed(SW->Ttv,SWAB_REPLAY_SPEED,&SW->Except);
+			ret = Swab_TimeTag_TimeTaggerVirtual_setReplaySpeed(SW->Ttv,SWAB_REPLAY_SPEED,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"REPLAY SPEED"); 
-			ret=SwabianInstruments_TimeTagger_TimeTaggerVirtual_replay_3(SW->Ttv,SW->FPathVirt,&returnReplay,&SW->Except);
+			ret=Swab_TimeTag_TimeTaggerVirtual_replay_3(SW->Ttv,SW->FPathVirt,&returnReplay,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,ret,"REPLAY"); 
 			SW->Ttb=SW->Ttv; // Assign to Time Tagger Base for further processing
 			break;
@@ -3343,11 +3348,11 @@ void InitSwab(int Board){
 
 	// Implement Frequency Multiplier both for Real and Virtual	
 	if (SW->FreqMult>1){ // Apply Frequency Multiplier
-		ret=SwabianInstruments_TimeTagger_FrequencyMultiplier__Create(&SW->Fm,(SW->Type==SWAB_REAL?SW->Ttr:SW->Ttv),SW->DetSync,SW->FreqMult,&SW->Except);
+		ret=Swab_TimeTag_FrequencyMultiplier__Create(&SW->Fm,(SW->Type==SWAB_REAL?SW->Ttr:SW->Ttv),SW->DetSync,SW->FreqMult,&SW->Except);
 		if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE_FREQMULT"); 
-		ret=SwabianInstruments_TimeTagger_FrequencyMultiplier_start(SW->Fm,&SW->Except);
+		ret=Swab_TimeTag_FrequencyMultiplier_start(SW->Fm,&SW->Except);
 		if(ret<0) ErrHandler(ERR_SWAB,ret,"START_FREQMULT"); 
-		ret=SwabianInstruments_TimeTagger_FrequencyMultiplier_getChannel(SW->Fm,&SW->DetSyncFreqMult,&SW->Except);
+		ret=Swab_TimeTag_FrequencyMultiplier_getChannel(SW->Fm,&SW->DetSyncFreqMult,&SW->Except);
 		if(ret<0) ErrHandler(ERR_SWAB,ret,"START_FREQMULT"); 
 		}
 	else{ // not in Freqency Multiplier Regime
@@ -3358,12 +3363,12 @@ void InitSwab(int Board){
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
-				ret=SwabianInstruments_TimeTagger_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSign[id],SW->DetSyncFreqMult,SW->Binwidth,P.Chann.Num,&SW->Except);
+				ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSign[id],SW->DetSyncFreqMult,SW->Binwidth,P.Chann.Num,&SW->Except);
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				ret=SwabianInstruments_TimeTagger_HistogramLogBins__Create(&SW->Corr[id],SW->Ttb,SW->DetSign[id],SW->DetSign[id],0.000001,0.001,P.Chann.Num,&SW->Except);
-				//ret=SwabianInstruments_TimeTagger_Correlation__Create(&SW->Corr[id],SW->Ttb,SW->DetSyncFreqMult,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except);
+				ret=Swab_TimeTag_HistogramLogBins__Create(&SW->Corr[id],SW->Ttb,SW->DetSign[id],SW->DetSign[id],0.000001,0.001,P.Chann.Num,&SW->Except);
+				//ret=Swab_TimeTag_Correlation__Create(&SW->Corr[id],SW->Ttb,SW->DetSyncFreqMult,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,ret,"CREATE MEAS"); 
@@ -3375,28 +3380,28 @@ void CloseSwab(void){
 	int ret;
 	struct SwabS* SW=P.Spc.Swab;
 	if(SW->isFwRunning){
-		ret = SwabianInstruments_TimeTagger_FileWriter_stop(SW->Fw, &SW->Except);
+		ret = Swab_TimeTag_FileWriter_stop(SW->Fw, &SW->Except);
 		if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"STOP FILE WRITE");
-		ret = SwabianInstruments_TimeTagger_FileWriter_Dispose(SW->Fw, &SW->Except);
+		ret = Swab_TimeTag_FileWriter_Dispose(SW->Fw, &SW->Except);
 		if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISPOSE FILE WRITE");
 		}
 	switch(SW->Type){
 		case SWAB_REAL:
-			ret=SwabianInstruments_TimeTagger_TimeTagger_Dispose(SW->Ttr,&SW->Except);
+			ret=Swab_TimeTag_TimeTagger_Dispose(SW->Ttr,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISPOSE REAL");
 			ret = CDotNetDiscardHandle (SW->Ttr);
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISCARD .NET HANDLE");
 			break;
 		case SWAB_VIRTUAL:
-			ret = SwabianInstruments_TimeTagger_TimeTaggerVirtual_stop (SW->Ttv, &SW->Except);
+			ret = Swab_TimeTag_TimeTaggerVirtual_stop (SW->Ttv, &SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"STOP REPLAY VIRTUAL");
-			ret=SwabianInstruments_TimeTagger_TimeTaggerVirtual_Dispose(SW->Ttv,&SW->Except);
+			ret=Swab_TimeTag_TimeTaggerVirtual_Dispose(SW->Ttv,&SW->Except);
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISPOSE VIRTUAL");
 			ret = CDotNetDiscardHandle (SW->Ttv);
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"DISCARD .NET HANDLE");
 			break;
 		}
-	ret = Close_SwabianInstruments_TimeTagger ();
+	ret = Close_SwabianInstruments_TimeTagger ();	
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"CLOSE TIME TAGGER");
 	} 
 
@@ -3412,12 +3417,12 @@ void GetDataSwab(void){
 		for(id=0;id<P.Num.Det;id++){
 			switch (SW->Meas){
 				case SWAB_HIST:
-					ret = SwabianInstruments_TimeTagger_Histogram_getData (SW->Hist[id], &pData, &arraylen, &SW->Except);
+					ret = Swab_TimeTag_Histogram_getData (SW->Hist[id], &pData, &arraylen, &SW->Except);
 					break;
 				case SWAB_CORR:
-					ret = SwabianInstruments_TimeTagger_HistogramLogBins_getData(SW->Corr[id], &pData, &arraylen, &SW->Except);
-					//ret = SwabianInstruments_TimeTagger_HistogramLogBins_getDataNormalizedG2(SW->Corr[id], &pData, &arraylen, &SW->Except);
-					//ret=SwabianInstruments_TimeTagger_Correlation_getData(SW->Corr[id],&pData,&arraylen,&SW->Except);
+					ret = Swab_TimeTag_HistogramLogBins_getData(SW->Corr[id], &pData, &arraylen, &SW->Except);
+					//ret = Swab_TimeTag_HistogramLogBins_getDataNormalizedG2(SW->Corr[id], &pData, &arraylen, &SW->Except);
+					//ret=Swab_TimeTag_Correlation_getData(SW->Corr[id],&pData,&arraylen,&SW->Except);
 					break;
 				}
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"GET DATA");
@@ -3441,12 +3446,12 @@ void ClearSwab(void){
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
-				ret = SwabianInstruments_TimeTagger_Histogram_clear (SW->Hist[id], &SW->Except);
+				ret = Swab_TimeTag_Histogram_clear (SW->Hist[id], &SW->Except);
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				//ret = SwabianInstruments_TimeTagger_Correlation_clear (SW->Corr[id], &SW->Except);
-				ret = SwabianInstruments_TimeTagger_HistogramLogBins_clear(SW->Corr[id],&SW->Except);
+				//ret = Swab_TimeTag_Correlation_clear (SW->Corr[id], &SW->Except);
+				ret = Swab_TimeTag_HistogramLogBins_clear(SW->Corr[id],&SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"CLEAR");
@@ -3460,12 +3465,12 @@ void PauseSwab(int Board){
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
-				ret = SwabianInstruments_TimeTagger_Histogram_stop (SW->Hist[id], &SW->Except);
+				ret = Swab_TimeTag_Histogram_stop (SW->Hist[id], &SW->Except);
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				//ret = SwabianInstruments_TimeTagger_Correlation_stop (SW->Corr[id], &SW->Except);
-				ret = SwabianInstruments_TimeTagger_HistogramLogBins_stop(SW->Corr[id],&SW->Except);
+				//ret = Swab_TimeTag_Correlation_stop (SW->Corr[id], &SW->Except);
+				ret = Swab_TimeTag_HistogramLogBins_stop(SW->Corr[id],&SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
@@ -3480,12 +3485,12 @@ void StartSwab(int Board){
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
-				ret = SwabianInstruments_TimeTagger_Histogram_startFor (SW->Hist[id], SW->TimeSW, 0, &SW->Except);
+				ret = Swab_TimeTag_Histogram_startFor (SW->Hist[id], SW->TimeSW, 0, &SW->Except);
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				//ret = SwabianInstruments_TimeTagger_Correlation_startFor (SW->Corr[id], SW->TimeSW, 0, &SW->Except);
-				ret = SwabianInstruments_TimeTagger_HistogramLogBins_startFor(SW->Corr[id], SW->TimeSW, 0, &SW->Except);
+				//ret = Swab_TimeTag_Correlation_startFor (SW->Corr[id], SW->TimeSW, 0, &SW->Except);
+				ret = Swab_TimeTag_HistogramLogBins_startFor(SW->Corr[id], SW->TimeSW, 0, &SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
@@ -3506,12 +3511,12 @@ void StopSwab(int Board){
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
-				ret = SwabianInstruments_TimeTagger_Histogram_stop (SW->Hist[id], &SW->Except);
+				ret = Swab_TimeTag_Histogram_stop (SW->Hist[id], &SW->Except);
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				//ret = SwabianInstruments_TimeTagger_Correlation_stop (SW->Corr[id], &SW->Except);
-				ret = SwabianInstruments_TimeTagger_HistogramLogBins_stop(SW->Corr[id], &SW->Except);
+				//ret = Swab_TimeTag_Correlation_stop (SW->Corr[id], &SW->Except);
+				ret = Swab_TimeTag_HistogramLogBins_stop(SW->Corr[id], &SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
@@ -3527,12 +3532,12 @@ void WaitSwab(int Board){
 		switch (SW->Meas){
 			case SWAB_HIST:
 				for(id=0;id<P.Num.Det;id++)
-					ret = SwabianInstruments_TimeTagger_Histogram_isRunning (SW->Hist[id], &is_running, &SW->Except);
+					ret = Swab_TimeTag_Histogram_isRunning (SW->Hist[id], &is_running, &SW->Except);
 				break;
 			case SWAB_CORR:
 				for(id=0;id<P.Num.Det;id++)
-					//ret = SwabianInstruments_TimeTagger_Correlation_isRunning (SW->Corr[id], &is_running, &SW->Except);
-					ret = SwabianInstruments_TimeTagger_HistogramLogBins_isRunning(SW->Corr[id], &is_running, &SW->Except);
+					//ret = Swab_TimeTag_Correlation_isRunning (SW->Corr[id], &is_running, &SW->Except);
+					ret = Swab_TimeTag_HistogramLogBins_isRunning(SW->Corr[id], &is_running, &SW->Except);
 				break;
 			}
 		if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"WAIT SWAB");
@@ -3548,12 +3553,12 @@ void GetSwabElapsedTime(double *Elapsed_Time){
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
-				ret = SwabianInstruments_TimeTagger_Histogram_getCaptureDuration (SW->Hist[id], &elapsed_time, &SW->Except);
+				ret = Swab_TimeTag_Histogram_getCaptureDuration (SW->Hist[id], &elapsed_time, &SW->Except);
 			break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
-				//ret = SwabianInstruments_TimeTagger_Correlation_getCaptureDuration (SW->Corr[id], &elapsed_time, &SW->Except);
-				ret = SwabianInstruments_TimeTagger_HistogramLogBins_getCaptureDuration(SW->Corr[id], &elapsed_time, &SW->Except);
+				//ret = Swab_TimeTag_Correlation_getCaptureDuration (SW->Corr[id], &elapsed_time, &SW->Except);
+				ret = Swab_TimeTag_HistogramLogBins_getCaptureDuration(SW->Corr[id], &elapsed_time, &SW->Except);
 			break;
 		}
 	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
@@ -3575,7 +3580,7 @@ void StartFileSwab(void){
 		strcpy(SW->FPathOut,P.File.Path); // take file name from .DAT file
 		SW->FPathOut[strlen(SW->FPathOut)-strlen(P.File.Ext)]=0; //delete ext of data fle for DTOF (leave '.' there)
 		strcat(SW->FPathOut,SWAB_FILEEXT); //add file ext for Time Tags the dot '.' is already included
-		ret=SwabianInstruments_TimeTagger_FileWriter__Create(&SW->Fw,SW->Ttb,SW->FPathOut,detectors,numdet,&SW->Except);
+		ret=Swab_TimeTag_FileWriter__Create(&SW->Fw,SW->Ttb,SW->FPathOut,detectors,numdet,&SW->Except);
 		if(ret<0) ErrHandler(ERR_SWAB,ret,"FILE WRITER"); 
 		SW->isFwRunning=TRUE;
 		}
