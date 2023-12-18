@@ -694,11 +694,12 @@ void CreateTable(void){
 	
 	
 	// SWAB PANEL
-	// 18*4+4+2
+	// 18*5+4+2
 	for(id=0;id<SWAB_MAX_DET;id++){
 		AddTab(CE,TINT,SWAB,SWAB_DETTYPE_1+id,"SwabDetType",id+1,0,&P.Spc.Swab[0].DetType[id]);
 		AddTab(CE,TDOUBLE,SWAB,SWAB_LEVEL_1+id,"SwabLevel",id+1,0,&P.Spc.Swab[0].Level[id]);
 		AddTab(CE,TINT,SWAB,SWAB_DELAY_1+id,"SwabDelay",id+1,0,&P.Spc.Swab[0].Delay[id]);
+		AddTab(CE,TINT,SWAB,SWAB_DEADTIME_1+id,"SwabDeadtime",id+1,0,&P.Spc.Swab[0].Deadtime[id]);
 		AddTab(CE,TINT,SWAB,SWAB_HYSTERESIS_1+id,"SwabHysteresis",id+1,0,&P.Spc.Swab[0].Hysteresis[id]);
 		}	
 	AddTab(CE,TINT,SWAB,SWAB_TYPE,"SwabType",0,0,&P.Spc.Swab[0].Type);

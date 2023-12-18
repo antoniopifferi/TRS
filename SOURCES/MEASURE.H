@@ -90,7 +90,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1357
+#define MAX_TABLE		1375
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1697,6 +1697,7 @@ struct SwabS{
 	double Level[SWAB_MAX_DET]; // threshold (mV)
 	int Hysteresis[SWAB_MAX_DET]; // Hysteresis (mV) - accepted values: 1mV, 20mV, 70mV
 	int Delay[SWAB_MAX_DET]; // (ps) delay
+	int Deadtime[SWAB_MAX_DET]; // (ps) delay
 	Swab_TimeTag_TimeTagger Ttr; // handle to a Real Tagger object
 	Swab_TimeTag_TimeTaggerVirtual Ttv; // handle to Virtual Tagger object
 	Swab_TimeTag_FrequencyMultiplier Fm; // handle to Frequency Multiplier object

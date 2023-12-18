@@ -3290,6 +3290,7 @@ void InitSwab(int Board){
 	int ret;
 	int id;
 	unsigned __int64 returnReplay;
+	__int64 deadtime;
 	CDotNetHandle net_handle;
 
 	// COMPLETE SWAB !!!! TRANSFER TO CompleteParm or leave here (better more clear)
@@ -3327,8 +3328,12 @@ void InitSwab(int Board){
 					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET TRIGGER LEVEL"); 
 					ret = Swab_TimeTag_TimeTagger_setInputDelay(SW->Ttr,id+1,(__int64)SW->Delay[id],&SW->Except);
 					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DELAY"); 
-					ret = Swab_TimeTag_TimeTagger_setInputHysteresis (SW->Ttr, id+1, SW->Hysteresis[id], &SW->Except);
-					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET HISTERESIS"); 
+					ret = Swab_TimeTag_TimeTagger_setDeadtime (SW->Ttr, id+1, (__int64)SW->Deadtime[id], &deadtime, &SW->Except);
+					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET DEADTIME"); 
+					if(SW->Hysteresis[id]>0){
+						ret = Swab_TimeTag_TimeTagger_setInputHysteresis (SW->Ttr, id+1, SW->Hysteresis[id], &SW->Except);
+						if(ret<0) ErrHandler(ERR_SWAB,ret,"SET HISTERESIS"); 
+						}
 					}
 			int returnValue;
 			ret = Swab_TimeTag_TimeTagger_sync_1 (SW->Ttr, &returnValue, &SW->Except);
