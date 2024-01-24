@@ -3533,21 +3533,22 @@ void WaitSwab(int Board){
 	int ret,id;
 	int is_running;
 	struct SwabS* SW=P.Spc.Swab;
-	do{
+	//do{
 		switch (SW->Meas){
 			case SWAB_HIST:
 				for(id=0;id<P.Num.Det;id++)
-					ret = Swab_TimeTag_Histogram_isRunning (SW->Hist[id], &is_running, &SW->Except);
+					//ret = Swab_TimeTag_Histogram_isRunning (SW->Hist[id], &is_running, &SW->Except);
+					ret = Swab_TimeTag_Histogram_waitUntilFinished (SW->Hist[id], -1, &is_running, &SW->Except);
 				break;
 			case SWAB_CORR:
 				for(id=0;id<P.Num.Det;id++)
 					//ret = Swab_TimeTag_Correlation_isRunning (SW->Corr[id], &is_running, &SW->Except);
-					ret = Swab_TimeTag_HistogramLogBins_isRunning(SW->Corr[id], &is_running, &SW->Except);
+					ret = Swab_TimeTag_HistogramLogBins_waitUntilFinished(SW->Corr[id], -1, &is_running, &SW->Except);
 				break;
 			}
 		if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"WAIT SWAB");
-		}
-	while(is_running);
+	//	}
+	//while(is_running);
 	}
 
 /* GET TIME OF REAL ACQUISITION SWAB */	
