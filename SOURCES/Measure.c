@@ -8045,52 +8045,154 @@ void GetMicro(int Com,long *Answer){
 	
 /* INITIALIZE ARDUINO */
 void InitArd(char Step){
-	int ret,open;
-	char message[STRLEN];
-	int com=P.Step[Step].Com;
-	sprintf(message,"Initializing MICRO Stepper #%d on COM%d",Step+1,com);
-    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
-	open=OpenComConfig(com,NULL,ARD_BAUDRATE,ARD_PARITY,ARD_DATABITS,ARD_STOPBITS,0,-1);
-	FlushInQ (com);
-	FlushOutQ (com);
-    
-    //TalkMicro(Step,MICRO_LCD,P.Step[Step].Lcd,&ret);
-    //TalkMicro(Step,MICRO_HOLD,P.Step[Step].Hold,&ret);
-    //TalkMicro(Step,MICRO_FMIN,P.Step[Step].FreqMin,&ret);
-	//TalkMicro(Step,MICRO_VEL,(int) P.Step[Step].Freq,&ret);
-	//TalkMicro(Step,MICRO_FDELTA,P.Step[Step].FreqDelta,&ret);
-	//TalkMicro(com,MICRO_HOME,P.Step[Step].Home,&ret);
-    
-    SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
+	int iss;
+	for(iss = 0; iss<Step; iss++){
+		if(P.Step[iss].Com == P.Step[Step].Com){
+			P.Step[Step].hSerial =   P.Step[iss].hSerial;
+			return;
+			//non faccio ultimo perchè mi aspetto com già pulita
+			}
+		}
+	//int com=P.Step[Step].Com;
+    DCB dcbSerialParams = { 0 };
+    COMMTIMEOUTS timeouts = { 0 };
+
+    fflush(stdin);
+    char inputPort[12]; //= "\\\\.\\COM15";
+	    if (P.Step[Step].Com < 10) {
+        sprintf(inputPort, "\\\\.\\COM0%d", P.Step[Step].Com);
+    } else {
+        sprintf(inputPort, "\\\\.\\COM%d", P.Step[Step].Com);
+    }
+    //sprintf(inputPort, "COM14",P.Step[Step].Com);//controlla se 01 o 1
+	P.Step[Step].hSerial = CreateFile(inputPort, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+
+    if (P.Step[Step].hSerial == INVALID_HANDLE_VALUE) {
+        fprintf(stderr, "Errore nell'apertura della porta seriale.\n");
+        //return 1;
+        }
+
+
+
+    dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+
+    if (!GetCommState(P.Step[Step].hSerial, &dcbSerialParams)) {
+        fprintf(stderr, "Errore nell'acquisizione delle impostazioni della porta seriale.\n");
+        CloseHandle(P.Step[Step].hSerial);
+        //return 1;
+        }
+
+    switch (ARD_BAUDRATE){
+        case 4800:
+            dcbSerialParams.BaudRate = CBR_4800;
+            break;
+        case 9600:
+            dcbSerialParams.BaudRate = CBR_9600;
+            break;
+        }
+
+    /* dcbSerialParams.BaudRate = CBR_115200;-> used switch-case*/
+    dcbSerialParams.ByteSize = 8;
+    dcbSerialParams.StopBits = ONESTOPBIT;
+    dcbSerialParams.Parity = NOPARITY;
+
+    if (!SetCommState(P.Step[Step].hSerial, &dcbSerialParams)) {
+        fprintf(stderr, "Errore nell'impostazione delle impostazioni della porta seriale.\n");
+        CloseHandle(P.Step[Step].hSerial);
+        //return 1;
+        }
+
+    timeouts.ReadIntervalTimeout = 100;
+    timeouts.ReadTotalTimeoutConstant = 50;
+    timeouts.ReadTotalTimeoutMultiplier = 100;
+    timeouts.WriteTotalTimeoutConstant = 5;
+    timeouts.WriteTotalTimeoutMultiplier = 10;
+    if (!SetCommTimeouts(P.Step[Step].hSerial, &timeouts)) {
+        fprintf(stderr, "Errore nell'impostazione dei timeout della porta seriale.\n");
+        CloseHandle(P.Step[Step].hSerial);
+        //return 1;
+        }
+    char buffer[256];
+    DWORD bytesRead = 1;
+    printf("INIZIALIZZAZIONE\n");
+	
+    win_ReadFile(&P.Step[Step].hSerial, buffer, sizeof(buffer), &bytesRead);
+
 	}
 
 
 /* CLOSE ARDUINO */
 void CloseArd(char Step){
-	int ret;
+	int iss = 0;
+	for(iss = 0; iss<Step; iss++){
+		if(P.Step[iss].Com == P.Step[Step].Com){
+			return;
+			//non faccio ultimo perchè mi aspetto com già pulita
+			}
+		}
+    if (!CloseHandle(P.Step[Step].hSerial)) {
+        fprintf(stderr, "Failed to close the serial port.\n");
+        //return 1;
+        }
+    //return 0;
+    /*
 	int com=P.Step[Step].Com;
     //TalkMicro(Step,MICRO_END,0,&ret);
 	FlushInQ (com);
 	FlushOutQ (com);
 	CloseCom (com);
+	*/
 	}
 
 
 /* SET FREQUENCY ARDUINO */	
 void SetVelArd(char Step, double Freq){
-	int ret;
     //TalkMicro(Step,MICRO_VEL,(int) Freq,&ret);
 	}
 
 
 /* MOVE ARDUINO */
 void MoveArd(char Step,long Goal,char Wait){
-	int ret;
-	if(Goal==P.Step[Step].Actual) return;
-    //TalkMicro(Step, MICRO_GOTO, Goal,&ret);
-	//if(Wait) WaitMicro(Step,Goal);
-	}
+	//Goal==P.Step[Step].Actual
+	int speeds;
+	if(P.Step[Step].Axis+1 == 5)
+		speeds = 1000;
+    else
+		speeds = 20;//setVel
+    char command[256];
+	sprintf(command, "%d:%d:%d\n", P.Step[Step].Axis+1, speeds, Goal); 
+    char buffer[256];
+    DWORD bytesWritten;
+    DWORD bytesRead = 0;
+    
 
+    //if (!WriteFile(P.Step[Step].hSerial, command, strlen(command), &bytesWritten, NULL)) {
+    if(!win_WriteFile(&P.Step[Step].hSerial, command,strlen(command),&bytesWritten)){
+        fprintf(stderr, "Failed to write to the serial port.\n");
+        return;
+        }
+    else {
+        printf("\nCommand sent to Arduino: %s", command);
+        }
+	int wait_time = 2*speeds*Goal/1000;
+	if(wait_time <0 )
+		   wait_time = -wait_time;
+	 Sleep(wait_time);
+    //int readAttempts = 0;
+    while (bytesRead == 0) { /*Limit the number of read attempts, forse potrei anche dire che ogni tot invia comando che sta lavorando*/
+        //if (ReadFile(P.Step[Step].hSerial, buffer, sizeof(buffer) - 1, &bytesRead, NULL)) {
+        if(win_ReadFile(&P.Step[Step].hSerial, buffer, sizeof(buffer), &bytesRead))
+            if (bytesRead > 0) {
+                buffer[bytesRead] = '\0';
+                printf("From Arduino: %s", buffer);
+                }
+        else {
+            fprintf(stderr, "Failed to read from the serial port.\n");
+            break;
+            }
+        //readAttempts++;
+        }
+	}
 
 /* WAIT END OF MICRO MOVEMENT */
 void WaitArd(char Step,long Goal){

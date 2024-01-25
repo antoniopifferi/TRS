@@ -8,6 +8,7 @@
 #include "SwabNet.h"	// needed for type definitions in SWAB Structure
 #include "preSOLUS_BCD.h"  // needed for type definitions in BCD functions
 #include "dmd/hidapi/hidapi.h" // needed for communicating with DMD_TX
+#include "windows_temp.h"
 
 // VERSION
 #define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 18.0\nDate: November 2020"
@@ -1470,6 +1471,7 @@ struct StepS {
 	struct Delay_GateS Delay_Gate;
 	struct Standa2S Standa2;
 	long StopGoal; // EDO
+	HANDLE hSerial; 
 	};
 
 struct SwitchS {
