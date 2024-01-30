@@ -3319,7 +3319,7 @@ void InitSwab(int Board){
 				if(ret<0) ErrHandler(ERR_SWAB,ret,"EVENT DIVIDER"); 
 				}
 			else{ // if NOT frequency divided, apply Conditional Filter to reduce sync rate
-				ret=Swab_TimeTag_TimeTagger_setConditionalFilter_1(SW->Ttr,SW->DetSign,(ssize_t)P.Num.Det,&SW->DetSync,1,&SW->Except);
+				ret = Swab_TimeTag_TimeTagger_setConditionalFilter_1 (SW->Ttr, SW->DetSign, (ssize_t)P.Num.Det, SW->DetSync, 1, &SW->Except);
 				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
 				}
 			for(id=0;id<SWAB_MAX_DET;id++)
@@ -3358,7 +3358,7 @@ void InitSwab(int Board){
 		ret=Swab_TimeTag_FrequencyMultiplier_start(SW->Fm,&SW->Except);
 		if(ret<0) ErrHandler(ERR_SWAB,ret,"START_FREQMULT"); 
 		ret=Swab_TimeTag_FrequencyMultiplier_getChannel(SW->Fm,&SW->DetSyncFreqMult,&SW->Except);
-		if(ret<0) ErrHandler(ERR_SWAB,ret,"START_FREQMULT"); 
+		if(ret<0) ErrHandler(ERR_SWAB,ret,"GETCHANN_FREQMULT"); 
 		}
 	else{ // not in Freqency Multiplier Regime
 		SW->DetSyncFreqMult=SW->DetSync;
