@@ -3854,7 +3854,7 @@ void InitMharp(int Board) {
 	ret = MH_OpenDevice(Board, HW_Serial); // Check for Serial Number of Device = 0 (NOTE: Many MharpHarp Devices can be controlled)
 	if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_OpenDevice");
 	else {
-		sprintf(message, "\n...Serial Number = %s", HW_Serial);
+		sprintf(message, "\n...Serial Number = %s ", HW_Serial);
 		SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
 		}
 		
@@ -3977,6 +3977,7 @@ void WaitMharp(int Board) {
 // HydraHarpV2 or TimeHarp260 or MultiHarp T3 record data
 void ProcessT3(unsigned int TTTRRecord){
 	int ch, dt;
+	int firstMarker;
 	//uint64_t truensync;
 	const int T3WRAPAROUND = 1024;
 
@@ -3991,12 +3992,14 @@ void ProcessT3(unsigned int TTTRRecord){
 		} T3Rec ={0};
   
 	T3Rec.allbits = TTTRRecord;
+	firstMarker = P.Spc.Mharp[MHARP_DEV0].FirstMarker;
 
 	if(T3Rec.bits.special!=1){ //regular input channel
 		//truensync = P.Spc.Mharp[MHARP_DEV0].oflcorrection + T3Rec.bits.nsync; //truensync indicates the number of the sync period. dtime unit depends on the chosen resolution (binning)
 		ch = T3Rec.bits.channel; // channel=Detector
 		dt = min(T3Rec.bits.dtime,P.Chann.Num-1); // bin=channel in TRS meaning
-    	D.Buffer[MHARP_DEV0][dt+ch*P.Chann.Num]++; //Histogramming: add one photon
+		if (P.Wait.Type!=WAIT_MARKER || firstMarker) // if in marker mode start histogramming ONLY after the first marker
+			D.Buffer[MHARP_DEV0][dt+ch*P.Chann.Num]++; //Histogramming: add one photon
 		//if(truensync>P.Spc.TimeM*P.Spc.Mharp[MHARP_DEV0].SyncRate*(P.Spc.Mharp[MHARP_DEV0].PassedTacq+1))
 		if(T3Rec.bits.nsync>P.Spc.Mharp[MHARP_DEV0].SyncGoal)
 			if(P.Wait.Type==WAIT_SPC){
@@ -4008,9 +4011,11 @@ void ProcessT3(unsigned int TTTRRecord){
     		//P.Spc.Mharp[MHARP_DEV0].oflcorrection += (uint64_t)T3WRAPAROUND * T3Rec.bits.nsync;
 			P.Spc.Mharp[MHARP_DEV0].SyncGoal-=(uint64_t)T3WRAPAROUND * T3Rec.bits.nsync;
     		}
-    	if((T3Rec.bits.channel>=1)&&(T3Rec.bits.channel<=MHARP_MAX_DET))
-			if(P.Wait.Type==WAIT_MARKER)
-			P.Spc.Mharp[MHARP_DEV0].NextAcq=TRUE; //markers
+    	if((T3Rec.bits.channel>=1)&&(T3Rec.bits.channel<=MHARP_MAX_DET)){
+    		if(P.Wait.Type==WAIT_MARKER && firstMarker)
+    			P.Spc.Mharp[MHARP_DEV0].NextAcq=TRUE; //markers
+    		P.Spc.Mharp[MHARP_DEV0].FirstMarker = TRUE;
+    		}
   		}
 	}
 
@@ -4043,7 +4048,7 @@ DWORD WINAPI AcquireDataMharp(LPVOID Buffer) {
 
 		// Save all buffer to Tags File
 		if(P.Spc.Mharp[MHARP_DEV0].SaveTags)
-			if(fwrite(D.MharpBuffer[MHARP_DEV0],4,P.Spc.Mharp[MHARP_DEV0].NumRecords,P.Spc.Mharp[MHARP_DEV0].FileTags)!=(unsigned)P.Spc.Mharp[MHARP_DEV0].NumRecords) ErrHandler(ERR_MHARP, 0, "MH_WriteFileTags");
+			if(fwrite(buffer,4,nRecords,P.Spc.Mharp[MHARP_DEV0].FileTags)!=(unsigned) nRecords) ErrHandler(ERR_MHARP, 0, "MH_WriteFileTags");
 			
 		/**/double t2=Timer();
 		/**/tAcqMeas+=(t2-t1);
@@ -4164,6 +4169,7 @@ void StartFlowMharp(void){
 	memset(D.Buffer[Board],0,sizeof(T_DATA)*P.Num.Det*P.Chann.Num);
 	//P.Spc.Mharp[Board].Sync0=0;
 	P.Spc.Mharp[Board].NextAcq=FALSE;
+	P.Spc.Mharp[Board].FirstMarker=FALSE;
 	//P.Spc.Mharp[Board].PassedTacq=0; // this start from 0 and go on up to the end of meas.
 	P.Spc.Mharp[MHARP_DEV0].SyncGoal=P.Spc.TimeM*P.Spc.Mharp[MHARP_DEV0].SyncRate; // initialise to first goal
 	//P.Spc.Mharp[Board].oflcorrection = 0; // no ovfl in sync
@@ -4231,11 +4237,12 @@ void StartFlowMharp(void){
 	P.Spc.Calib = resolution;
 	P.Spc.Factor = P.Spc.Calib * P.Spc.Scale;
 	
-	// get sync rate
+	/* get sync rate
 	ret = MH_StartMeas(MHARP_DEV0, ACQTMAX); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StartMeas"); // set maximum acq time (never stop)
 	Sleep(MH_SLEEPFORSYNCRATE); // After Init allow at least 150 ms for valid  count rate readings
   	ret = MH_GetSyncRate(MHARP_DEV0, &P.Spc.Mharp[Board].SyncRate); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning"); // &P. needed here. This is needed to control Tacq (expressed in terms of sync)
 	ret = MH_StopMeas(MHARP_DEV0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_StopMeas4"); // here measure is stopped to clear all memeory
+	*/
 	
 	// Start Multi Thread function to fetch FIFO Buffer
     struct RingBufferS *bufferM=&P.Spc.Mharp[MHARP_DEV0].RingBufferM;
@@ -4275,9 +4282,12 @@ void StartFlowMharp(void){
    	// Create threads for acquiring and analyzing data
    	P.Spc.Mharp[MHARP_DEV0].AcquireThread = CreateThread(NULL, 0, AcquireDataMharp, bufferM, 0, NULL);
    	P.Spc.Mharp[MHARP_DEV0].AnalyzeThread = CreateThread(NULL, 0, AnalyzeDataMharp, bufferMA, 0, NULL);
+	if (P.Wait.Type==WAIT_MARKER){
+		sprintf(message, "\nAwaiting the first marker...\n");
+		SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
+		}
 	}
 
-	
 
 void StopFlowMharp(void){
 	struct RingBufferS *bufferM=&P.Spc.Mharp[MHARP_DEV0].RingBufferM;
@@ -4303,12 +4313,12 @@ void StopFlowMharp(void){
 
 	// file TAGS
 	if(P.Spc.Mharp[MHARP_DEV0].SaveTags){ 
-		if(!fclose(P.Spc.Mharp[MHARP_DEV0].FileTags)) ErrHandler(ERR_MHARP, 0, "MH_CloseFileTags");
+		if(fclose(P.Spc.Mharp[MHARP_DEV0].FileTags)!=0) ErrHandler(ERR_MHARP, 0, "MH_CloseFileTags");
 		}	
 	
-	/**/printf("tAcqCrit=%f\ntAcqProc=%f\ntAnalMCrit=%f\ntAnalACrit=%f\ntAnalAProc=%f\n",tAcqCrit,tAcqMeas,tAnalMCrit,tAnalACrit,tAnalAProc);
-	/**/printf("NumPhotons=%d\nNumCall=%d\nNumValidCall=%d\nAveragePhotons=%f\n\n",NumPhotons,NumCall,NumValidCall,(1.0*NumPhotons)/(1.0*NumValidCall));
-	/**/getchar();
+	/**printf("tAcqCrit=%f\ntAcqProc=%f\ntAnalMCrit=%f\ntAnalACrit=%f\ntAnalAProc=%f\n",tAcqCrit,tAcqMeas,tAnalMCrit,tAnalACrit,tAnalAProc);
+	/**printf("NumPhotons=%d\nNumCall=%d\nNumValidCall=%d\nAveragePhotons=%f\n\n",NumPhotons,NumCall,NumValidCall,(1.0*NumPhotons)/(1.0*NumValidCall));
+	/**getchar();*/
 	
 	}
 
@@ -4344,7 +4354,7 @@ int InitFileMharpTags(void){
 	strcpy(MH->PathTags,P.File.Path); // take file name from .DAT file
 	MH->PathTags[strlen(MH->PathTags)-strlen(P.File.Ext)]=0; //delete ext of data fle for DTOF (leave '.' there)
 	strcat(MH->PathTags,MH_FILEEXT); //add file ext for Time Tags the dot '.' is already included
-	if((MH->FileTags=fopen(MH->PathTags,"wb"))==NULL) return(TRUE); else return(FALSE);
+	if((MH->FileTags=fopen(MH->PathTags,"wb"))!=NULL) return(TRUE); else return(FALSE);
 	}
 
 /* ########################   TIMEHARP260 FUNCTIONS (TH260)  ####################### */

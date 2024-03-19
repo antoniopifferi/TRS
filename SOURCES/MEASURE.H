@@ -1748,6 +1748,7 @@ struct MharpS{
 	int NextAcq; // reached Tacq
 	int NumRecords; // number of records in FIFO
 	int ActualRecord; // position of the actual record in the processed FifoBuffer
+	int FirstMarker; // detected the first marker in continuous flow
 	int Binning; // binning of the acquisition bins (i.e. channels in old TRS)
 	int SyncDivider; // to be used to reduce sync rate to max 75MHz, otherwise use 1
 	int LenCode; // Power of 2 of the HystLen (=P.Chann.Num)
