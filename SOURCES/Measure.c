@@ -1187,8 +1187,6 @@ void InitMem(void){
 	if(P.Contest.Run!=CONTEST_MEAS){ Passed(); return;}
 	if(P.Moxy.Moxy) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
 	if(P.Flow.Spcm) D.Bank=DAlloc2D(P.Num.Board,SPC_BANK_DIM); 
-	if(P.Flow.Mharp) D.MharpBuffer=DAlloc2D_uint32(P.Num.Board,TTREADMAX*MHARP_BUFFER_MULT); // allocate memory for the FIFO USB Buffer
-	if(P.Flow.Mharp) D.MharpBufferThread = calloc(TTREADMAX*MHARP_BUFFER_MULT, sizeof(uint32_t)); // allocate memory for the multithred Buffer
 	if(P.Info.SubHeader) D.Sub=SAlloc2D(P.Frame.Num,P.Num.Page);
 	D.Data=DAlloc3D(P.Frame.Num,P.Num.Page,P.Chann.Num);
 	
@@ -1204,8 +1202,6 @@ void CloseMem(void){
 	if(P.Contest.Run!=CONTEST_MEAS) return;
 	if(P.Moxy.Moxy) DFree2D(D.Bank,P.Num.Board); 
 	if(P.Flow.Spcm) DFree2D(D.Bank,P.Num.Board); 
-	if(P.Flow.Mharp) DFree2D_uint32(D.MharpBuffer,P.Num.Board); 
-	if(P.Flow.Mharp) free(D.MharpBufferThread);
 	if(P.Info.SubHeader) SFree2D(D.Sub,P.Frame.Num);
 	DFree3D(D.Data,P.Frame.Num,P.Num.Page); 
 }
@@ -4173,7 +4169,6 @@ void StartFlowMharp(void){
 	//P.Spc.Mharp[Board].PassedTacq=0; // this start from 0 and go on up to the end of meas.
 	P.Spc.Mharp[MHARP_DEV0].SyncGoal=P.Spc.TimeM*P.Spc.Mharp[MHARP_DEV0].SyncRate; // initialise to first goal
 	//P.Spc.Mharp[Board].oflcorrection = 0; // no ovfl in sync
-	P.Spc.Mharp[Board].ActualRecord=0;
 	
 	// INIT
 	char message[STRLEN];

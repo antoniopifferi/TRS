@@ -1747,7 +1747,6 @@ struct MharpS{
 	//int PassedTacq; // number of acquisitions up to now since board was started
 	int NextAcq; // reached Tacq
 	int NumRecords; // number of records in FIFO
-	int ActualRecord; // position of the actual record in the processed FifoBuffer
 	int FirstMarker; // detected the first marker in continuous flow
 	int Binning; // binning of the acquisition bins (i.e. channels in old TRS)
 	int SyncDivider; // to be used to reduce sync rate to max 75MHz, otherwise use 1
@@ -2204,8 +2203,6 @@ struct DataS {
 	T_DATA **Bank;		// D.Bank[P.Num.Board][SPC_BANK_DIM] or D.Bank[P.Num.Board][MAX FIFO MHARP] // not a problem: there is a calloc later
 	T_DATA *Curve;		// D.Curve[P.Num.Chann] 
 	T_DATA *Last;		// D.Last[P.Num.Chann]
-	uint32_t **MharpBuffer;		// D.MharpBuffer[P.Num.Board][TTREADMAX*MHARP_BUFFER_MULT] 
-	uint32_t *MharpBufferThread;	// D.MharpBufferThread[P.Num.Board][TTREADMAX*MHARP_BUFFER_MULT]
 	SC1000_TYPE ***BufferTDC;
 	};
 
