@@ -7120,6 +7120,7 @@ void InitStep(char Step){
 		case DMD_TX: InitDmdTx(Step); break;
 		case ARD_FLOW:
 		case ARD_STEP:  InitArd(Step); break;
+		case DEL_MPD:  InitDelmpd(Step); break;
 		default:;
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
@@ -7152,6 +7153,7 @@ void CloseStep(char Step){
 		case DMD_TX: CloseDmdTx(Step); break;
 		case ARD_FLOW:
 		case ARD_STEP: CloseArd(Step); break;
+		case DEL_MPD: CloseDelmpd(Step); break;
 		default:;
 		}
 	}
@@ -7365,6 +7367,7 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case DMD_TX: MoveDmdTx(Step,Goal,Wait); break;
 		case ARD_FLOW:
 		case ARD_STEP: MoveArd(Step,Goal,Wait); break;
+		case DEL_MPD: MoveDelmpd(Step,Goal); break;
 		default:;
 		}
 	P.Spc.Trash=TRUE;
@@ -7915,6 +7918,61 @@ void StopTio(char Step){
 	}
 
 
+// #### DELAYER MPD STEPPER ####
+	
+/* INITIALIZE DELMPD */
+void InitDelmpd(char Step){
+	int ret,open;
+	int enable=1;
+	char message[STRLEN];
+	int com=P.Step[Step].Com;
+	int micro_baudrate=DELMPD_BAUDRATE;
+	sprintf(message,"Initializing MPD DELAYER Stepper #%d on COM%d",Step+1,com);
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+	open=OpenComConfig(com,NULL,DELMPD_BAUDRATE,DELMPD_PARITY,DELMPD_DATABITS,DELMPD_STOPBITS,0,-1);
+	FlushInQ (com);
+	FlushOutQ (com);
+    TalkDelmpd(Step, DELMPD_START,enable); // enable the delayer
+    
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
+	}
+
+
+/* CLOSE DELMPD */
+void CloseDelmpd(char Step){
+	int ret;
+	int enable=00;
+	int com=P.Step[Step].Com;
+    //TalkDelmpd(Step, DELMPD_STOP,enable); // disable the delayer
+	CloseCom (com);
+	}
+
+
+/* MOVE DELMPD */
+void MoveDelmpd(char Step,long Goal){
+	int ret;
+	int enable=1;
+	int com=P.Step[Step].Com;
+	if(Goal==P.Step[Step].Actual) return;
+    TalkDelmpd(Step, DELMPD_GOTO,Goal); // set the Delay
+	// Inster delay to wait for command to be executed????
+	P.Step[Step].Actual=Goal;
+	}
+
+
+/* SEND COMMAND TO DELMPD AND GET ANSWER */
+void TalkDelmpd(char Step, char Command, long Value){
+	char message[STRLEN];
+	char answer[STRLEN];
+	char echo[STRLEN];
+	int com=P.Step[Step].Com;
+	sprintf(message,"%s%d#",Command,Value);
+	ComWrt(com,message,strlen(message));	
+	ComRdTerm (com, echo, STRLEN, '#'); // read the echo from the delayer
+	ComRdTerm (com, answer, STRLEN, '#'); // read the answer from the delayer
+	return;	
+	}
+
 // #### MICROCHIP STEPPER ####
 	
 /* INITIALIZE MICRO */
@@ -8053,15 +8111,15 @@ void GetMicro(int Com,long *Answer){
 void InitArd(char Step){
 	int iss;
 	int cont = 0;
-	P.Step[Step].ard.is_last = 1;
+	P.Step[Step].Ard.is_last = 1;
 	for(iss = 0; iss<Step; iss++){
 		if(P.Step[iss].Com == P.Step[Step].Com){
-			P.Step[iss].ard.is_last = 0;
+			P.Step[iss].Ard.is_last = 0;
 			}
 		}
 	for(iss = 0; iss<Step; iss++){
 		if(P.Step[iss].Com == P.Step[Step].Com){
-			P.Step[Step].ard.hSerial =   P.Step[iss].ard.hSerial;
+			P.Step[Step].Ard.hSerial =   P.Step[iss].Ard.hSerial;
 			return;
 			//non faccio ultimo perchè mi aspetto com già pulita
 			}
@@ -8077,15 +8135,15 @@ void InitArd(char Step){
         sprintf(inputPort, "\\\\.\\COM%d", P.Step[Step].Com);
     }
     //sprintf(inputPort, "COM14",P.Step[Step].Com);//controlla se 01 o 1
-	P.Step[Step].ard.hSerial = CreateFile(inputPort, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-    if (P.Step[Step].ard.hSerial == INVALID_HANDLE_VALUE) {
+	P.Step[Step].Ard.hSerial = CreateFile(inputPort, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    if (P.Step[Step].Ard.hSerial == INVALID_HANDLE_VALUE) {
         fprintf(stderr, "Errore nell'apertura della porta seriale.\n");
         //return 1;
 	}
     dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
-    if (!GetCommState(P.Step[Step].ard.hSerial, &dcbSerialParams)) {
+    if (!GetCommState(P.Step[Step].Ard.hSerial, &dcbSerialParams)) {
         fprintf(stderr, "Errore nell'acquisizione delle impostazioni della porta seriale.\n");
-        CloseHandle(P.Step[Step].ard.hSerial);
+        CloseHandle(P.Step[Step].Ard.hSerial);
         //return 1;
     }
     switch (ARD_BAUDRATE){
@@ -8105,9 +8163,9 @@ void InitArd(char Step){
     dcbSerialParams.StopBits = ONESTOPBIT;
     dcbSerialParams.Parity = NOPARITY;
 
-    if (!SetCommState(P.Step[Step].ard.hSerial, &dcbSerialParams)) {
+    if (!SetCommState(P.Step[Step].Ard.hSerial, &dcbSerialParams)) {
         fprintf(stderr, "Errore nell'impostazione delle impostazioni della porta seriale.\n");
-        CloseHandle(P.Step[Step].ard.hSerial);
+        CloseHandle(P.Step[Step].Ard.hSerial);
         //return 1;
         }
 
@@ -8116,15 +8174,17 @@ void InitArd(char Step){
     timeouts.ReadTotalTimeoutMultiplier = 100;
     timeouts.WriteTotalTimeoutConstant = 5;
     timeouts.WriteTotalTimeoutMultiplier = 10;
-    if (!SetCommTimeouts(P.Step[Step].ard.hSerial, &timeouts)) {
+    if (!SetCommTimeouts(P.Step[Step].Ard.hSerial, &timeouts)) {
         fprintf(stderr, "Errore nell'impostazione dei timeout della porta seriale.\n");
-        CloseHandle(P.Step[Step].ard.hSerial);
+        CloseHandle(P.Step[Step].Ard.hSerial);
         //return 1;
         }
     char buffer[256];
     DWORD bytesRead = 1;
     //printf("INIZIALIZZAZIONE\n");
-    win_ReadFile(&P.Step[Step].ard.hSerial, buffer, sizeof(buffer), &bytesRead);
+    //win_ReadFile(&P.Step[Step].Ard.hSerial, buffer, sizeof(buffer), &bytesRead);
+    //CVI_ReadFile(&P.Step[Step].Ard.hSerial, buffer, sizeof(buffer), &bytesRead);
+	//TODO
 }
 
 
@@ -8149,9 +8209,9 @@ void CloseArd(char Step){
 	/*for(int is=0; is<MAXSTEP; is++)		  //fatto da antonio
 		if((P.Step[is].Step)&&(P.Step[is].Type==STEPARD))
 			P.Step[is].NumActive--; */
-	if (P.Step[Step].ard.is_last == 1){	
+	if (P.Step[Step].Ard.is_last == 1){	
 		printf("close port \n");
-		if (!CloseHandle(P.Step[Step].ard.hSerial)) {
+		if (!CloseHandle(P.Step[Step].Ard.hSerial)) {
 	        fprintf(stderr, "Failed to close the serial port.\n"); //return 1;
 			return;
 	    }
@@ -8224,7 +8284,7 @@ void TalkArd(char Step, char Command, long Value, long *Answer){
     DWORD bytesWritten;
     DWORD bytesRead = 0;
     
-	if(!win_WriteFile(&P.Step[Step].ard.hSerial, command,strlen(command),&bytesWritten)){
+	if(!win_WriteFile(&P.Step[Step].Ard.hSerial, command,strlen(command),&bytesWritten)){
         fprintf(stderr, "Failed to write to the serial port.\n");
         return;
     }
@@ -8235,7 +8295,7 @@ void TalkArd(char Step, char Command, long Value, long *Answer){
 	//Sleep(100);
 	while (bytesRead == 0) { /*Limit the number of read attempts, forse potrei anche dire che ogni tot invia comando che sta lavorando*/
         //if (ReadFile(P.Step[Step].ard.hSerial, buffer, sizeof(buffer) - 1, &bytesRead, NULL)) {
-    	if(win_ReadFile(&P.Step[Step].ard.hSerial, buffer, sizeof(buffer), &bytesRead))
+    	if(win_ReadFile(&P.Step[Step].Ard.hSerial, buffer, sizeof(buffer), &bytesRead))
             if (bytesRead > 0) {
                 buffer[bytesRead] = '\0';
 				//printf("From Arduino: %s", buffer);

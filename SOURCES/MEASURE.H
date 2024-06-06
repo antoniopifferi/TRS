@@ -215,7 +215,18 @@
 #define SLEEP_DELAYER_GATE       0.5
 //#define DELAYER_GATE_COM         5
 
+// DELAYER MPD CONSTANTS
+#define DELMPD_BAUDRATE 	115200
+#define DELMPD_PARITY 		0
+#define DELMPD_DATABITS	8
+#define DELMPD_STOPBITS	1
+#define DELMPD_FLOW		0
+
+
 // DELAYER SPECIFIC CONSTANTS
+#define DELMPD_GOTO			"SD"
+#define DELMPD_STOP			"EO"
+#define DELMPD_START		"EO"
 #define DELAYER_BAUDRATE 	19200
 #define DELAYER_PARITY 		0
 #define DELAYER_DATABITS	8
@@ -595,6 +606,7 @@
 #define DMD_TX		28
 #define ARD_FLOW	29
 #define ARD_STEP	30
+#define DEL_MPD		31
 
 #define VARRO		 1
 #define NI_6602	     5
@@ -1430,6 +1442,11 @@ struct Standa2S {
 	long DeltaHome;
 	};
 
+struct ArdS {
+	int is_last;
+	int hSerial;
+};
+
 struct StepS {
 	int Control;
 	char  Com;
@@ -1469,6 +1486,7 @@ struct StepS {
 	char  FPath[STRLEN];
 	struct Delay_GateS Delay_Gate;
 	struct Standa2S Standa2;
+	struct ArdS Ard;
 	long StopGoal; // EDO
 	};
 
@@ -2672,6 +2690,14 @@ void StopMicro(char Step);
 void DefineHomeMicro(char Step);
 void TalkMicro(char Step, char Command, long Value, long *Answer);
 void GetMicro(int Com, long *Answer);
+
+// #### DELAYER MPD STEPPER ####
+void InitDelmpd(char Step);
+void CloseDelmpd(char Step);
+void MoveDelmpd(char Step,long Goal);
+void StopDelmpd(char Step);
+void TalkDelmpd(char Step, char Command, long Value);
+
 
 // #### ARDUINO STEPPER ####
 void InitArd(char Step);
