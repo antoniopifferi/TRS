@@ -1444,7 +1444,7 @@ struct Standa2S {
 
 struct ArdS {
 	int is_last;
-	int hSerial;
+	HANDLE hSerial;
 };
 
 struct StepS {
