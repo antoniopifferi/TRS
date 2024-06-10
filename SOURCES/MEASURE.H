@@ -216,6 +216,9 @@
 //#define DELAYER_GATE_COM         5
 
 // DELAYER MPD CONSTANTS
+#define DELMPD_GOTO			"SD"
+#define DELMPD_STOP			"EO"
+#define DELMPD_START		"EO"
 #define DELMPD_BAUDRATE 	115200
 #define DELMPD_PARITY 		0
 #define DELMPD_DATABITS	8
@@ -224,9 +227,6 @@
 
 
 // DELAYER SPECIFIC CONSTANTS
-#define DELMPD_GOTO			"SD"
-#define DELMPD_STOP			"EO"
-#define DELMPD_START		"EO"
 #define DELAYER_BAUDRATE 	19200
 #define DELAYER_PARITY 		0
 #define DELAYER_DATABITS	8
@@ -2696,7 +2696,7 @@ void InitDelmpd(char Step);
 void CloseDelmpd(char Step);
 void MoveDelmpd(char Step,long Goal);
 void StopDelmpd(char Step);
-void TalkDelmpd(char Step, char Command, long Value);
+void TalkDelmpd(char Step, char* Command, long Value);
 
 
 // #### ARDUINO STEPPER ####

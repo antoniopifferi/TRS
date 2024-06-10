@@ -7961,7 +7961,7 @@ void MoveDelmpd(char Step,long Goal){
 
 
 /* SEND COMMAND TO DELMPD AND GET ANSWER */
-void TalkDelmpd(char Step, char Command, long Value){
+void TalkDelmpd(char Step, char* Command, long Value){
 	char message[STRLEN];
 	char answer[STRLEN];
 	char echo[STRLEN];
