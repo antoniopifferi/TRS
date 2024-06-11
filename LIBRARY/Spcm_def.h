@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------*/
 /*                              SPCM                                         */
 /*---------------------------------------------------------------------------*/
-/*    Copyright (c) Becker & Hickl GmbH  2000-2014  All Rights Reserved.     */
+/*    Copyright (c) Becker & Hickl GmbH  2000-2018  All Rights Reserved.     */
 /*---------------------------------------------------------------------------*/
 /*                                                                           */
 /* Title   : SPCM_DEF.H                                                      */
@@ -28,7 +28,8 @@
 
 
 
-#define MAX_NO_OF_SPC     8    /* max number of SPC modules controlled by DLL */
+#define MAX_NO_OF_SPC    32    /* max number of SPC modules controlled by DLL */
+                               
 
 #ifndef SPC_DEFINITIONS
 #define SPC_DEFINITIONS
@@ -289,8 +290,13 @@ typedef struct
 #define DPC_SIMUL230         230    /* simulation mode of DPC230 module */
 #define SPC_SIMUL150         150    /* simulation mode of SPC150 module */
 #define SPC_SIMUL151         151    /* simulation mode of SPC150N module */
-#define SPC_SIMUL131         131    /* simulation mode of SPC130-EM module */
+#define SPC_SIMUL152         152    /* simulation mode of SPC150NX module */
+#define SPC_SIMUL131         131    /* simulation mode of SPC130EM module */
+#define SPC_SIMUL132         132    /* simulation mode of SPC130EMN module */
 #define SPC_SIMUL160         160    /* simulation mode of SPC160 module */
+#define SPC_SIMUL161         161    /* simulation mode of SPC160X module */
+#define SPC_SIMUL162         162    /* simulation mode of SPC160PCIE module */
+#define SPC_SIMUL180         180    /* simulation mode of SPC180 module */
 #define DPC_SIMUL330         330    /* simulation mode of DPC330 module */
 #define DPC_SIMUL590         590    /* simulation mode of DPC590 module */
 
@@ -307,8 +313,16 @@ typedef struct
 #define M_DPC230    230   
 #define M_SPC150    150   
 #define M_SPC151    151    // SPC-150N = SPC-150 with faster discriminators and reduced timing wobble
-#define M_SPC131    131    // SPC-130-EM = SPC130 with extended memory ( also known as SPC131 )
-#define M_SPC160    160    // SPC160 - Special module for optical tomography
+#define M_SPC152    152    // SPC-150NX = SPC-150N with changed TAC range ( instead of 50-5000ns):
+                           //       2 variants: SPC-150NX 25-2500ns and 
+                           //                   SPC-150NXX (old SPC-150NX-12) 12.5-1250ns
+#define M_SPC131    131    // SPC-130-EM  = SPC130 with extended memory ( also known as SPC131 )
+#define M_SPC132    132    // SPC-130-EMN = SPC130 with extended memory, 
+                           //      faster discriminators and reduced timing wobble ( also known as SPC132 )
+#define M_SPC160    160    // SPC-160 - Special module for optical tomography
+#define M_SPC161    161    // SPC-160X = SPC-160 with TAC range 25-2500ns ( instead of 50-5000ns)
+#define M_SPC162    162    // SPC-160PCIE = SPC-160 on PCI-EX bus
+#define M_SPC180    180    // SPC-180 - as SPC-160 but using SmartLogic IP_CORE on Xilinx Artix 7
 #define M_DPC330    330    // DPC330 - Special version of DPC230
 #define M_DPC590    590    // DPC590 - Special version of DPC230
 
@@ -324,12 +338,12 @@ typedef struct
 #define SPC_REPTIM_2OVER 0x200   /* second overflow of repeat timer */
          /* masks valid only for modules SPC130, SPC6x0 */
 #define SPC_SEQ_GAP      0x40    /* Sequencer is waiting for other bank to be armed */
-     /* masks valid only for modules SPC13x, SPC6x0, SPC830, SPC140, SPC930, SPC15x, SPC160
+     /* masks valid only for modules SPC13x, SPC6x0, SPC830, SPC140, SPC930, SPC15x, SPC16x
                  in normal modes when sequencer is enabled */
 #define SPC_FOVFL        0x400   /* Fifo overflow,data lost, fifo modes only */
 #define SPC_FEMPTY       0x800   /* Fifo empty, fifo modes only */
 
-         /* masks valid only for SPC7x0, SPC830, SPC140, SPC930, SPC15x, SPC131, SPC160 modules */
+         /* masks valid only for SPC7x0, SPC830, SPC140, SPC930, SPC15x, SPC131(2), SPC16x modules */
 #define SPC_FBRDY        0x800   /* Flow back of scan finished, scan modes only */
 #define SPC_SCRDY        0x400   /* Scan ready (data can be read ), scan modes only */
 #define SPC_MEASURE      0x40    /* Measurement active =
@@ -339,11 +353,11 @@ typedef struct
 #define SPC_WAIT_TRG     0x1000   /* wait for trigger */
 #define SPC_HFILL_NRDY   0x8000   /* hardware fill not finished */
 
-         /* masks valid only for SPC140, SPC930, SPC15x, SPC131, SPC160 modules */
+         /* masks valid only for SPC140, SPC930, SPC15x, SPC131(2), SPC16x modules */
 #define SPC_SEQ_STOP     0x4000   /* disarmed (measurement stopped) by sequencer */
-#define SPC_SEQ_GAP150   0x2000  /* SPC15x, SPC160, SPC131 - Sequencer is waiting for other bank to be armed
+#define SPC_SEQ_GAP150   0x2000  /* SPC15x, SPC16x, SPC131(2) - Sequencer is waiting for other bank to be armed
                                         normal and Scan In modes when sequencer is enabled */
-          // mask for SPC140, SPC830, SPC15x, SPC160, DPC230 modules ( in FIFO IMAGE mode )
+          // mask for SPC140, SPC830, SPC15x, SPC16x, DPC230 modules ( in FIFO IMAGE mode )
 #define SPC_WAIT_FR      0x2000  /* FIFO IMAGE measurement waits for the frame signal to stop */
 
          /* masks valid only for DPC230 modules */
@@ -390,14 +404,14 @@ typedef struct
 
 
 
-         /* mode values for SPC7xx, 830, 930 and 140 */
+         /* mode values for SPC7xx, 830, 930 and 140, 15x, 16x, 130-EM(N) ( 131(2)) */
          
 #define ROUT_IN   0           
-#define ROUT_OUT  1  // for 830, 930, 140, 131 , 15x & 160- FIFO mode         
+#define ROUT_OUT  1  // for 830, 930, 140, 131(2) , 15x & 16x- FIFO mode         
 #define SCAN_IN   2           
 #define SCAN_OUT  3           
          
-#define FIFO_32M  5    // 32 bits fifo type with markers - only SPC140, 15x, 160 & 830
+#define FIFO_32M  5    // 32 bits fifo type with markers - only SPC140, 15x, 16x & 830
                        //  for Fifo Imaging - Markers are used as scan clocks
                        
          /* mode values for SPC6xx */
@@ -432,10 +446,10 @@ typedef struct
 #define FIFO_130    4   // fifo type of SPC130
 #define FIFO_830    5   // fifo type of SPC830 , 930
 #define FIFO_140    6   // fifo type of SPC140
-#define FIFO_150    7   // fifo type of SPC15x, 131, 160
+#define FIFO_150    7   // fifo type of SPC15x, 131(2), 16x
 
 #define FIFO_D230   8   // fifo type of DPC230
-#define FIFO_IMG    9   // fifo image type of SPC140,15x,160, 830 - like FIFO_140, 
+#define FIFO_IMG    9   // fifo image type of SPC140,15x,16x, 830 - like FIFO_140, 
                         //      but with marker photons
 #define FIFO_D590   10  // fifo type of DPC590
 
@@ -455,47 +469,49 @@ typedef struct _SPCMemConfig *SPCMemConfigType;
 typedef struct _SPCdata{    /* structure for library data  */
   unsigned short base_adr;  /* base I/O address on PCI bus */
   short          init;      /* set to initialisation result code */
-  float cfd_limit_low;   /* for SPCx3x(140,15x,131,160) -500 .. 0mV ,for SPCx0x 5 .. 80mV 
+  float cfd_limit_low;   /* for SPCx3x(140,15x,131(2),16x) -500 .. 0mV ,for SPCx0x 5 .. 80mV 
                             for DPC230 = CFD_TH1 threshold of CFD1 -510 ..0 mV */
-  float cfd_limit_high;  /* 5 ..80 mV, default 80 mV , not for SPC130,140,15x,131,160,930 
+  float cfd_limit_high;  /* 5 ..80 mV, default 80 mV , not for SPC130,140,15x,131(2),16x,930 
                             for DPC230 = CFD_TH2 threshold of CFD2 -510 ..0 mV */
-  float cfd_zc_level;    /* SPCx3x(140,15x,131,160) -96 .. 96mV, SPCx0x -10 .. 10mV   
+  float cfd_zc_level;    /* SPCx3x(140,15x,131(2),16x) -96 .. 96mV, SPCx0x -10 .. 10mV   
                             for DPC230 = CFD_TH3 threshold of CFD3 -510 ..0 mV */
   float cfd_holdoff;     /* SPCx0x: 5 .. 20 ns, other modules: no influence   
                             for DPC230 = CFD_TH4 threshold of CFD4 -510 ..0 mV */
-  float sync_zc_level;   /* SPCx3x(140,15x,131,160): -96 .. 96mV, SPCx0x: -10..10mV   
+  float sync_zc_level;   /* SPCx3x(140,15x,131(2),16x): -96 .. 96mV, SPCx0x: -10..10mV   
                             for DPC230 = CFD_ZC1 Zero Cross level of CFD1 -96 ..96 mV */
-  float sync_holdoff;    /* 4 .. 16 ns ( SPC130,140,15x,131,160,930: no influence)   
+  float sync_holdoff;    /* 4 .. 16 ns ( SPC130,140,15x,131(2),16x,930: no influence)   
                             for DPC230 = CFD_ZC2 Zero Cross level of CFD2 -96 ..96 mV */
-  float sync_threshold;  /* SPCx3x(140,15x,131,160): -500 .. -20mV, SPCx0x: no influence   
+  float sync_threshold;  /* SPCx3x(140,15x,131(2),16x): -500 .. -20mV, SPCx0x: no influence   
                             for DPC230 = CFD_ZC3 Zero Cross level of CFD3 -96 ..96 mV */
-  float tac_range;       /* 50 .. 5000 ns,
-                            for DPC230 = DPC range in TCSPC and Multiscaler mode 
+  float tac_range;       /* 50 .. 5000 ns, for SPC161 25 .. 2500,
+                              for SPC150NX 25 .. 2500, for SPC150NX-12 12.5 ..  1250,
+                              for DPC230 = DPC range in TCSPC and Multiscaler mode 
                                     0.16461 .. 1e7 ns */
-  short sync_freq_div;   /* 1,2,4,8,16 ( SPC130,140,15x,131,160,930, DPC230 : 1,2,4) */
+  short sync_freq_div;   /* 1,2,4,8,16 ( SPC130,140,15x,131(2),16x,930, DPC230 : 1,2,4) */
   short tac_gain;        /* 1 .. 15    not for DPC230 */
-  float tac_offset;      /* 0 .. 100%, for SPC160,150N(151)  0 .. 50%
+  float tac_offset;      /* 0 .. 100%, for SPC16x,150N(151),132  0 .. 50%
                      for DPC230 = TDC offset in TCSPC and Multiscaler mode -100 .. 100% */
   float tac_limit_low;   /* 0 .. 100%  not for DPC230 */
                          // for DPC590 = SYNC_FREQ  1 .. 100 MHz 
   float tac_limit_high;  /* 0 .. 100%  
                             for DPC230 = CFD_ZC4 Zero Cross level of CFD4 -96 ..96 mV */
   short adc_resolution;  /* 6,8,10,12 bits, default 10 ,  
-                            (additionally 0,2,4 bits for SPC830,140,15x,131,160,930 )
+                            (additionally 0,2,4 bits for SPC830,140,15x,131(2),16x,930 )
                      for DPC230 = no of points of decay curve in TCSPC and Multiscaler mode
                                           0,2,4,6,8,10,12,14,16  bits */
   short ext_latch_delay; /* 0 ..255 ns, (SPC130, DPC230 : no influence) */
-                         /* SPC140,15x,131,160,930: only values 0,10,20,30,40,50 ns are possible */
+                         /* SPC140,15x,131(2),16x,930: only values 0,10,20,30,40,50 ns are possible */
   float collect_time;    /* 1e-7 .. 100000s , default 0.01s */
   float display_time;    /* 0.1 .. 100000s , default 1.0s, obsolete, not used in DLL */
   float repeat_time;     /* 1e-7 .. 100000s , default 10.0s, not for DPC230 */
   short stop_on_time;    /* 1 (stop) or 0 (no stop) */
   short stop_on_ovfl;    /* 1 (stop) or 0 (no stop), not for DPC230  */
   short dither_range;    /* possible values - 0, 32,   64,   128,  256 
-                               have meaning:  0, 1/64, 1/32, 1/16, 1/8 
+                               have meaning:  0, 1/64, 1/32, 1/16, 1/8
+                               value 256 (1/8) only for SPC6x0,7x0, 830
                                not for DPC230 */
   short count_incr;      /* 1 .. 255, not for DPC230  */
-  short mem_bank;        /* for SPC130,600,630, 15x,131,160 :  0 , 1 , default 0
+  short mem_bank;        /* for SPC130,600,630, 15x,131(2),16x :  0 , 1 , default 0
                             other SPC modules: always 0
                             DPC230 : bit 1 - DPC 1 active, bit 2 - DPC 2 active 
                           */
@@ -503,7 +519,7 @@ typedef struct _SPCdata{    /* structure for library data  */
   unsigned short scan_control; /* SPC505(535,506,536) scanning(routing) control word,
                                   other SPC modules always 0 */
   unsigned short routing_mode;     /* DPC230  bits 0-7 - control bits
-                             SPC150(830,140,131,151,160) 
+                             SPC15x,830,140,131(2),16x) 
                                 - bits 6 - in FIFO_32M mode,  
                                            = 0 (default) Marker 3 not used,
                                            = 1 waiting for Marker 3 to start collection timer,
@@ -533,7 +549,7 @@ typedef struct _SPCdata{    /* structure for library data  */
                                 0 - normal operation (routing in)   
                                 1 - FIFO mode 32 bits, 2 -  Scan In, 3 - Scan Out  
                                 5 - FIFO_mode 32 bits with markers ( FIFO_32M ), with FPGA v. > B0
-                             for SPC15x,160, default 0       
+                             for SPC15x,16x, default 0       
                                 0 - normal operation (routing in)   
                                 1 - FIFO mode 32 bits, 2 -  Scan In, 3 - Scan Out  
                                 5 - FIFO_mode 32 bits with markers ( FIFO_32M )
@@ -548,63 +564,63 @@ typedef struct _SPCdata{    /* structure for library data  */
                                 7 - TCSPC FIFO Image mode    
                                 8 - Absolute Time FIFO mode   
                                 9 - Absolute Time FIFO Image mode 
-                             for SPC131 , default 0       
+                             for SPC131(2) , default 0       
                                 0 - normal operation (routing in)   
                                 1 - FIFO mode 32 bits
                               */  
-  unsigned long scan_size_x;  /* for SPC7x0,830,140,15x,160,930 modules in scanning modes 1 .. 65536, 
+  unsigned long scan_size_x;  /* for SPC7x0,830,140,15x,16x,930 modules in scanning modes 1 .. 65536, 
                                          default 1, not for DPC230  */
-  unsigned long scan_size_y;  /* for SPC7x0,830,140,15x,160,930 modules in scanning modes 1 .. 65536,
+  unsigned long scan_size_y;  /* for SPC7x0,830,140,15x,16x,930 modules in scanning modes 1 .. 65536,
                                          default 1, not for DPC230  */
   unsigned long scan_rout_x;  /* number of X routing channels in Scan In & Scan Out modes, not for DPC230
-                                  for SPC7x0,830,140,15x,160,930 modules
-                               1 .. 128, ( SPC7x0,830 ), 1 .. 16 (SPC140,15x,160,930), default 1 */
+                                  for SPC7x0,830,140,15x,16x,930 modules
+                               1 .. 128, ( SPC7x0,830 ), 1 .. 16 (SPC140,15x,16x,930), default 1 */
   unsigned long scan_rout_y;  /* number of Y routing channels in Scan In & Scan Out modes, not for DPC230
-                                  for SPC7x0,830,140,15x,160, 930 modules 
-                               1 .. 128, ( SPC7x0,830 ), 1 .. 16 (SPC140,15x,160,930), default 1 */
+                                  for SPC7x0,830,140,15x,16x, 930 modules 
+                               1 .. 128, ( SPC7x0,830 ), 1 .. 16 (SPC140,15x,16x,930), default 1 */
      /* INT(log2(scan_size_x)) + INT(log2(scan_size_y)) + 
         INT(log2(scan_rout_x)) + INT(log2(scan_rout_y)) <= max number of scanning bits
                         max number of scanning bits depends on current adc_resolution:
-                                12 (10 for SPC7x0,140,15x,160)   -              12
-                                14 (12 for SPC7x0,140,15x,160)   -              10
-                                16 (14 for SPC7x0,140,15x,160)   -               8
-                                18 (16 for SPC7x0,140,15x,160)   -               6
-                                20 (18 for SPC140,15x,160)       -               4
-                                22 (20 for SPC140,15x,160)       -               2
-                                24 (22 for SPC140,15x,160)       -               0
+                                12 (10 for SPC7x0,140,15x,16x)   -              12
+                                14 (12 for SPC7x0,140,15x,16x)   -              10
+                                16 (14 for SPC7x0,140,15x,16x)   -               8
+                                18 (16 for SPC7x0,140,15x,16x)   -               6
+                                20 (18 for SPC140,15x,16x)       -               4
+                                22 (20 for SPC140,15x,16x)       -               2
+                                24 (22 for SPC140,15x,16x)       -               0
                                 */
-  unsigned long  scan_flyback;   /* for SPC7x0,830,140,15x,160,930 modules in Scan Out or Rout Out mode, 
+  unsigned long  scan_flyback;   /* for SPC7x0,830,140,15x,16x,930 modules in Scan Out or Rout Out mode, 
                                          default & minimum = 1, not for DPC230  */
                                  /* bits 15-0  Flyback X in number of pixels
                                       bits 31-16 Flyback Y in number of lines */
-  unsigned long  scan_borders;   /* for SPC7x0,830,140,15x,160,930 modules in Scan In mode, 
+  unsigned long  scan_borders;   /* for SPC7x0,830,140,15x,16x,930 modules in Scan In mode, 
                                          default 0, not for DPC230  */
                                  /* bits 15-0  Upper boarder, bits 31-16 Left boarder */
-  unsigned short scan_polarity;    /* for SPC7x0,830,140,15x,160,930 modules in scanning modes, 
+  unsigned short scan_polarity;    /* for SPC7x0,830,140,15x,16x,930 modules in scanning modes, 
                                          default 0, not for DPC230  */
          /* bit 0 - polarity of HSYNC (Line), bit 1 - polarity of VSYNC (Frame),
             bit 2 - pixel clock polarity
             bit = 0 - falling edge(active low)
             bit = 1 - rising  edge(active high) 
-          for SPC140,15x,160,830 in FIFO_32M mode
+          for SPC140,15x,16x,830 in FIFO_32M mode
             bit = 8 - HSYNC (Line) marker disabled (1) or enabled (0, default )
                         when disabled, line marker will not appear in FIFO photons stream */
-  unsigned short pixel_clock;   /* for SPC7x0,830,140,15x,160,930 modules in Scan In mode, or DPC230 in Image modes
+  unsigned short pixel_clock;   /* for SPC7x0,830,140,15x,16x,930 modules in Scan In mode, or DPC230 in Image modes
                              pixel clock source, 0 - internal,1 - external, default 0
-                 for SPC140,15x,160,830 in FIFO_32M mode it disables/enables pixel markers 
+                 for SPC140,15x,16x,830 in FIFO_32M mode it disables/enables pixel markers 
                                                  in photons stream */
-  unsigned short line_compression;   /* line compression factor for SPC7x0,830,140,15x,160,930 modules 
+  unsigned short line_compression;   /* line compression factor for SPC7x0,830,140,15x,16x,930 modules 
                                    in Scan In mode,   1,2,4,8,16,32,64,128, default 1*/
   unsigned short trigger;    /* external trigger condition - 
            bits 1 & 0 mean :   00 - ( value 0 ) none(default), 
                                01 - ( value 1 ) active low, 
                                10 - ( value 2 ) active high 
-        when sequencer is enabled on SPC130,6x0,15x,160,131 modules additionally
+        when sequencer is enabled on SPC130,6x0,15x,16x,131(2) modules additionally
           bits 9 & 8 of the value mean:
            00 - trigger only at the start of the sequence,
            01 ( 100 hex, 256 decimal ) - trigger on each bank
            11 ( 300 hex, 768 decimal ) - trigger on each curve in the bank
-        for SPC15x,160, 131, 140 and SPC130 (FPGA v. > C0) multi-module configuration 
+        for SPC15x,16x, 131(2), 140 and SPC130 (FPGA v. > C0) multi-module configuration 
                bits 13 & 12 of the value mean:
            x0 - module does not use trigger bus ( trigger defined via bits 0-1),
            01 ( 1000 hex, 4096 decimal ) - module uses trigger bus as slave 
@@ -613,18 +629,18 @@ typedef struct _SPCdata{    /* structure for library data  */
                                   ( trigger defined via bits 0-1),
                                   ( only one module can be the master )
           */
-  float pixel_time;    /* pixel time in sec for SPC7x0,830,140,15x,160,930 modules in Scan In mode,
+  float pixel_time;    /* pixel time in sec for SPC7x0,830,140,15x,16x,930 modules in Scan In mode,
                               50e-9 .. 1.0 , default 200e-9 */
-  unsigned long ext_pixclk_div;  /* divider of external pixel clock for SPC7x0,830,140,15x,160 modules
+  unsigned long ext_pixclk_div;  /* divider of external pixel clock for SPC7x0,830,140,15x,16x modules
                                 in Scan In mode, 1 .. 0x3fe, default 1*/
   float rate_count_time;    /* rate counting time in sec  default 1.0 sec
-                              for SPC130,830,930,15x,160,131 can be : 1.0, 250ms, 100ms, 50ms 
+                              for SPC130,830,930,15x,16x,131(2) can be : 1.0, 250ms, 100ms, 50ms 
                               for SPC140 fixed to 50ms   
                               for DPC230 - 1.0sec, 
                                            0.0 - don't count rate outside the measurement, */
-  short macro_time_clk;     /*  macro time clock definition for SPC130,140,15x,160,131,830,930 in FIFO mode     
-                              for SPC130, SPC140,15x,160,131:
-                                  0 - 50ns (default), 25ns for SPC15x,160,131 & 140 with FPGA v. > B0 , 
+  short macro_time_clk;     /*  macro time clock definition for SPC130,140,15x,16x,131(2),830,930 in FIFO mode     
+                              for SPC130, SPC140,15x,16x,131(2):
+                                  0 - 50ns (default), 25ns for SPC15x,16x,131(2) & 140 with FPGA v. > B0 , 
                                   1 - SYNC freq., 2 - 1/2 SYNC freq.,
                                   3 - 1/4 SYNC freq., 4 - 1/8 SYNC freq.
                               for SPC830:
@@ -634,22 +650,22 @@ typedef struct _SPCdata{    /* structure for library data  */
   short add_select;     /* selects ADD signal source for all modules except SPC930 & DPC230 : 
                             0 - internal (ADD only), 1 - external */
   short test_eep;        /* test EEPROM checksum or not  */
-  short adc_zoom;     /* selects ADC zoom level for module SPC830,140,15x,160,131,930 default 0 
+  short adc_zoom;     /* selects ADC zoom level for module SPC830,140,15x,16x,131(2),930 default 0 
                            bit 4 = 0(1) - zoom off(on ), 
                            bits 0 - 3 zoom level =  
                                0 - zoom of the 1st 1/16th of ADC range,  
                               15 - zoom of the 16th 1/16th of ADC range */
-  unsigned long img_size_x;  /* image X size ( SPC140,15x,160,830 in FIFO_32M, SPC930 in Camera mode ),
+  unsigned long img_size_x;  /* image X size ( SPC140,15x,16x,830 in FIFO_32M, SPC930 in Camera mode ),
                                       1 .. 1024, default 1 */
-  unsigned long img_size_y;  /* image Y size ( SPC140,15x,160,830 in FIFO_32M, SPC930 in Camera mode ),
+  unsigned long img_size_y;  /* image Y size ( SPC140,15x,16x,830 in FIFO_32M, SPC930 in Camera mode ),
                                 actually equal to img_size_x ( quadratic image ) */
-  unsigned long img_rout_x;  /* no of X routing channels ( SPC140,15x,160,830 in FIFO_32M, SPC930 in Camera mode ),
+  unsigned long img_rout_x;  /* no of X routing channels ( SPC140,15x,16x,830 in FIFO_32M, SPC930 in Camera mode ),
                                       1 .. 16, default 1 */
-  unsigned long img_rout_y;  /* no of Y routing channels ( SPC140,15x,160,830 in FIFO_32M, SPC930 in Camera mode ),
+  unsigned long img_rout_y;  /* no of Y routing channels ( SPC140,15x,16x,830 in FIFO_32M, SPC930 in Camera mode ),
                                       1 .. 16, default 1 */
   short xy_gain;      /* selects gain for XY ADCs for module SPC930, 1,2,4, default 1 */
   short master_clock;  /*  use Master Clock( 1 ) or not ( 0 ), default 0,
-                               only for SPC140,15x,160,131 multi-module configuration 
+                               only for SPC140,15x,16x,131(2) multi-module configuration 
                         - value 2 (when read) means Master Clock state was set by other application
                                   and cannot be changed */
   short adc_sample_delay; /* ADC's sample delay, only for module SPC930   
@@ -714,9 +730,9 @@ typedef struct _SPCModInfo{
 
      /* structure containing SPC adjust parameters stored in EEPROM  - not for DPC230*/
 typedef struct _SPC_Adjust_Para{
-  short vrt1;     //   for SPC15x,160,131 RESET Duration
-  short vrt2;     //   for SPC15x,160,131 SADC  Duration
-  short vrt3;     //   for SPC15x,160,131 SADC  Delay   
+  short vrt1;     //   for SPC15x,16x,131(2) RESET Duration
+  short vrt2;     //   for SPC15x,16x,131(2) SADC  Duration
+  short vrt3;     //   for SPC15x,16x,131(2) SADC  Delay   
   short dith_g;
   float gain_1;
   float gain_2;
@@ -893,7 +909,8 @@ typedef struct {
 #define FREE_BUF_STREAM        0x2000     // stream buffer will be freed automatically 
                                           //     after extracting photons from it
                                           
-#define STREAM_MIN_BUF_SIZE    0x800004    // 8MB default and minimum size of a stream buffer
+#define STREAM_MIN_BUF_SIZE    0x1000002    // 16MB default and minimum size of a stream buffer
+//#define STREAM_MIN_BUF_SIZE    0x800004    // 8MB default and minimum size of a stream buffer
 #define STREAM_MAX_BUF_SIZE    0x4000002   // 64MB max size of a data buffer added to the stream
                  // 256 MB max size of all currently allocated stream buffers for 32bit DLL
 #define STREAM_MAX_SIZE32      0x10000002   
@@ -1154,7 +1171,7 @@ short   DLLSTDCALL   SPCstd_get_adjust_parameters (short mod_no, SPC_Adjust_Para
 short   CVICDECL     SPC_set_adjust_parameters (short mod_no, SPC_Adjust_Para * adjpara);
 short   DLLSTDCALL   SPCstd_set_adjust_parameters (short mod_no, SPC_Adjust_Para * adjpara);
 
-                   // for SPC130, SPC6x0, 830, 140, 15x,160, 131, DPC230 modules 
+                   // for SPC130, SPC6x0, 830, 140, 15x,16x, 131(2), DPC230 modules 
 short   CVICDECL     SPC_read_fifo(short mod_no, unsigned long * count,unsigned short *data);
 short   DLLSTDCALL   SPCstd_read_fifo(short mod_no, unsigned long * count,unsigned short *data);
 
@@ -1270,6 +1287,11 @@ short   CVICDECL     SPC_read_fifo_to_stream ( short stream_hndl, short mod_no,
 short   DLLSTDCALL   SPCstd_read_fifo_to_stream ( short stream_hndl, short mod_no, 
                                      unsigned long * count );
 
+short   CVICDECL     SPC_get_data_from_stream ( short stream_hndl, void *data_buf, 
+                                                unsigned long * count );
+short   DLLSTDCALL   SPCstd_get_data_from_stream ( short stream_hndl, void *data_buf, 
+                                                unsigned long * count );
+                                                
 short   CVICDECL     SPC_get_photons_from_stream ( short stream_hndl, 
                                    PhotInfo64 *phot_info, int *phot_no );
 short   DLLSTDCALL   SPCstd_get_photons_from_stream ( short stream_hndl, 
