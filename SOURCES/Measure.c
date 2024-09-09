@@ -33,6 +33,7 @@
 // MULTIHARP
 // Generic CONTINUOUS FLOW
 // ARDUINO
+// WAVEMETER
 
 /* ########################   HELP   ################################## */
 // Board = Physical TCSPC Board
@@ -98,6 +99,7 @@
 #include "ximc2.h" // Standa2 driver re-saved as ximic2.h since the ximc.h had a truncated line
 #include "NIRS_DLL_v2_mod.h"
 #include "LUCA_TRS_mod.h"
+#include "wlmData_mod.h"
 
 //#include "thlibc.h"
 //#include "thdefin.h"
@@ -7124,6 +7126,7 @@ void InitStep(char Step){
 		case ARD_FLOW:
 		case ARD_STEP:  InitArd(Step); break;
 		case DEL_MPD:  InitDelmpd(Step); break;
+		case WAVE_HF: InitWave(Step); break;
 		default:;
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
@@ -7157,6 +7160,7 @@ void CloseStep(char Step){
 		case ARD_FLOW:
 		case ARD_STEP: CloseArd(Step); break;
 		case DEL_MPD: CloseDelmpd(Step); break;
+		case WAVE_HF: CloseWave(Step); break;
 		default:;
 		}
 	}
@@ -7371,6 +7375,7 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case ARD_FLOW:
 		case ARD_STEP: MoveArd(Step,Goal,Wait); break;
 		case DEL_MPD: MoveDelmpd(Step,Goal); break;
+		case WAVE_HF: MoveWave(Step); break;
 		default:;
 		}
 	P.Spc.Trash=TRUE;
@@ -8104,6 +8109,47 @@ void GetMicro(int Com,long *Answer){
 	char *pChar;
 	pChar = (char*) Answer;
 	while(ComRd (Com,pChar,4)<4);
+	}
+
+
+// #### WAVEMETER HI-FINESSE ####
+	
+/* INITIALIZE WAVE */
+void InitWave(char Step){
+	int ret,open;
+	char message[STRLEN];
+	char* path=P.Step[Step].FPath;
+	
+	// Initialise communication with software
+	sprintf(message,"Initializing WAVEMETER Hi-Finesse WS6-600 Stepper #%d",Step+1);
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+	ret=Instantiate(cInstCheckForWLM,0,0,0);
+	if(ret==0) Failure("Software not running or not responding");
+	else Passed();
+	
+	// Initialise File for saving data
+	sprintf(message,"Initializing FILE for saving Wavemeter data with same name of data");
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+	strcpy(path,P.File.Path); // take file name from .DAT file
+	path[strlen(path)-strlen(P.File.Ext)]=0; //delete ext of data fle for DTOF (leave '.' there)
+	strcat(path,WAVE_FILEEXT); //add file ext for Time Tags the dot '.' is already included
+	if((P.Step[Step].FPoint=fopen(path,"w"))!=NULL) Passed(); else Failure("unable to create file");
+	}
+
+
+/* CLOSE MICRO */
+void CloseWave(char Step){
+	fclose(P.Step[Step].FPoint);
+	}
+
+
+/* MOVE MICRO */
+void MoveWave(char Step){
+	double ret;
+	ret=GetWavelength(0.0);
+	if(ret<0) Failure("Error on reading of Wavemeter Hi-Finesse");
+	else P.Step[Step].Actual=WAVE_NM2PM*ret;
+	fprintf(P.Step[Step].FPoint,"%d\t%d\t%d\t%d\t%d\t%d\n",P.Loop[LOOP1].Actual,P.Loop[LOOP2].Actual,P.Loop[LOOP3].Actual,P.Loop[LOOP4].Actual,P.Loop[LOOP5].Actual,P.Step[Step].Actual);
 	}
 
 

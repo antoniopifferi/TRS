@@ -261,6 +261,10 @@
 #define MICRO_DATABITS	8
 #define MICRO_STOPBITS	1
 
+// WAVEMETER SPECIFIC CONSTANTS
+#define WAVE_FILEEXT	"TXT"
+#define WAVE_NM2PM		1000
+
 // ARDUINO SPECIFIC CONSTANTS
 #define ARD_LCD		'W'
 #define ARD_HOLD	'H'
@@ -607,6 +611,7 @@
 #define ARD_FLOW	29
 #define ARD_STEP	30
 #define DEL_MPD		31
+#define WAVE_HF		32
 
 #define VARRO		 1
 #define NI_6602	     5
@@ -1484,6 +1489,7 @@ struct StepS {
 	long Stop[MAXPOS];
 	char  FName[STRLEN];
 	char  FPath[STRLEN];
+	FILE*  FPoint;
 	struct Delay_GateS Delay_Gate;
 	struct Standa2S Standa2;
 	struct ArdS Ard;
@@ -2692,13 +2698,17 @@ void DefineHomeMicro(char Step);
 void TalkMicro(char Step, char Command, long Value, long *Answer);
 void GetMicro(int Com, long *Answer);
 
+// #### WAVEMETER STEPPER ####
+void InitWave(char Step);
+void CloseWave(char Step);
+void MoveWave(char Step);
+
 // #### DELAYER MPD STEPPER ####
 void InitDelmpd(char Step);
 void CloseDelmpd(char Step);
 void MoveDelmpd(char Step,long Goal);
 void StopDelmpd(char Step);
 void TalkDelmpd(char Step, char* Command, long Value);
-
 
 // #### ARDUINO STEPPER ####
 void InitArd(char Step);
