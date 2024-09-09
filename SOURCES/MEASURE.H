@@ -13,7 +13,7 @@
 #define MESSAGE_ABOUT   "Copyright: POLITECNICO DI MILANO\nVersion: 18.0\nDate: November 2020"
 
 // TYPE OF DATA
-// USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards.
+// USE long for TimeHarp, Varro, Silena, USE short for all others SPC boards. NEW!!! unsigned short should work for Spcm too
 #define T_DATA unsigned long
 #define T_HEAD struct sHeader2
 #define T_SUB struct sSubHeader1
@@ -2221,6 +2221,7 @@ struct DataS {
 	T_DATA **Bank;		// D.Bank[P.Num.Board][SPC_BANK_DIM] or D.Bank[P.Num.Board][MAX FIFO MHARP] // not a problem: there is a calloc later
 	T_DATA *Curve;		// D.Curve[P.Num.Chann] 
 	T_DATA *Last;		// D.Last[P.Num.Chann]
+	unsigned short *BusSpcm; // D.BusSpcm[P.Num.Det*P.Num.Chann] ONLY FOR SPCM
 	SC1000_TYPE ***BufferTDC;
 	};
 

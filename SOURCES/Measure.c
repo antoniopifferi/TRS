@@ -1181,6 +1181,7 @@ void InitMem(void){
 	// For all
 	D.Osc=DAlloc2D(P.Num.Board*P.Num.Det,P.Chann.Num); 
 	D.Buffer=DAlloc2D(P.Num.Board,P.Num.Det*P.Chann.Num); 
+	D.BusSpcm = calloc (P.Num.Det*P.Chann.Num, sizeof(unsigned short));
 	if(P.Spc.Subtract) D.Last=DAlloc1D(P.Chann.Num); 
 	
 	// Just for Meas
@@ -1198,6 +1199,7 @@ void InitMem(void){
 void CloseMem(void){
 	DFree2D(D.Osc,P.Num.Board*P.Num.Det); 
 	DFree2D(D.Buffer,P.Num.Board); 
+	free(D.BusSpcm);
 	if(P.Spc.Subtract) DFree1D(D.Last); 
 	if(P.Contest.Run!=CONTEST_MEAS) return;
 	if(P.Moxy.Moxy) DFree2D(D.Bank,P.Num.Board); 
@@ -3087,7 +3089,8 @@ void GetDataSpcm(void){
 		ret=SPC_test_state(ib,&state);
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_test_state");
 		P.Spc.Overflow|=(state&SPC_OVERFLOW);
-		ret=SPC_read_data_page(ib,0,0,(unsigned short*)D.Buffer[ib]);   
+		ret=SPC_read_data_page(ib,0,0,(unsigned short*)D.BusSpcm);  
+		for(int ic=0;ic<P.Num.Det*P.Chann.Num;ic++) D.Buffer[ib][ic]=(T_DATA) D.BusSpcm[ic];
 		if(ret<0) ErrHandler(ERR_SPC,ret,"SPC_read_data_page");
 		}
 	}
