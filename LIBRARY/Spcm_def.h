@@ -1,12 +1,12 @@
 /*---------------------------------------------------------------------------*/
 /*                              SPCM                                         */
 /*---------------------------------------------------------------------------*/
-/*    Copyright (c) Becker & Hickl GmbH  2000-2018  All Rights Reserved.     */
+/*    Copyright (c) Becker & Hickl GmbH  2000-2020 All Rights Reserved.     */
 /*---------------------------------------------------------------------------*/
 /*                                                                           */
 /* Title   : SPCM_DEF.H                                                      */
 /* Purpose : Include file for programs using SPCM  32(64)-bit DLL            */
-/*              under Windows XP/Vista/7/8.                                  */
+/*              under Windows Vista/7/8.                                  */
 /* Note    :                                                                 */
 /*                                                                           */
 /*   Functions listed here are exported in   spcm32(64).dll                  */
@@ -94,6 +94,7 @@
   keyword (SPC_STR_BUF_NO), \
   keyword (SPC_STR_NO_START), \
   keyword (SPC_STR_NO_STOP), \
+  keyword (SPC_USBDRV_ERR),\
 };
                    
 /*
@@ -154,6 +155,7 @@
    SPC_STR_BUF_NO      -52     max no of buffers reached ( 32k) for buffered streams
    SPC_STR_NO_START    -53     start condition for getting photons from the stream not reached
    SPC_STR_NO_STOP     -54     stop condition to finish taking photons from the stream not reached
+   SPC_USBDRV_ERR      -55     Error in USB Driver function
 */
 
 
@@ -297,6 +299,9 @@ typedef struct
 #define SPC_SIMUL161         161    /* simulation mode of SPC160X module */
 #define SPC_SIMUL162         162    /* simulation mode of SPC160PCIE module */
 #define SPC_SIMUL180         180    /* simulation mode of SPC180 module */
+#define SPC_SIMUL181         181    /* simulation mode of SPC181 module */
+#define SPC_SIMUL182         182    /* simulation mode of SPC182 module */
+#define SPC_SIMUL185         185    /* simulation mode of SPC185 module */
 #define DPC_SIMUL330         330    /* simulation mode of DPC330 module */
 #define DPC_SIMUL590         590    /* simulation mode of DPC590 module */
 
@@ -322,7 +327,10 @@ typedef struct
 #define M_SPC160    160    // SPC-160 - Special module for optical tomography
 #define M_SPC161    161    // SPC-160X = SPC-160 with TAC range 25-2500ns ( instead of 50-5000ns)
 #define M_SPC162    162    // SPC-160PCIE = SPC-160 on PCI-EX bus
-#define M_SPC180    180    // SPC-180 - as SPC-160 but using SmartLogic IP_CORE on Xilinx Artix 7
+#define M_SPC180    180    // SPC-180N - as SPC-160 on PCI-EX bus but using SmartLogic IP_CORE on Xilinx Artix 7
+#define M_SPC181    181    // SPC-180NX = SPC-180N with TAC range 25-2500ns ( instead of 50-5000ns)
+#define M_SPC182    182    // SPC-180NXX = SPC-180N with TAC range 12.5-1250ns ( instead of 50-5000ns)
+#define M_SPC185    185    // SPC-180N-USB - as SPC-180N with USB-3 interface
 #define M_DPC330    330    // DPC330 - Special version of DPC230
 #define M_DPC590    590    // DPC590 - Special version of DPC230
 
@@ -395,6 +403,7 @@ typedef struct
 #define INIT_SPC_NO_LICENSE          -10 /* license key not read from registry */
 #define INIT_SPC_LICENSE_NOT_VALID   -11 /* license is not valid for SPCM DLL */
 #define INIT_SPC_LICENSE_DATE_EXP    -12 /* license date expired */
+#define INIT_SPC_CANT_OPEN_USB_CARD  -13 /* cannot open USB card */
 
 #define INIT_SPC_XILINX_ERR           -100  // only for SPC-930 module
       // Xilinx chip configuration error -1xx - where xx = Xilinx error code   
@@ -483,7 +492,7 @@ typedef struct _SPCdata{    /* structure for library data  */
                             for DPC230 = CFD_ZC2 Zero Cross level of CFD2 -96 ..96 mV */
   float sync_threshold;  /* SPCx3x(140,15x,131(2),16x): -500 .. -20mV, SPCx0x: no influence   
                             for DPC230 = CFD_ZC3 Zero Cross level of CFD3 -96 ..96 mV */
-  float tac_range;       /* 50 .. 5000 ns, for SPC161 25 .. 2500,
+  float tac_range;       /* 50 .. 5000 ns, for SPC161(181) 25 .. 2500,
                               for SPC150NX 25 .. 2500, for SPC150NX-12 12.5 ..  1250,
                               for DPC230 = DPC range in TCSPC and Multiscaler mode 
                                     0.16461 .. 1e7 ns */
