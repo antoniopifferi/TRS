@@ -49,7 +49,7 @@
 /* ########################   HEADINGS   ################################## */
 
 
-#define NEW_SPC // OLD_SPC=use old B&H SPC DLL (SPCM32.LIB), NEW_SPC=use new B&H SPC DLL (spcm32x64.lib)
+#define SPC_NEW // SPC_OLD=use old B&H SPC DLL (SPCM32.LIB), SPC_NEW=use new B&H SPC DLL (spcm32x64.lib)
 
 #pragma warning(disable : 4996) // Disable warnings about some functions in VS 2005
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
