@@ -3894,10 +3894,10 @@ void InitMharp(int Board) {
 	for (int id = 0; id < P.Num.Det; id++){
 		ret = MH_SetInputEdgeTrg(Board, id, mh.InputLevel[id], mh.InputEdge[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputEdgeTrg");
 		ret = MH_SetInputChannelOffset(Board, id, mh.InputOffset[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelOffset"); // add cable to SIGNAL
-		//if(mh.InputDeadtime[id]<EXTDEADMIN)
-		//	{ret = MH_SetInputDeadTime(Board, id, 0, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputDeadtime");}
-		//else
-		//	{ret = MH_SetInputDeadTime(Board, id, 1, mh.InputDeadtime[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputDeadtime");}
+		if(mh.InputDeadtime[id]<EXTDEADMIN)
+			{ret = MH_SetInputDeadTime(Board, id, 0, 0); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputDeadtime");}
+		else
+			{ret = MH_SetInputDeadTime(Board, id, 1, mh.InputDeadtime[id]); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputDeadtime");}
 		ret = MH_SetInputChannelEnable(Board, id, TRUE); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetInputChannelEnable");
 		}
 	ret = MH_SetBinning(Board, mh.Binning); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_SetBinning");
