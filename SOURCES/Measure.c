@@ -8011,6 +8011,7 @@ void InitMicro(char Step){
 	TalkMicro(Step,MICRO_VEL,(int) P.Step[Step].Freq,&ret);
 	TalkMicro(Step,MICRO_FDELTA,P.Step[Step].FreqDelta,&ret);
 //**    TalkMicro(com,MICRO_HOME,P.Step[Step].Home,&ret);
+	//**
     
     SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
 	}
