@@ -5782,14 +5782,16 @@ void AutoTrim(int Trim){
 	char isfirst,islast;
 	long loop_index;
 	char loop=P.Trim[Trim].Loop;
-	char is_any_SPC = ((P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==SPC_SC1000));
+	char is_any_SPC = ((P.Spc.Type==SPC_MHARP)||(P.Spc.Type==SPC300)||(P.Spc.Type==SPC630)||(P.Spc.Type==SPC130)||(P.Spc.Type==HYDRA)||(P.Spc.Type==TH260)||(P.Spc.Type==SPC_SC1000)||(P.Spc.Type==SPC_MHARP));
 	short page;
+	/**/char message[STRLEN];
 	
 	// Actions for FileTrimmer
 	if(P.Trim[Trim].FileTrim)
 		T->RegionActual=T->RegionFile[P.Loop[loop].Actual];
 	else
 		T->RegionActual=T->Region;
+	if(T->RegionActual==-1) return;
 
 	// Initialize
 	T->Dir=(T->Scan==TRIM_SCAN_DOWN?-1:1);
@@ -5833,6 +5835,8 @@ void AutoTrim(int Trim){
 		P.Spc.Trash=TRUE;
 		SpcTime(P.Spc.TimeM);
 		P.Contest.Function=CONTEST_MEAS;
+		//sprintf(message,"preTest Success=%d, Boundary=%d\n",T->Success,T->Boundary);
+    	//SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
 		return;
 		}
 
@@ -5890,8 +5894,11 @@ void AutoTrim(int Trim){
 		if(T->Status) SetTableCellVal(hDisplay,DISPLAY_T_TRIS,MakePoint(COL_TRIS_TRIM,Trim+1),T->Trial);
 		if(T->Status) ProcessDrawEvents ();
 		if(T->Display) DisplayPlot();
-		T->Stop=(T->Trial>T->Num);
+		T->Stop=(T->Trial>=T->Num);
 		T->Boundary=(T->Dir>0?goalstep>=P.Step[si].Max:goalstep<=P.Step[si].Min);
+		//sprintf(message,"DuringAction Success=%d, Boundary=%d, Stop=%d, Trial=%d\n",T->Success,T->Boundary,T->Stop,T->Trial);
+    	//SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+
 		}
 	while(!T->Success && !T->Stop && !T->Boundary);
 	
@@ -5902,7 +5909,9 @@ void AutoTrim(int Trim){
 	if(T->Type==CONT)
 		if((T->Stop)||(T->Boundary)) WaitPos(si,goalstep);  // patch to avoid hanging when stepper is not moving  
 		else StopStep(si); // stop only if you reached Success before Boundary or Stop (i.e. stepper is moving)
+		//StopStep(si); // stop only if you reached Success before Boundary or Stop (i.e. stepper is moving)
 
+	
 	if(T->Type==CONT) SetVel(si,P.Step[si].Freq);
 	if(T->Target==TARGET_AREAWIDTH){
 		if(T->ImprovedW){
@@ -5922,10 +5931,12 @@ void AutoTrim(int Trim){
 	if(P.Action.Status) SetTableCellVal(hDisplay,DISPLAY_T_TRIS,MakePoint(COL_TRIS_TRIM,Trim+1),T->Set);
 	if(T->Type==LIGTH) T->PosBest=Origin+T->Dir*T->Delta*T->Set;
 	//if((T->Wait==TRIM_WAIT_POS)||!T->Success) MoveStep(&P.Step[si].Actual,T->PosBest-T->Dir*T->Delta/2,si,TRUE,TRUE);  //T->PosBest da sostituire con P.Step[si].Actual? 
+	TellPos(si,&P.Step[si].Actual);
 	if(T->Wait==TRIM_WAIT_POS) MoveStep(&P.Step[si].Actual,T->PosBest-T->Dir*T->Delta/2,si,TRUE,TRUE);  // OK ONLY FOR MONOTONOUS CASES
-	else TellPos(si,&P.Step[si].Actual);
 	if((T->Scan==TRIM_SCAN_RANGE)&&(T->Success))
 		MoveStep(&P.Step[si].Actual,Origin+(int)(T->Dir*(T->Trial-0.5)*T->Delta),si,TRUE,TRUE); // set back the stepper to the best position, compensating stop latency
+		//MoveStep(&P.Step[si].Actual,(P.Step[si].Actual+Origin+(int)(T->Dir*(T->Trial-0.5)*T->Delta))/2,si,TRUE,TRUE); // set back the stepper to the best position, compensating stop latency
+		//TellPos(si,&P.Step[si].Actual);
 	if(P.Action.Status) SetCtrlVal (hDisplay, DISPLAY_TRIM, OFF);
 	loop_index=P.Loop[loop].Actual;
 	label = loop_index*P.Loop[loop].Delta+P.Loop[loop].First;
@@ -5944,6 +5955,9 @@ void CheckTrimGoal(int Trim){
 	struct TrimS *T = &P.Trim[Trim];
 	double Treshold,area,width;
 	short board=P.Page[P.Roi.Page[T->RegionActual]].Board;
+	/**/char message[STRLEN];
+	/**/double efftime=P.Spc.EffTime[0];
+
 	
 	// this section only for TARGET_AREAWIDTH, then return
 	if(T->Target==TARGET_AREAWIDTH){
@@ -5972,7 +5986,10 @@ void CheckTrimGoal(int Trim){
 	GetRange(P.Roi.First[T->RegionActual],P.Roi.Last[T->RegionActual],T->Fract,&max,&peak,&T->Range.First,&T->Range.Last,&Treshold);
 	switch (T->Target) {
 		case TARGET_WIDTH: T->Value = CalcWidth(T->Range.First,T->Range.Last,Treshold);break;
-		case TARGET_AREA: T->Value = CalcArea(P.Roi.First[T->RegionActual],P.Roi.Last[T->RegionActual])/T->Time;break;
+		case TARGET_AREA:
+			//T->Value = CalcArea(P.Roi.First[T->RegionActual],P.Roi.Last[T->RegionActual])/T->Time;break;
+			T->Value = CalcArea(P.Roi.First[T->RegionActual],P.Roi.Last[T->RegionActual])/efftime;
+			break;
 		case TARGET_MAX_BOARD_AREA:
 			T->Value=0;
 			for(ib=0;ib<P.Num.Board;ib++){
@@ -5982,6 +5999,9 @@ void CheckTrimGoal(int Trim){
 				}
 			break;
 		}
+		//sprintf(message,"DuringGet, Area=%f, efftime=%f\n",T->Value,efftime);
+    	//SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+
 	
 	// case TRIM_SCAN_RANGE (i.e. up and down depending on value) & First Check before any movement
 	if((T->Scan==TRIM_SCAN_RANGE)&&(T->Trial==0)){
@@ -6004,6 +6024,9 @@ void CheckTrimGoal(int Trim){
 		T->Set=T->Trial;
 		T->PosBest=T->PosAct;
 		}
+	
+	//sprintf(message, "\nValue= #%f, trial=%d, time=%f, ...", (float)T->Value, T->Trial,(float)T->Time);
+	//SetCtrlVal(hDisplay, DISPLAY_MESSAGE, message);
 	}
 
 
