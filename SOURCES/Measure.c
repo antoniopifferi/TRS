@@ -1153,6 +1153,12 @@ void DecideAction(void){
 				P.Action.SpcReset=(P.Action.SpcReset && first[il]);
 			}
 	}
+	
+	// Swabian SplitFile
+	if(P.Spc.Type==SPC_SWAB){
+		if(P.Spc.Swab[0].SplitFile==LOOP_NONE) P.Action.SwabNewFile=first[LOOP1];
+		else P.Action.SwabNewFile=new[P.Spc.Swab[0].SplitFile];
+		}
 }
 
 
@@ -1461,9 +1467,13 @@ void CompleteParmS(void){
 	if(P.Spc.Type==SPC_SWAB){  // Apply here and cancel all previous
 		P.Num.Det=0;
 		for(int id=0;id<SWAB_MAX_DET;id++){
-			if(P.Spc.Swab[0].DetType[id]==SWAB_SYNC) P.Spc.Swab[0].DetSync=id+1; // note: SWAB Det is 1-based
+			if(P.Spc.Swab[0].DetType[id]==SWAB_SYNC){
+				P.Spc.Swab[0].DetSync=id+1; // note: SWAB Det is 1-based
+				if(P.Spc.Swab[0].Level[id]<0) P.Spc.Swab[0].DetSync*=-1; // neg if level neg
+				}				
 			if(P.Spc.Swab[0].DetType[id]==SWAB_SIGN){
-				P.Spc.Swab[0].DetSign[P.Num.Det]=id+1; // note: SWAB Det is 1-based
+				P.Spc.Swab[0].DetSign[P.Num.Det]=id+1; // note: SWAB Det is 1-based, but sign is polarity
+				if(P.Spc.Swab[0].Level[id]<0) P.Spc.Swab[0].DetSign[P.Num.Det]*=-1; // neg if level neg
 				P.Num.Det++;
 				}
 			}
@@ -3296,7 +3306,7 @@ void InitFlowSpcm(void){
 
 /* INIT SWAB */	
 void InitSwab(int Board){
-	struct SwabS* SW=P.Spc.Swab;
+	struct SwabS* SW=&P.Spc.Swab[Board];
 	char message[STRLEN];
 	int ret;
 	int id;
@@ -3308,6 +3318,7 @@ void InitSwab(int Board){
 	P.Spc.Factor=P.Spc.Scale * P.Spc.Calib;
 	SW->Binwidth=(__int64) (P.Spc.Factor+0.5);
 	sprintf(SW->FPathVirt, "%s.%s",SW->FNameVirt,SWAB_FILEEXT);
+	P.Spc.Swab[0].FileIndex=0; // when splittingt file, initialise first to 0
 
 	// start
 	sprintf (message, "Initializing SWAB, Module #%d, ...", Board);
@@ -3329,8 +3340,11 @@ void InitSwab(int Board){
 				ret=Swab_TimeTag_TimeTagger_setEventDivider(SW->Ttr,SW->DetSync,SW->FreqDiv,&SW->Except);
 				if(ret<0) ErrHandler(ERR_SWAB,ret,"EVENT DIVIDER"); 
 				}
-			else{ // if NOT frequency divided, apply Conditional Filter to reduce sync rate
-				ret = Swab_TimeTag_TimeTagger_setConditionalFilter_1 (SW->Ttr, SW->DetSign, (ssize_t)P.Num.Det, SW->DetSync, 1, &SW->Except);
+			if(SW->Filter){ // Apply Filter
+				int filtered[1]; // filtered channel, i.e. Sync
+				filtered[0]=-SW->DetSync;   // ERRATO MA COSI FA QUALCOSA - PERCHE???
+				//ret = Swab_TimeTag_TimeTagger_setConditionalFilter_1 (SW->Ttr, trigger, 1, filtered, 1, &SW->Except);
+				ret = Swab_TimeTag_TimeTagger_setConditionalFilter_1 (SW->Ttr, SW->DetSign, (ssize_t)P.Num.Det, filtered, 1, &SW->Except);
 				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
 				}
 			for(id=0;id<SWAB_MAX_DET;id++)
@@ -3427,9 +3441,9 @@ void GetDataSwab(void){
 	int ret,id,ic;
 	ssize_t arraylen;
 	int *pData;
-	struct SwabS* SW=P.Spc.Swab;
+	struct SwabS* SW=&P.Spc.Swab[0];  // NOT WORKINNG FOR MULTIPLE BOARDS
 	
-	for(int ib=0;ib<P.Num.Board;ib++)
+	for(int ib=0;ib<P.Num.Board;ib++) // NOT WORKINNG FOR MULTIPLE BOARDS      
 		for(id=0;id<P.Num.Det;id++){
 			switch (SW->Meas){
 				case SWAB_HIST:
@@ -3458,7 +3472,7 @@ void GetDataSwab(void){
 /* CLEAR SWAB */	
 void ClearSwab(void){
 	int ret, id;
-	struct SwabS* SW=P.Spc.Swab;
+	struct SwabS* SW=&P.Spc.Swab[0]; // NOT WORKINNG FOR MULTIPLE BOARDS      ;
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
@@ -3477,7 +3491,7 @@ void ClearSwab(void){
 /* PAUSE SWAB */	
 void PauseSwab(int Board){
 	int ret,id;
-	struct SwabS* SW=P.Spc.Swab;
+	struct SwabS* SW=&P.Spc.Swab[Board];
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
@@ -3496,7 +3510,7 @@ void PauseSwab(int Board){
 /* START SWAB */	
 void StartSwab(int Board){
 	int ret,id;
-	struct SwabS* SW=P.Spc.Swab;
+	struct SwabS* SW=&P.Spc.Swab[Board];
 	
 	switch (SW->Meas){
 		case SWAB_HIST:
@@ -3515,7 +3529,7 @@ void StartSwab(int Board){
 
 /* TIME SWAB */	
 void TimeSwab(int Board,double Time){
-	struct SwabS* SW=P.Spc.Swab;
+	struct SwabS* SW=&P.Spc.Swab[Board];
 	SW->TimeSW=(__int64) (Time*SWAB_S2PS+0.5);
 	}
 
@@ -3523,7 +3537,7 @@ void TimeSwab(int Board,double Time){
 /* STOP SWAB */	
 void StopSwab(int Board){
 	int ret,id;
-	struct SwabS* SW=P.Spc.Swab;
+	struct SwabS* SW=&P.Spc.Swab[Board];
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
@@ -3535,7 +3549,12 @@ void StopSwab(int Board){
 				ret = Swab_TimeTag_HistogramLogBins_stop(SW->Corr[id], &SW->Except);
 			break;
 		}
-	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"PAUSE");
+	if(SW->isFwRunning){
+		ret = Swab_TimeTag_FileWriter_stop (SW->Fw, &SW->Except);
+		SW->isFwRunning=FALSE;
+		}
+	
+	if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"STOP");
 	}
 
 
@@ -3543,7 +3562,7 @@ void StopSwab(int Board){
 void WaitSwab(int Board){
 	int ret,id;
 	int is_running;
-	struct SwabS* SW=P.Spc.Swab;
+	struct SwabS* SW=&P.Spc.Swab[Board];
 	//do{
 		switch (SW->Meas){
 			case SWAB_HIST:
@@ -3566,7 +3585,7 @@ void WaitSwab(int Board){
 void GetSwabElapsedTime(double *Elapsed_Time){
 	int ret,id;
 	__int64 elapsed_time;
-	struct SwabS* SW=P.Spc.Swab;
+	struct SwabS* SW=&P.Spc.Swab[0];  // NOT WORKING FOR MULTIPLE BOARDS
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
@@ -3586,17 +3605,22 @@ void GetSwabElapsedTime(double *Elapsed_Time){
 void StartFileSwab(void){
 	int ret;
 	int is_running;
-	struct SwabS* SW=P.Spc.Swab;
+	struct SwabS* SW=&P.Spc.Swab[0]; // NOT WORKING FOR MULTIPLE BOARDS     
 	int detectors[MAX_DET];
 	ssize_t numdet=P.Num.Det+1; // number of detectors in Swab
 	
+	if(!SW->SaveTags) return;
+	if(!P.Action.SwabNewFile) return;
 	detectors[0]=SW->DetSync; // NOTE: in case FreqDiv is APPLIED, this is Frequency Divided
 	for(int id=0;id<P.Num.Det;id++) detectors[id+1]=SW->DetSign[id];
 	//Open the FileWrite for writing the stream (Meas already checked)
-	if(!SW->isFwRunning&&SW->SaveTags){
+	if(!SW->isFwRunning){
 		strcpy(SW->FPathOut,P.File.Path); // take file name from .DAT file
-		SW->FPathOut[strlen(SW->FPathOut)-strlen(P.File.Ext)]=0; //delete ext of data fle for DTOF (leave '.' there)
-		strcat(SW->FPathOut,SWAB_FILEEXT); //add file ext for Time Tags the dot '.' is already included
+		char *dot_position = strrchr(SW->FPathOut, '.');
+		*dot_position = '\0';
+		//SW->FPathOut[strlen(SW->FPathOut)-strlen(P.File.Ext)-1]='\0'; //delete also the dot for extension
+		if(SW->SplitFile==LOOP_NONE) sprintf(SW->FPathOut,"%s.%s", SW->FPathOut,SWAB_FILEEXT);
+		else sprintf(SW->FPathOut,"%s_%d.%s", SW->FPathOut,SW->FileIndex++,SWAB_FILEEXT);// increment index
 		ret=Swab_TimeTag_FileWriter__Create(&SW->Fw,SW->Ttb,SW->FPathOut,detectors,numdet,&SW->Except);
 		if(ret<0) ErrHandler(ERR_SWAB,ret,"FILE WRITER"); 
 		SW->isFwRunning=TRUE;
@@ -7160,6 +7184,7 @@ void InitStep(char Step){
 		case ARD_STEP:  InitArd(Step); break;
 		case DEL_MPD:  InitDelmpd(Step); break;
 		case WAVE_HF: InitWave(Step); break;
+		case MANNY: InitManny(Step); break;
 		default:;
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
@@ -7194,6 +7219,7 @@ void CloseStep(char Step){
 		case ARD_STEP: CloseArd(Step); break;
 		case DEL_MPD: CloseDelmpd(Step); break;
 		case WAVE_HF: CloseWave(Step); break;
+		case MANNY: CloseManny(Step); break;
 		default:;
 		}
 	}
@@ -7409,6 +7435,7 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case ARD_STEP: MoveArd(Step,Goal,Wait); break;
 		case DEL_MPD: MoveDelmpd(Step,Goal); break;
 		case WAVE_HF: MoveWave(Step); break;
+		case MANNY: MoveManny(Step,Goal); break;
 		default:;
 		}
 	P.Spc.Trash=TRUE;
@@ -8145,6 +8172,80 @@ void GetMicro(int Com,long *Answer){
 	}
 
 
+// #### MANNY STEPPER ####
+	
+/* INITIALIZE MANNY */
+void InitManny(char Step){
+	int ret,open;
+	char* answer[STRLEN];
+	char message[STRLEN];
+	int com=P.Step[Step].Com;
+	sprintf(message,"Initializing MANNY Stepper #%d on COM%d",Step+1,com);
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+	open=OpenComConfig(com,NULL,MANNY_BAUDRATE,MANNY_PARITY,MANNY_DATABITS,MANNY_STOPBITS,0,-1);
+	FlushInQ (com);
+	FlushOutQ (com);
+	
+	TalkManny(Step,MANNY_TEST,&answer);   // test function to see if communication ok
+	TalkManny(Step,MANNY_OFF,&answer);
+	TalkManny(Step,MANNY_POWERUP,&answer);  // first slowly increase power 5 times
+	TalkManny(Step,MANNY_POWERUP,&answer);
+	TalkManny(Step,MANNY_POWERUP,&answer);
+	TalkManny(Step,MANNY_POWERUP,&answer);
+	TalkManny(Step,MANNY_POWERUP,&answer);
+	
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
+	}
+
+
+/* CLOSE MANNY */
+void CloseManny(char Step){
+	char* answer[STRLEN];
+	int ret;
+	int com=P.Step[Step].Com;
+	printf("turn off");
+	TalkManny(Step,MANNY_OFF,&answer);
+	Delay(5*MANNY_DELAY);
+	FlushInQ (com);
+	FlushOutQ (com);
+	CloseCom (com);
+	}
+
+/* MOVE MANNY */
+void MoveManny(char Step,long Goal){
+	char* answer[STRLEN];
+	int com=P.Step[Step].Com;
+	switch (Goal){
+		case 2:
+			printf("turn off");
+			TalkManny(Step,MANNY_OFF,&answer);
+			Delay(5*MANNY_DELAY);
+			break;
+		case 1:
+			printf("turn on");
+			TalkManny(Step,MANNY_ON,&answer);
+			Delay(12*MANNY_DELAY);
+			TalkManny(Step,MANNY_POWERDW,&answer);
+			TalkManny(Step,MANNY_POWERUP,&answer);
+			Delay(5*MANNY_DELAY);
+			break;
+		default:
+			Failure("MoveManny: only 1 or 2 accepted. Please check Loop OR FilePos OR Factor");  
+			break;
+		}
+	}
+
+
+/* SEND COMMAND TO MANNY AND GET ANSWER */
+void TalkManny(char Step, char* Command, long *Answer){
+	int com=P.Step[Step].Com;
+	//const char* strCommand[STRLEN];
+	//sprintf(strCommand,"%s\r",Command);
+	int char_sent =ComWrt(com,Command,strlen(Command));
+	int char_read = ComRdTerm (com, Answer, STRLEN, '\r');
+	Delay(MANNY_DELAY);
+	}
+
 // #### WAVEMETER HI-FINESSE ####
 	
 /* INITIALIZE WAVE */
@@ -8193,6 +8294,8 @@ void MoveWave(char Step){
 void InitArd(char Step){
 	int iss;
 	int cont = 0;
+	
+	// if several axix on the same com, check all of them are closed 
 	P.Step[Step].Ard.is_last = 1;
 	for(iss = 0; iss<Step; iss++){
 		if(P.Step[iss].Com == P.Step[Step].Com){
@@ -8211,8 +8314,9 @@ void InitArd(char Step){
     COMMTIMEOUTS timeouts = { 0 };
     fflush(stdin);
     char inputPort[12]; //= "\\\\.\\COM15";
-	    if (P.Step[Step].Com < 10) {
-        sprintf(inputPort, "\\\\.\\COM0%d", P.Step[Step].Com);
+	if (P.Step[Step].Com < 10) {
+        //sprintf(inputPort, "\\\\.\\COM0%d", P.Step[Step].Com); // for windows 7
+        sprintf(inputPort, "\\\\.\\COM%d", P.Step[Step].Com); // FOR windos 10, 11
     } else {
         sprintf(inputPort, "\\\\.\\COM%d", P.Step[Step].Com);
     }
@@ -8252,7 +8356,7 @@ void InitArd(char Step){
         }
 
     timeouts.ReadIntervalTimeout = 100;
-    timeouts.ReadTotalTimeoutConstant = 50;
+    timeouts.ReadTotalTimeoutConstant = 600000;
     timeouts.ReadTotalTimeoutMultiplier = 100;
     timeouts.WriteTotalTimeoutConstant = 5;
     timeouts.WriteTotalTimeoutMultiplier = 10;
@@ -8385,6 +8489,7 @@ void TalkArd(char Step, char Command, long Value, long *Answer){
 				for (int i=0;i<bytesRead; i++){
 					resp[i]=buffer[i+2];
 				}
+				printf("%s", buffer);
 				//*Answer=atoi(resp);
             } else {
             fprintf(stderr, "Failed to read from the serial port.\n");

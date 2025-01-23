@@ -90,7 +90,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1375
+#define MAX_TABLE		1377
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -260,6 +260,19 @@
 #define MICRO_PARITY 	0
 #define MICRO_DATABITS	8
 #define MICRO_STOPBITS	1
+
+// MANNY SPECIFIC CONSTANTS
+#define MANNY_POWERUP 	"P+ E10\r"
+#define MANNY_POWERDW 	"P- E10\r"
+#define MANNY_ON	 	"S1 P1\r"
+#define MANNY_OFF	 	"S0\r"
+#define MANNY_TEST	 	"IRIS\r"
+#define MANNY_DELAY		1.0 // seconds to wait at each command 
+#define MANNY_BAUDRATE 	115200
+#define MANNY_PARITY 	0
+#define MANNY_DATABITS	8
+#define MANNY_STOPBITS	1
+#define MANNY_FLOWCONTROL	0 
 
 // WAVEMETER SPECIFIC CONSTANTS
 #define WAVE_FILEEXT	"TXT"
@@ -612,6 +625,8 @@
 #define ARD_STEP	30
 #define DEL_MPD		31
 #define WAVE_HF		32
+#define MANNY		33
+
 
 #define VARRO		 1
 #define NI_6602	     5
@@ -848,6 +863,7 @@
 #define COL_SWAB_DETTYPE	1		// Column in UIR SWAB Panel Table corressponding to DetType
 #define COL_SWAB_LEVEL		2		// Column in UIR SWAB Panel Table corressponding to DetType
 #define COL_SWAB_DELAY		3		// Column in UIR SWAB Panel Table corressponding to DetType
+
 
 /* BCD CONSTANTS */
 #define BCD_MAXBIN			256		// LEN of the TDC Array
@@ -1353,6 +1369,7 @@ struct ActionS{
 	char StartFlow;
 	char StopFlow;
 	char ReconsPy;
+	char SwabNewFile;
 	char SpcTime;			//EDO
 	char InitMamm;         //EDO
 	char StartMamm;			 //EDO
@@ -1741,6 +1758,9 @@ struct SwabS{
 	int Type;
 	int FreqMult; // multiplication factor for refolding after frequency divider
 	int FreqDiv; // divider factor for reducing Sync
+	int SplitFile; // decide if to split files over loops
+	int Filter;
+	int FileIndex;
 	};
 
 
@@ -2697,6 +2717,13 @@ void StopMicro(char Step);
 void DefineHomeMicro(char Step);
 void TalkMicro(char Step, char Command, long Value, long *Answer);
 void GetMicro(int Com, long *Answer);
+
+// #### MANNY STEPPER ####
+void InitManny(char Step);
+void CloseManny(char Step);
+void MoveManny(char Step,long Goal);
+void TalkManny(char Step, char *Command, long *Answer);
+
 
 // #### WAVEMETER STEPPER ####
 void InitWave(char Step);
