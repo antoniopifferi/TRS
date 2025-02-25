@@ -7185,6 +7185,7 @@ void InitStep(char Step){
 		case DEL_MPD:  InitDelmpd(Step); break;
 		case WAVE_HF: InitWave(Step); break;
 		case MANNY: InitManny(Step); break;
+		case ICHAUS: InitIchaus(Step); break;
 		default:;
 		}
 	if(P.Step[Step].Mode==STEP_CONT) SetVel(Step,fabs(P.Step[Step].Delta/(P.Spc.TimeM*P.Loop[P.Step[Step].Loop].Num)));
@@ -7220,6 +7221,7 @@ void CloseStep(char Step){
 		case DEL_MPD: CloseDelmpd(Step); break;
 		case WAVE_HF: CloseWave(Step); break;
 		case MANNY: CloseManny(Step); break;
+		case ICHAUS: CloseIchaus(Step); break;
 		default:;
 		}
 	}
@@ -7436,6 +7438,7 @@ void MoveStep(long *Actual,long Goal,char Step,char Wait,char Status){
 		case DEL_MPD: MoveDelmpd(Step,Goal); break;
 		case WAVE_HF: MoveWave(Step); break;
 		case MANNY: MoveManny(Step,Goal); break;
+		case ICHAUS: MoveIchaus(Step,Goal); break;
 		default:;
 		}
 	P.Spc.Trash=TRUE;
@@ -7490,6 +7493,7 @@ void TellPos(char Step,long *Position){
 		case ATT_LUCA: TellPosAttLuca(Step,Position); break;
 		case ARD_FLOW:
 		case ARD_STEP: TellPosArd(Step,Position); break;
+		case ICHAUS: TellIchaus(Step,Position); break;
 		default:;
 		}
 	}
@@ -8171,6 +8175,59 @@ void GetMicro(int Com,long *Answer){
 	while(ComRd (Com,pChar,4)<4);
 	}
 
+
+// #### ICHAUS LASER ####
+	
+/* INITIALIZE ICHAUS */
+void InitIchaus(char Step){
+	int ret,open;
+	char message[STRLEN];
+	int com=P.Step[Step].Com;
+	int micro_baudrate=(P.Step[Step].Type==MICRO2?MICRO2_BAUDRATE:MICRO_BAUDRATE);
+	sprintf(message,"Initializing MICRO Stepper #%d on COM%d",Step+1,com);
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE,message);
+	open=OpenComConfig(com,NULL,micro_baudrate,MICRO_PARITY,MICRO_DATABITS,MICRO_STOPBITS,0,-1);
+	FlushInQ (com);
+	FlushOutQ (com);
+    
+    TalkMicro(Step,MICRO_LCD,P.Step[Step].Lcd,&ret);
+    TalkMicro(Step,MICRO_HOLD,P.Step[Step].Hold,&ret);
+    TalkMicro(Step,MICRO_FMIN,P.Step[Step].FreqMin,&ret);
+	TalkMicro(Step,MICRO_VEL,(int) P.Step[Step].Freq,&ret);
+	TalkMicro(Step,MICRO_FDELTA,P.Step[Step].FreqDelta,&ret);
+//**    TalkMicro(com,MICRO_HOME,P.Step[Step].Home,&ret);
+    
+    SetCtrlVal (hDisplay, DISPLAY_MESSAGE," PASSED\n");
+	}
+
+
+/* CLOSE ICHAUS */
+void CloseIcHaus(char Step){
+	int ret;
+	int com=P.Step[Step].Com;
+    TalkMicro(Step,MICRO_END,0,&ret);
+	FlushInQ (com);
+	FlushOutQ (com);
+	CloseCom (com);
+	}
+
+
+/* MOVE MICRO */
+void MoveIchaus(char Step,long Goal,char Wait){
+	int ret;
+	int com=P.Step[Step].Com;
+	if(Goal==P.Step[Step].Actual) return;
+    TalkMicro(Step, MICRO_GOTO, Goal,&ret);
+	if(Wait) WaitMicro(Step,Goal);
+	
+	P.Step[Step].Actual=Goal;
+	}
+
+
+/* TELL POSITION MICRO */
+void TellPosMicro(char Step,long *Actual){
+	*Actual=P.Step[Step].Actual;
+	}
 
 // #### MANNY STEPPER ####
 	

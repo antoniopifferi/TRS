@@ -261,6 +261,31 @@
 #define MICRO_DATABITS	8
 #define MICRO_STOPBITS	1
 
+// ICHAUS SPECIFIC CONSTANTS
+#define ICHAUS_LCD		'W'
+#define ICHAUS_HOLD		'H'
+#define ICHAUS_FMIN		'M'
+#define ICHAUS_FDELTA	'A'
+#define ICHAUS_HOME		'I'
+#define ICHAUS_VEL		'V'
+#define ICHAUS_GOTO		'G'
+#define ICHAUS_TELL		'T'
+#define ICHAUS_STOP		'F'
+#define ICHAUS_END		'E'
+#define ICHAUS_TERM		';'
+#define ICHAUS_GETLENGTH	16
+#define ICHAUS_HOLD_OFF	0
+#define ICHAUS_HOLD_MEAS	1
+#define ICHAUS_HOLD_ON	2
+#define ICHAUS_LCD_OFF	0	
+#define ICHAUS_LCD_ALL	1	
+#define ICHAUS_LCD_END	2	
+#define ICHAUS_BAUDRATE 	115200
+#define ICHAUS2_BAUDRATE 2000000 // new ICHAUS
+#define ICHAUS_PARITY 	0
+#define ICHAUS_DATABITS	8
+#define ICHAUS_STOPBITS	1
+
 // MANNY SPECIFIC CONSTANTS
 #define MANNY_POWERUP 	"P+ E10\r"
 #define MANNY_POWERDW 	"P- E10\r"
@@ -626,6 +651,7 @@
 #define DEL_MPD		31
 #define WAVE_HF		32
 #define MANNY		33
+#define ICHAUS		34
 
 
 #define VARRO		 1
@@ -2717,6 +2743,14 @@ void StopMicro(char Step);
 void DefineHomeMicro(char Step);
 void TalkMicro(char Step, char Command, long Value, long *Answer);
 void GetMicro(int Com, long *Answer);
+
+
+// #### ICHAUS STEPPER ####
+void InitIchaus(char Step){
+void CloseIcHaus(char Step){
+void MoveIchaus(char Step,long Goal,char Wait){
+void TellPosMicro(char Step,long *Actual){
+
 
 // #### MANNY STEPPER ####
 void InitManny(char Step);
