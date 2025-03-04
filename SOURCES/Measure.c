@@ -3342,8 +3342,7 @@ void InitSwab(int Board){
 				}
 			if(SW->Filter){ // Apply Filter
 				int filtered[1]; // filtered channel, i.e. Sync
-				filtered[0]=-SW->DetSync;   // ERRATO MA COSI FA QUALCOSA - PERCHE???
-				//ret = Swab_TimeTag_TimeTagger_setConditionalFilter_1 (SW->Ttr, trigger, 1, filtered, 1, &SW->Except);
+				filtered[0]=SW->DetSync; 
 				ret = Swab_TimeTag_TimeTagger_setConditionalFilter_1 (SW->Ttr, SW->DetSign, (ssize_t)P.Num.Det, filtered, 1, &SW->Except);
 				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
 				}
@@ -3393,8 +3392,11 @@ void InitSwab(int Board){
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
-				ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSign[id],SW->DetSyncFreqMult,SW->Binwidth,P.Chann.Num,&SW->Except);
-			break;
+				if(SW->Filter)
+					ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSyncFreqMult,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except);
+				else
+					ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSign[id],SW->DetSyncFreqMult,SW->Binwidth,P.Chann.Num,&SW->Except);
+		break;
 		case SWAB_CORR:
 			for(id=0;id<P.Num.Det;id++)
 				//ret=Swab_TimeTag_HistogramLogBins__Create(&SW->Corr[id],SW->Ttb,SW->DetSign[id],SW->DetSign[id],0.000001,0.001,P.Chann.Num,&SW->Except);
@@ -3458,7 +3460,10 @@ void GetDataSwab(void){
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"GET DATA");
 			if(SW->Meas==SWAB_HIST)
 				for(ic=0;ic<arraylen;ic++)
-					D.Buffer[ib][ic+id*P.Chann.Num]=(T_DATA) pData[ic];
+					if(SW->Filter)  // REVERSE DATA
+						D.Buffer[ib][ic+id*P.Chann.Num]=(T_DATA) pData[arraylen-1-ic];
+					else
+						D.Buffer[ib][ic+id*P.Chann.Num]=(T_DATA) pData[ic];
 			if(SW->Meas==SWAB_CORR)
 				for(ic=0;ic<arraylen;ic++)
 					D.Buffer[ib][ic+id*P.Chann.Num]=(T_DATA) pData[ic];
