@@ -3393,7 +3393,7 @@ void InitSwab(int Board){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
 				if(SW->Filter)
-					ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSyncFreqMult,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except);
+					ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSyncFreqMult,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except); // Invert Start & Stop since filtered is the next laser pulse
 				else
 					ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSign[id],SW->DetSyncFreqMult,SW->Binwidth,P.Chann.Num,&SW->Except);
 		break;
@@ -3616,7 +3616,7 @@ void StartFileSwab(void){
 	
 	if(!SW->SaveTags) return;
 	if(!P.Action.SwabNewFile) return;
-	detectors[0]=SW->DetSync; // NOTE: in case FreqDiv is APPLIED, this is Frequency Divided
+	detectors[0]=SW->DetSyncFreqMult; // NOTE: in case FreqDiv is APPLIED, this is Frequency Divided, and in case Frequency Multiplied
 	for(int id=0;id<P.Num.Det;id++) detectors[id+1]=SW->DetSign[id];
 	//Open the FileWrite for writing the stream (Meas already checked)
 	if(!SW->isFwRunning){
