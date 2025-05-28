@@ -781,6 +781,7 @@
 #define MHARP_BUFFER_MULT 4 // Expand the buffer
 #define MHARP_SIZE_RING_M MHARP_BUFFER_MULT*TTREADMAX // Size of Ring Buffer for Acquisition
 #define MHARP_SIZE_RING_A MHARP_BUFFER_MULT*MHARP_MAX_DET*MHARP_MAX_BIN // Size of Ring Buffer for Analysis
+#define MHARP_MINDET_SINGLETRANSFER 3 // minimum number of detectors when single transfer is convenient
 
 
 /* TH260 CONSTANTS */

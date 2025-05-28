@@ -3968,19 +3968,20 @@ void StopMharp(int Board) {
 
 /* TRANSFER DATA FROM SPC_MHARP */
 void GetDataMharp(void) {
-	/**/unsigned int DataMharp[MHARP_MAX_BIN];
-	//**unsigned int DataMharp[MHARP_MAX_DET][MHARP_MAX_BIN];
+	unsigned int DataMharp[MHARP_MAX_DET*MHARP_MAX_BIN];
 	int ret = 0;
+	int id;
 
 	/**/double t0=Timer();
 	P.Spc.Overflow = FALSE;
 	for (int ib = 0; ib < P.Num.Board; ib++) {
-		//**ret = MH_GetAllHistograms(MHARP_DEV0, DataMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
-		for(int id=0;id<P.Num.Det;id++){
-			/**/ret = MH_GetHistogram(MHARP_DEV0, DataMharp,id); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
-			/**/for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[ic];
-			//**for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[id][ic];
-			}
+		if(P.Num.Det>MHARP_MINDET_SINGLETRANSFER) // Single transfer not convenient
+			ret = MH_GetAllHistograms(MHARP_DEV0, DataMharp); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
+		else // single transfer convenient
+			for(id=0;id<P.Num.Det;id++)
+				ret = MH_GetHistogram(MHARP_DEV0, &DataMharp[id*P.Chann.Num],id); if (ret < 0) ErrHandler(ERR_MHARP, ret, "MH_GetHistogram");
+		for(id=0;id<P.Num.Det;id++)
+			for (int ic = 0; ic < P.Chann.Num; ic++) D.Buffer[ib][ic+id*P.Chann.Num] = (T_DATA) DataMharp[ic+id*P.Chann.Num];
 		}
 	/**/double t1=Timer();
 	//printf("Delta=%lf ms\n",1000*(t1-t0));
@@ -11099,7 +11100,7 @@ void DataSave(void){
 	}
 	
 	
-	fflush(P.File.File);
+//	fflush(P.File.File);
 //	fclose(P.File.File);
 	for(ifr=0;ifr<P.Frame.Num;ifr++)
 		for(ip=0;ip<P.Num.Page;ip++)
@@ -12028,7 +12029,7 @@ void DataSaveMamm(void){
 				if(P.Info.SubHeader) while(fwrite (&D.Sub[ifr][ip], sizeof(T_SUB), 1, P.File.File)<1);
 				while(fwrite(D.Data[ifr][ip],sizeof(T_DATA),P.Chann.Num,P.File.File)<P.Chann.Num);
 				}
-		fflush(P.File.File);
+		fflush(P.File.File); //CHECK: waste time???
 //		fclose(P.File.File);
 		for(ifr=0; ifr<P.Frame.Num; ifr++)
 			for(ip=0; ip<P.Num.Page; ip++)
