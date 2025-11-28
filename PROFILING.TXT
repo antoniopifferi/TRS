@@ -1,2 +1,8 @@
-Pre Calib	107.544000
-Post Calib	108.545000
+Pre Display	2.775517
+Post Display	2.783810
+Pre Display	2.994901
+Post Display	3.003040
+Pre Display	3.214435
+Post Display	3.228254
+Pre Calib	4.245775
+Post Calib	5.246797

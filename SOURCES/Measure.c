@@ -741,8 +741,10 @@ void KernelGen(){
 						if(P.Action.SpcOut) SpcOut(P.Action.Status);
 						if((P.Action.SpcFlow)&&P.Flow.Spcm) DmdTx_startSequence(DmdTx.handle); // TODO: fix this when you construct DMD class
 						if(P.Action.SpcFlow) SpcFlow(P.Action.Status);
-						if(P.Action.CheckMamm) CheckMammot(); 						
+						if(P.Action.CheckMamm) CheckMammot(); 
+						if(IS_PROFILING) RecProf("Pre Display");
 						if(P.Action.DisplayPlot) DisplayPlot();
+						if(IS_PROFILING) RecProf("Post Display");
 						//TODO if(P.Action.ReconsPy) ReconsPy();
 						if(P.Action.DisplayRoi) DisplayRoi();
 						if(P.Action.StopMamm) StopMammot();  
