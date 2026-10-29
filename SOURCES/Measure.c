@@ -3343,10 +3343,18 @@ void InitSwab(int Board){
 				if(ret<0) ErrHandler(ERR_SWAB,ret,"EVENT DIVIDER"); 
 				}
 			if(SW->Filter){ // Apply Filter
-				int filtered[1]; // filtered channel, i.e. Sync
-				filtered[0]=SW->DetSync; 
-				ret = Swab_TimeTag_TimeTagger_setConditionalFilter_1 (SW->Ttr, SW->DetSign, (ssize_t)P.Num.Det, filtered, 1, &SW->Except);
-				if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
+				if(SW->FilteredChann==SWAB_SYNC){
+					int filtered[1]; // filtered channel
+					filtered[0]=SW->DetSync; 
+					ret = Swab_TimeTag_TimeTagger_setConditionalFilter_1 (SW->Ttr, SW->DetSign, (ssize_t)P.Num.Det, filtered, 1, &SW->Except);
+					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
+					}
+				if(SW->FilteredChann==SWAB_SIGN){
+					int trigger[1]; // trigger channel
+					trigger[0]=SW->DetSync; 
+					ret = Swab_TimeTag_TimeTagger_setConditionalFilter_1 (SW->Ttr, trigger, 1, SW->DetSign, (ssize_t)P.Num.Det, &SW->Except);
+					if(ret<0) ErrHandler(ERR_SWAB,ret,"SET FILTER"); 
+					}
 				}
 			for(id=0;id<SWAB_MAX_DET;id++)
 				if(SW->DetType[id]!=SWAB_NONE){
@@ -3394,7 +3402,7 @@ void InitSwab(int Board){
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
-				if(SW->Filter)
+				if(SW->Filter&&(SW->FilteredChann==SWAB_SYNC))
 					ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSyncFreqMult,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except); // Invert Start & Stop since filtered is the next laser pulse
 				else
 					ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSign[id],SW->DetSyncFreqMult,SW->Binwidth,P.Chann.Num,&SW->Except);
@@ -3462,7 +3470,7 @@ void GetDataSwab(void){
 			if(ret<0) ErrHandler(ERR_SWAB,(short)ret,"GET DATA");
 			if(SW->Meas==SWAB_HIST)
 				for(ic=0;ic<arraylen;ic++)
-					if(SW->Filter)  // REVERSE DATA
+					if(SW->Reverse)  // REVERSE DATA
 						D.Buffer[ib][ic+id*P.Chann.Num]=(T_DATA) pData[arraylen-1-ic];
 					else
 						D.Buffer[ib][ic+id*P.Chann.Num]=(T_DATA) pData[ic];

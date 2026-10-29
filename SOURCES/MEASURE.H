@@ -90,7 +90,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1377
+#define MAX_TABLE		1379
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1762,6 +1762,8 @@ struct SwabS{
 	int SplitFile; // decide if to split files over loops
 	int Filter;
 	int FileIndex;
+	int FilteredChann;
+	int Reverse;
 	};
 
 

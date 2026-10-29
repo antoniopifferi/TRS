@@ -694,7 +694,7 @@ void CreateTable(void){
 	
 	
 	// SWAB PANEL
-	// 18*5+4+2+2
+	// 18*5+4+2+2+2
 	for(id=0;id<SWAB_MAX_DET;id++){
 		AddTab(CE,TINT,SWAB,SWAB_DETTYPE_1+id,"SwabDetType",id+1,0,&P.Spc.Swab[0].DetType[id]);
 		AddTab(CE,TDOUBLE,SWAB,SWAB_LEVEL_1+id,"SwabLevel",id+1,0,&P.Spc.Swab[0].Level[id]);
@@ -710,6 +710,8 @@ void CreateTable(void){
 	AddTab(CE,TINT,SWAB,SWAB_FREQDIV,"SwabFreqDiv",0,0,&P.Spc.Swab[0].FreqDiv);
 	AddTab(CE,TINT,SWAB,SWAB_FREQMULT,"SwabFreqMult",0,0,&P.Spc.Swab[0].FreqMult);
 	AddTab(CE,TINT,SWAB,SWAB_FILTER,"SwabFilter",0,0,&P.Spc.Swab[0].Filter);
+	AddTab(CE,TINT,SWAB,SWAB_FILTERED_CHANN,"SwabFilteredChannel",0,0,&P.Spc.Swab[0].FilteredChann);
+	AddTab(CE,TINT,SWAB,SWAB_REVERSE,"SwabReverse",0,0,&P.Spc.Swab[0].Reverse);
 
 	// MHARP PANEL
 	// 3*2+4 4+4
