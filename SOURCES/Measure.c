@@ -3446,6 +3446,11 @@ void GetDataSwab(void){
 	ssize_t arraylen;
 	int *pData;
 	struct SwabS* SW=&P.Spc.Swab[0];  // NOT WORKINNG FOR MULTIPLE BOARDS
+	double area;
+	
+		  
+	//ret = Swab_TimeTag_Countrate_getData (instanceHandle, &area, ssize_t &returnValueLength, &SW->Except);
+	//SetTableCellAttribute(hDisplay,DISPLAY_T_BOARD,MakePoint(1,1),ATTR_CTRL_VAL,area);
 	
 	for(int ib=0;ib<P.Num.Board;ib++) // NOT WORKINNG FOR MULTIPLE BOARDS      
 		for(id=0;id<P.Num.Det;id++){
