@@ -90,7 +90,7 @@
 #define RECOVERY_CONST				2
 
 /* TABLE CONSTANTS */  
-#define MAX_TABLE		1379
+#define MAX_TABLE		1380
 #define STRLEN_TABLE	20
 #define TCHAR			0
 #define TINT			1
@@ -1764,6 +1764,7 @@ struct SwabS{
 	int FileIndex;
 	int FilteredChann;
 	int Reverse;
+	int Start;
 	};
 
 

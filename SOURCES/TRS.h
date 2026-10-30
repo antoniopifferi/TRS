@@ -808,16 +808,17 @@
 #define  SWAB_HYSTERESIS_17               108     /* control type: ring, callback function: Setting */
 #define  SWAB_HYSTERESIS_18               109     /* control type: ring, callback function: Setting */
 #define  SWAB_TITLE                       110     /* control type: textMsg, callback function: (none) */
-#define  SWAB_FILTERED_CHANN              111     /* control type: ring, callback function: Setting */
-#define  SWAB_TYPE                        112     /* control type: ring, callback function: Setting */
-#define  SWAB_SPLITFILE                   113     /* control type: ring, callback function: Setting */
-#define  SWAB_MEAS                        114     /* control type: ring, callback function: Setting */
-#define  SWAB_REVERSE                     115     /* control type: binary, callback function: Setting */
-#define  SWAB_FILTER                      116     /* control type: binary, callback function: Setting */
-#define  SWAB_SAVETAGS                    117     /* control type: binary, callback function: Setting */
-#define  SWAB_FNAMEVIRT                   118     /* control type: string, callback function: Setting */
-#define  SWAB_FREQDIV                     119     /* control type: numeric, callback function: Setting */
-#define  SWAB_FREQMULT                    120     /* control type: numeric, callback function: Setting */
+#define  SWAB_START                       111     /* control type: ring, callback function: Setting */
+#define  SWAB_FILTERED_CHANN              112     /* control type: ring, callback function: Setting */
+#define  SWAB_TYPE                        113     /* control type: ring, callback function: Setting */
+#define  SWAB_SPLITFILE                   114     /* control type: ring, callback function: Setting */
+#define  SWAB_MEAS                        115     /* control type: ring, callback function: Setting */
+#define  SWAB_REVERSE                     116     /* control type: binary, callback function: Setting */
+#define  SWAB_FILTER                      117     /* control type: binary, callback function: Setting */
+#define  SWAB_SAVETAGS                    118     /* control type: binary, callback function: Setting */
+#define  SWAB_FNAMEVIRT                   119     /* control type: string, callback function: Setting */
+#define  SWAB_FREQDIV                     120     /* control type: numeric, callback function: Setting */
+#define  SWAB_FREQMULT                    121     /* control type: numeric, callback function: Setting */
 
 #define  SWITCH                           16      /* callback function: ClosePanel */
 #define  SWITCH_TEXTMSG_1                 2       /* control type: textMsg, callback function: (none) */

@@ -3402,8 +3402,8 @@ void InitSwab(int Board){
 	switch (SW->Meas){
 		case SWAB_HIST:
 			for(id=0;id<P.Num.Det;id++)
-				if(SW->Filter&&(SW->FilteredChann==SWAB_SYNC))
-					ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSyncFreqMult,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except); // Invert Start & Stop since filtered is the next laser pulse
+				if(SW->Start==SWAB_SIGN)
+					ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSyncFreqMult,SW->DetSign[id],SW->Binwidth,P.Chann.Num,&SW->Except); // Invert Start & Stop (Start is SIGN)
 				else
 					ret=Swab_TimeTag_Histogram__Create(&SW->Hist[id],SW->Ttb,SW->DetSign[id],SW->DetSyncFreqMult,SW->Binwidth,P.Chann.Num,&SW->Except);
 		break;
